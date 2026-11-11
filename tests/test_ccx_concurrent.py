@@ -25,7 +25,9 @@ def _task(k, delay, log, fail=False):
     return t
 
 
-def test_results_in_task_order_and_prefixed_lines():
+def test_results_in_task_order_and_prefixed_lines(monkeypatch):
+    # budget_threads() is capped by the physical cores of the machine (CI runners have 2) – the test needs room for 4
+    monkeypatch.setattr(parallel.config, "NUM_THREADS", 16)
     log, lines = [], []
     tasks = [_task(k, d, log) for k, d in enumerate((0.3, 0.05, 0.15))]
     out = run_tasks(tasks, 1000, None, lines.append, share=(3, 4))

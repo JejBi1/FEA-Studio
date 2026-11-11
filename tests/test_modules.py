@@ -263,6 +263,6 @@ def test_verification_imports_without_numba():
     code = ("import sys; sys.modules['numba'] = None\n"
             "import verification.run_all as r, verification.cases as C\n"
             "assert 'V1' in C.CASES\n")
-    p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+    p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, encoding="utf-8", errors="replace",
                        cwd=str(__import__("pathlib").Path(__file__).resolve().parents[1]))
     assert p.returncode == 0, p.stderr[-2000:]
