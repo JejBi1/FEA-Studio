@@ -1,0 +1,126 @@
+<h1>Heat</h1>
+<p class="lead">The Heat step computes heat conduction in the parts as a steady state or as a time history (transient case). Boundary conditions:
+prescribed temperature, heat flux, power, convection, radiation and heat generation. The temperature field can then load the mechanical analysis as thermal stress.</p>
+
+<h2>What the step can do</h2>
+<ul>
+<li>A <b>thermal case</b> is a separate heat problem with its own boundary conditions; several cases are computed separately.</li>
+<li><b>Steady state</b>: heat input must have a way out – at least one prescribed temperature, convection or radiation in every group of connected parts.</li>
+<li><b>Transient case</b>: time history from the initial temperature with a fixed step; the conditions act from time 0 and stay constant. Materials then also need density ρ and c_p.</li>
+<li><b>Thermal stress</b> is not computed here: add the load <b>“Temperature (thermal stress)”</b> to a mechanical case in <a href="zatizeni.html">Loads</a>.</li>
+<li><b>Heat only</b> is allowed: no supports or mechanical loads needed; empty mechanical load cases are then not sent to the analysis.</li>
+</ul>
+<p>Material properties in <a href="materialy.html">Materials</a>: <b>λ</b> [W/(m·K)] for conduction, <b>c_p</b> [J/(kg·K)] with ρ for transient cases, <b>α</b> [10⁻⁶/K] for thermal stress. Built-in examples: S235 steel λ = 53.3 W/(m·K), α = 12·10⁻⁶/K, c_p = 440 J/(kg·K); PLA λ = 0.13 W/(m·K), α = 68·10⁻⁶/K, c_p = 1800 J/(kg·K).</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Create a case with the <b>+</b> button and name it (adding a condition creates it automatically).</li>
+<li>Decide whether it is <b>transient</b>; enter duration, step and number of snapshots.</li>
+<li>Select faces in 3D, choose the <b>Type</b> and value, press <b>Add from selection</b>. A heat source needs only a part.</li>
+<li>Check the <b>Study temperatures</b> (reference and initial).</li>
+<li>For thermal stress add “Temperature (thermal stress)” to a mechanical case in Loads with “thermal case: …”.</li>
+</ol>
+
+<h2>Controls</h2>
+<h3>Thermal cases</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Case list</td><td>Selects the case being edited; its conditions show in colour in 3D, with arrows for flux and power (into the body).</td><td></td></tr>
+<tr><td><b>+</b> / <b>Rename</b> / <b>−</b></td><td>New, rename (thermal loads are renamed too), delete (also deletes thermal loads that refer to it; logged).</td><td></td></tr>
+<tr><td>transient</td><td>Switches steady state ↔ transient.</td><td></td></tr>
+<tr><td>Duration</td><td>Length of the process.</td><td>3600 s</td></tr>
+<tr><td>Time step</td><td>“auto (duration / 100)” = 100 steps; rounded up to a multiple of the snapshot count.</td><td>Smaller than the fastest process of interest</td></tr>
+<tr><td>Number of snapshots</td><td>Evenly spaced stored instants; the last is the end. t = 0 (initial temperature) is added.</td><td>10</td></tr>
+<tr><td colspan="3"><i>Duration, step, snapshots and temperatures are written when the edit is finished (Enter or leaving the field); only then are results discarded.</i></td></tr>
+<tr><td>Info row</td><td>Transient: steps, step length, snapshot interval. Steady: reminder that heat must have a way out.</td><td></td></tr>
+</table>
+
+<h3>Boundary conditions</h3>
+<p>The <b>Case boundary conditions</b> list shows the selected case; clicking loads a condition into the form and highlights its faces. <b>Save changes to selected</b> overwrites values (faces kept), <b>Faces from selection</b> replaces the faces, <b>Delete</b> removes it.</p>
+<table class="grid">
+<tr><th>Type</th><th>Input</th><th>Meaning and typical values</th></tr>
+<tr><td>Prescribed temperature</td><td>T [°C]</td><td>Constant face temperature (heat sink, bath, heater). The program computes the heat through the face.</td></tr>
+<tr><td>Heat flux [W/m²]</td><td>q [W/m²]</td><td>Density through the face; <b>positive = into the body</b>. Solar ~1000 W/m² × absorptivity.</td></tr>
+<tr><td>Heat power [W]</td><td>Q [W]</td><td>Total power spread uniformly over the selected faces; positive = into the body (cartridge heater, component losses).</td></tr>
+<tr><td>Heat transfer – convection</td><td>h [W/(m²·K)], T ambient [°C]</td><td>q = h·(T ambient − T). Free air 5–25, forced air 25–250, water 500–10 000 W/(m²·K).</td></tr>
+<tr><td>Radiation to surroundings</td><td>ε in (0; 1], T ambient [°C]</td><td>q = ε·σ·(T_amb⁴ − T⁴), absolute temperatures. Polished Al ~0.05, oxidized steel / anodized ~0.8, black paint ~0.95. Nonlinear (iterations).</td></tr>
+<tr><td>Heat generation in part</td><td>P [W], Part</td><td>Power uniform in the part's volume (winding losses, electronics). Choose the part in the list or click its face.</td></tr>
+</table>
+<p>The <b>T ambient</b> field appears only for convection and radiation, <b>Part</b> only for heat generation. A condition cannot be turned into another kind by editing; add a new one.</p>
+
+<h3>Study temperatures</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Reference (assembly)</td><td>Temperature with no thermal strain; thermal stress comes from ΔT = T − T_ref.</td><td>20 °C</td></tr>
+<tr><td>Initial (transient)</td><td>Temperature of the whole model at t = 0 for transient cases; with “= reference” checked it follows the reference.</td><td>= reference</td></tr>
+</table>
+<p>Below the form, red errors and orange warnings of the readiness check are listed; units are °C, W, W/m², W/(m²·K), λ [W/(m·K)], α [1/K], c_p [J/(kg·K)].</p>
+
+<h2>Heat balance</h2>
+<p>The equivalent of force equilibrium for a steady state. The heat of all conditions (faces by exact integration) must sum to zero: the residual must not exceed 0.1 % of the sum of absolute fluxes, otherwise the result is discarded. Results show <b>Boundary condition heat [W] (+ = into the body)</b> and “Heat balance: input … W, output … W, residual … W (… %)”. Transient cases are not checked (heat is stored in the parts).</p>
+
+<h2>Thermal stress</h2>
+<p>In <a href="zatizeni.html">Loads</a> choose <b>Temperature (thermal stress)</b> and in <b>Temperature from</b>:</p>
+<ul>
+<li><b>thermal case: …</b> – the field of a computed case; for a transient case enter <b>Time</b> or leave <b>end of case</b> checked (linear interpolation between snapshots).</li>
+<li><b>uniform part temperature</b> – T [°C] on the parts checked in the Parts list (none checked = all). It overrides the thermal field; at an interface of parts with different temperatures the node gets the average.</li>
+</ul>
+<p>A load case takes at most one thermal field. The stress is proportional to ΔT, so it superposes and works in fatigue. The equilibrium check refers to the restrained-expansion force Σ E·α·|ΔT|·V / L. CalculiX and the large-model solver handle it; thermal cases always run in CalculiX.</p>
+<p class="warn"><b>Caution:</b> stiffness and strength do not change with temperature. For plastics (PLA softens above ~50 °C) and steel above ~300 °C the result is non-conservative. Thermal expansion of 3D printing is isotropic.</p>
+
+<h3>Bolts and temperature</h3>
+<ul>
+<li>Bolts <b>do not conduct heat</b> (a beam has no volume); heat flows only through the faces where parts touch.</li>
+<li>A bolt expands with the <b>average temperature of its bearing faces</b>, α = 11.5·10⁻⁶/K (stainless “A…” 16·10⁻⁶/K). The mismatch changes the bolt force; stiffness and preload do not change.</li>
+<li>A bolt with a CAD clearance in its stack does not expand thermally (warning).</li>
+</ul>
+
+<h3>3D printing and heat</h3>
+<p>For printed parts the conductivity and heat capacity of each element are multiplied by the solid fraction (shell + infill). A part with 20 % infill conducts worse than a solid one. This is an indicative parallel-conduction model; air in the infill is neglected.</p>
+
+<h2>Results</h2>
+<p>In <a href="vysledky.html">Results</a> thermal cases follow the mechanical ones in the <b>Load case</b> list as “<b>Heat: </b><i>name</i>”; the deformation scale is off.</p>
+<table class="grid">
+<tr><th>Quantity</th><th>Meaning</th><th>Note</th></tr>
+<tr><td>Temperature [°C]</td><td>Nodal temperature; the probe interpolates inside the element.</td><td>At the selected time for transient cases.</td></tr>
+<tr><td>Heat flux |q| [W/m²]</td><td>Magnitude of the flux density.</td><td rowspan="2">Transient cases: end of the case only.</td></tr>
+<tr><td>Heat flux qx, qy, qz [W/m²]</td><td>Components in model axes.</td></tr>
+</table>
+<p>Transient cases get a <b>Time</b> selector (“t = 0 s” … “t = duration”). The info panel gives the maximum and minimum temperature with location, max |q|, reference temperature, heat of each condition and the balance. A mechanical case with a thermal load can show <b>Temperature</b> and all stresses.</p>
+
+<h2>Limitations</h2>
+<ul>
+<li>In this window radiation is only <b>to the surroundings</b>: no mutual irradiation of faces. Radiation between faces of a cavity (view factors computed by CalculiX, <code>CavityRadiation</code>) is available only through the Python API / study file (see <a href="automatizace.html">Automation</a>).</li>
+<li>Touching parts share nodes, so contact is <b>perfect</b> – no interface resistance. Model an insulating layer or paste as a thin part with its own λ. The same holds for <a href="kontakty.html">contact pairs</a> and split interfaces in this window (no contact conductance or opening in heat). A finite thermal contact conductance h_c of a contact pair (<code>ContactPair.conductance</code>) is available only through the Python API / study file.</li>
+<li>λ, c_p, h and ε do not depend on temperature. No fluid flow or phase change; convection is a boundary condition with a given h.</li>
+<li>Transient conditions are constant in time; each transient case starts from the initial temperature.</li>
+<li>MYSTRAN (cross-check) does not convert heat.</li>
+</ul>
+
+<h2>In the examples</h2>
+<h3>Example 1 “Printed bracket”</h3>
+<p>No thermal cases; the 30 °C in 3D printing only affects the creep estimate. To try thermal stress, add “Temperature (thermal stress)” to a new load case as a uniform part temperature of 40 °C. The part is held by a cylindrical support and a rest, so you see the restrained PLA expansion (α = 68·10⁻⁶/K).</p>
+<h3>Example 2 “Assembly”</h3>
+<p>Reference 20 °C. Both thermal cases share:</p>
+<ul>
+<li><b>Power 15 W</b> into the face “Post hole” (heater in the Ø10 hole),</li>
+<li><b>convection h = 10 W/(m²·K)</b>, T ambient 25 °C on “Arm surface” (all arm faces except the seat on the base),</li>
+<li><b>prescribed temperature 20 °C</b> on “Base bottom”.</li>
+</ul>
+<p><b>“Operation – steady state”</b>: in the heat table the hole (+15 W), the arm convection and the floor temperature must balance within 0.1 %; the arm can gain heat by convection where it is colder than the surroundings (25 °C). <b>“Ramp-up – 1 hour”</b>: transient, 3600 s, step 120 s (30 steps), 6 snapshots at 0, 600, 1200 … 3600 s – the steel post heats up. The mechanical case <b>“Heating in operation”</b> takes the steady-state temperature field. Steel (12·10⁻⁶/K) and PLA (68·10⁻⁶/K) expand differently: the arm, bolts and welds are stressed, and the bolts expand with their bearing-face temperature (warning). The arm conducts only by its solid fraction (25 % Gyroid infill); bolts conduct no heat.</p>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“Thermal case 'X': steady-state case has no path for heat to leave – specify a prescribed temperature, convection, or radiation”</b><br>
+Add a heat sink, or make the case transient.</li>
+<li><b>“Thermal case 'X': parts without a heat sink (no path to a prescribed temperature, convection, or radiation – the steady-state problem has no solution)”</b><br>
+The listed parts are not connected by a face to the heat exit; a bolt does not conduct heat. Add convection to them, or exclude them in <a href="spoje.html">Joints</a>.</li>
+<li><b>“Material 'X' (part 'Y') has no thermal conductivity k [W/(m·K)]”</b>, or “has no density and specific heat capacity c_p”, or “has no coefficient of thermal expansion α [1/K] (thermal load)”<br>
+Fill in λ, c_p or α in Materials. This applies to all meshed parts.</li>
+<li><b>“Thermal case 'X': heat balance does not close (residual … W, … % of fluxes). The result is invalid.”</b><br>
+Usually overlapping conditions on the same faces (temperature with flux or convection; two temperatures on a shared edge), or unconverged radiation. Check for overlaps and that the CalculiX iterations finished in the log.</li>
+<li><b>“Heat flux is stored only for the end of a transient case – choose the last time.”</b><br>
+Choose the last time to display flux, or shorten the duration.</li>
+<li><b>“Thermal case 'X': 50000 time steps – the analysis will take long”</b>, “the time step must be 0 (automatic) up to the case duration”<br>
+Each step costs one to two factorizations; increase the step or shorten the duration.</li>
+</ul>

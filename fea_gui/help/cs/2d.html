@@ -1,0 +1,42 @@
+<h1>2D analýza řezem</h1>
+<p class="lead">Analýza 2D řezu dílů rovinou: <b>osově symetrická úloha</b> (CAX6 – trubky, nádoby, příruby, kotouče),
+<b>rovinná napjatost</b> (CPS6 – tenké desky) nebo <b>rovinná deformace</b> (CPE6 – dlouhá tělesa). 2D síť může být mnohem jemnější
+a výpočet trvá sekundy. Nastavuje se v <a href="reseni.html">Řešení</a>, skupina <b>2D analýza řezem</b>.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Vazby a zatížení jako ve 3D na plochy modelu; převedou se na hrany řezu.</li>
+<li>Zaškrtněte <b>počítat 2D místo 3D</b>; zvolte <b>Typ úlohy</b>, bod, osu (válcové díly: <b>Osa z válce</b> s vybranou válcovou
+plochou) a směr x.</li>
+<li>Oranžový náhled ve 3D ukazuje polorovinu řezu. Spusťte výpočet.</li>
+<li>Ve Výsledcích vyberte případ <b>2D: …</b> a veličinu (σθ, σr, σz, von Mises, posuvy…).</li>
+</ol>
+
+<h2>Ovládání</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th></tr>
+<tr><td>počítat 2D místo 3D</td><td>výpočet 2D (výsledky „2D: …“) bez 3D sítě; bez vlastních frekvencí, vzpěru a únavy</td></tr>
+<tr><td>Typ úlohy</td><td>osově symetrická / rovinná napjatost / rovinná deformace</td></tr>
+<tr><td>Bod [mm]</td><td>bod roviny řezu; osová symetrie: bod na ose otáčení („Osa z válce“ = osa vybrané válcové plochy)</td></tr>
+<tr><td>Osa otáčení / Normála roviny</td><td>osová symetrie: směr osy; rovinná úloha: normála roviny</td></tr>
+<tr><td>Směr x (radiální)</td><td>osová symetrie: radiální směr poloroviny; rovinná úloha: osa x 2D. U výsečí <b>uvnitř výseče</b>, mimo roviny symetrie – např. (1; 1; 0) pro čtvrtinu</td></tr>
+<tr><td>Tloušťka</td><td>tloušťka rovinné úlohy [mm] (síly a reakce na plnou tloušťku)</td></tr>
+<tr><td>Velikost prvku</td><td>velikost 2D prvku [mm]; „stejně jako 3D síť“ = velikost z kroku Síť</td></tr>
+<tr><td>Díly</td><td>zaškrtnuté díly se řežou (nic = všechny)</td></tr>
+<tr><td>náhled roviny řezu ve 3D</td><td>oranžová polorovina / rovina a osa v Řešení</td></tr>
+</table>
+
+<h2>Co se převádí</h2>
+<ul>
+<li>Podpory (pevná vazba, posuv, symetrie), tlak, síla, tíha, otáčení → hrany řezu na vybraných plochách.
+Šrouby, svary, vzdálené podpory, teplo apod. dají chybu; žádné kontakty ani dynamika.</li>
+<li><b>Osová symetrie:</b> x = poloměr r ≥ 0, y = osa. Zatížení a reakce jsou <b>pro celý obvod</b>; σθ = obvodové napětí;
+uzly na ose jsou radiálně vetknuté.</li>
+<li><b>Rovinné úlohy:</b> síly a reakce na plnou tloušťku; rovinná deformace σz = ν(σx + σy).</li>
+</ul>
+
+<h2>Výsledky</h2>
+<p>2D síť se zobrazí v rovině řezu 3D okna (3D díly průhledné) s legendou, markery max / min a sondou (klik = hodnota).
+<b>Graf po čáře…</b> a <b>linearizace napětí</b> fungují i v 2D. Souhrn uvádí reakce v osách řezu a kontrolu rovnováhy.</p>
+<p>Ověřeno úlohami A1–A5 (Lamého trubka a koule, deska s otvorem, rovinná deformace, rotující kotouč) do 0,2 %; A1
+proti 3D (V4) 0,1–0,9 %: <code>python -m verification.run_all A1 A2 A3 A4 A5</code>.</p>

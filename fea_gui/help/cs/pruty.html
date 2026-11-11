@@ -1,0 +1,60 @@
+<h1>Pruty (rámy, příhradoviny, nosníky)</h1>
+<p class="lead">Krok Pruty definuje prutovou soustavu: uzly, pruty (přímé, oblouky, příhradové), průřezy (knihovna EN, parametrické, vlastní z plochy CAD),
+podpory a pružiny, spojení prutu s plochou tělesa a vstupy kontroly podle EN 1993-1-1. Soustava může stát samostatně
+(studie <b>bez CAD</b>) nebo být součástí modelu s tělesy.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Studie bez CAD: krok <a href="model.html">Model</a> → <b>Nový rám (bez CAD)</b> (také v nabídce <b>Nástroje</b>). S CAD přejděte do kroku Pruty.</li>
+<li>Záložka <b>Průřezy</b>: profil z knihovny (řada, nebo hledání „IPE 200“, „HEB200“, „L50x5“, „CHS 60.3x4“), parametrický tvar nebo
+rovinná plocha CAD → <b>Přidat průřez</b>.</li>
+<li>Záložka <b>Uzly</b>: název a souřadnice → <b>Přidat uzel</b>.</li>
+<li>Záložka <b>Pruty</b>: počáteční a koncový uzel, průřez, materiál, druh, orientace, klouby → <b>Přidat prut</b>.</li>
+<li>Záložka <b>Podpora</b>: uzel a zadržené složky (vetknutí, kloub) nebo pružiny.</li>
+<li>Zatížení prutů v kroku <a href="zatizeni.html">Zatížení</a> (síla / moment v uzlu, spojité zatížení prutu, tíha). Materiál v
+<a href="materialy.html">Materiálech</a>; bez CAD <b>Přiřadit všem</b> nastaví výchozí.</li>
+</ol>
+<p class="tip"><b>Tip:</b> klik na uzel nebo prut ve 3D vybere jeho řádek v tabulce (na záložce Podpora / Spojení vloží uzel do formuláře;
+v Zatížení vybere cíl zatížení prutu).</p>
+
+<h2>Ovládání</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td><b>Pruty z drátového modelu STEP…</b></td><td>volné hrany STEP (čáry, oblouky, křivky mimo tělesa) → uzly a pruty s průřezem vybraným na záložce Pruty</td><td>koncové body do 0,001 mm se spojí</td></tr>
+<tr><td><b>Nahradit díl prutem</b></td><td>nahradí díl vybrané plochy (tyč, profil): průřez z koncové plochy (profil z knihovny, pokud odpovídá), uzly v těžištích koncových ploch, spojení s dotýkajícími se plochami</td><td>díl se vynechá ze sítě; jen přímé hranolové tělesa</td></tr>
+<tr><td>Záložka <b>Uzly</b></td><td>tabulka uzlů, formulář (název, x, y, z), Přidat / Uložit změny / Smazat</td><td>přejmenování přenese odkazy; uzel s pruty nejde smazat</td></tr>
+<tr><td>Záložka <b>Pruty</b></td><td>uzly, průřez, materiál („default“ = výchozí studie), druh (nosník / příhradový), osa z průřezu (automaticky, vektor, normála oblouku, ke středu oblouku), natočení [°], oblouk přes bod, počet prvků (automaticky 20 na nosník), klouby N Vy Vz T My Mz na obou koncích</td><td>„kloub na začátku“, „klouby na obou koncích“ (My + Mz), „bez kloubů“</td></tr>
+<tr><td>Záložka <b>Průřezy</b></td><td>průřezy studie, nový průřez (knihovna / parametrický / plocha CAD), Náhled (obrys, A, I_y, I_z, I_t, I_w, W_el, W_pl, A_v), Přidat, Smazat</td><td>průřez z plochy se počítá MKP průřezu (sectionproperties, ~3 s)</td></tr>
+<tr><td>Záložka <b>Podpora</b></td><td>zadržené ux uy uz rx ry rz (globální), pružiny [N/mm, N·mm/rad]</td><td>předvolby vetknutí, kloub, posuvný kloub</td></tr>
+<tr><td>Záložka <b>Spojení s tělesem</b></td><td>uzel prutu pevně spojený s plochami tělesa vybranými ve 3D (jako šroub)</td><td>smíšený model prutů + těles</td></tr>
+<tr><td>Záložka <b>Kontrola EN 1993</b></td><td>ocel (S235…S460), γ_M0, γ_M1, dělení prutu, smykové přetvoření; u prutu L_cr,y, L_cr,z, L_LT, C1, z_g, boční podepření, styčníky s posuvem, provedení</td><td>změna nezruší výsledky MKP</td></tr>
+</table>
+
+<h2>Osy prutu a znaménka</h2>
+<p>Lokální <b>x</b> vede od počátečního ke koncovému uzlu, <b>z</b> = „nahoru“ průřezu (stojina profilu I), <b>y</b> = z × x (silná osa profilu I:
+ohyb My, průhyb ve směru z). Automaticky: z = průmět globální osy Z (svislý prut: globální X). N > 0 = tah.</p>
+
+<h2>Analýza a výsledky</h2>
+<ul>
+<li>Samotná soustava: <b>vestavěný řešič</b> s přesným Timošenkovým prvkem (dvojitá přesnost, jeden prvek na prut; diagramy N, V, T, M a posuvy se integrují analyticky), s kontrolou rovnováhy uzlů a reakcí. Prutový model s tělesem počítá CalculiX (prvek U1); vestavěný řešič lze pro srovnání přepnout na CalculiX U1.</li>
+<li><b>Vlastní frekvence</b> (krok Řešení; konzistentní hmota; příhradové pruty kmitají i lokálně) a <b>lineární vzpěr</b> samotné soustavy: vestavěný řešič (geometrická tuhost z normálových sil, Engesserova smyková oprava – α_cr podle EN 1993-1-1, 5.2.1). Vzpěr prutů s tělesy zatím není.</li>
+<li><a href="vysledky.html#pruty">Výsledky</a>: <b>Pruty – σ_eq, posuv, N, Vy, Vz, T, My, Mz, využití EN 1993</b> (diagramy kolmo na prut), záložka <b>Pruty</b> (extrémy a kontrola po prutech), tvary kmitů a vzpěru, reakce.</li>
+<li>Kontrola EN 1993-1-1: třída průřezu, únosnost (6.2), vzpěr, klopení a interakce (6.3, příloha B) ve všech stavech. U oblouků s R/h &lt; 10 se pro informaci zobrazí Winkler–Bach.</li>
+<li><b>Teplota prutu</b> (rovnoměrná ΔT, rozdíl přes průřez): vestavěný řešič, zadává se přes MCP (<code>fea_frame_load_temperature</code>); zabráněná dilatace N = −E·A·α·ΔT.</li>
+</ul>
+
+<h2>Kalkulačka nosníků</h2>
+<p><b>Nástroje → Kalkulačka nosníků…</b>: uzavřené vzorce bez MKP – prostě podepřený / vetknutý / konzola / spojitý nosník (V, M, w, reakce, extrémy, napětí M/W), zakřivený prut (Winkler–Bach), Eulerův vzpěr, kontrola prutu podle EN 1993-1-1 se zadanými silami.
+Zatížení a průhyb kladné dolů; M kladný = tah dole.</p>
+
+<h2>V ukázkách</h2>
+<p><b>Ukázka 6 – hala s rámem</b> (<code>examples/example6_hall_frame.fea</code>): dva rámy HEA 260 / IPE 300, vaznice UPE 160 s klouby,
+ztužení CHS (příhradové pruty), sníh, vítr, vlastní tíha, frekvence, vzpěr, kontrola.</p>
+
+<h2>Časté problémy</h2>
+<ul>
+<li><b>„Prut … nemá materiál“</b> – nastavte výchozí materiál studie (Materiály → Přiřadit všem) nebo materiál prutu.</li>
+<li><b>„Prutová soustava nemá podpory“</b> – přidejte podporu nebo spojení s tělesem.</li>
+<li><b>Mechanismus</b> (singulární úloha) – klouby na obou koncích v krutu, nebo uzel, jehož pruty mají všechny klouby bez otočné podpory.</li>
+<li><b>Vzpěr bez výsledku</b> – ve výchozím stavu nejsou tlaky. Lineární vzpěr bere jen normálovou sílu (bez deplanace a klopení); stabilitu posuďte podle EN 1993-1-1.</li>
+</ul>

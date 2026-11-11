@@ -1,0 +1,53 @@
+<h1>Pohyb (mechanismy)</h1>
+<p class="lead">Mechanismy z tuhých těles: animace, kinematika, reakce v kloubech, zatížení pohonů, energie. Okamžik nebo celý průběh
+jde do MKP jako zatěžovací stavy. Exudyn běží v samostatném procesu.</p>
+
+<h2>Postup</h2>
+<ol>
+<li><b>Tělesa</b>: díly, které se hýbou společně („Těleso pro každý díl“ je založí všechna). Jedno označte jako <b>zem</b> (může nemít díly).
+„Spočítat hmoty“ vezme hmotnost a těžiště z CAD (tištěné díly orientačně); těleso bez dílů je potřeba zadat ručně.</li>
+<li><b>Klouby</b>: „Navrhnout z geometrie“ najde čepy v souosých dírách; potvrďte v dialogu. Ostatní: typ, tělesa A → B, počátek a osa
+(„Osa z výběru“), dorazy s restitucí, tření. „Z metadat Fusion…“ načte klouby z exportu Fusion.</li>
+<li><b>Pohony a síly</b>: kinematický (úhel, posuv, rychlost) nebo silový (moment, síla) pohon; zákon konstantní, tabulka, sinus, polynom
+nebo <b>S-křivka</b> (omezený ráz); „Náhled“ ukáže obě derivace. Dále pružina, tlumič, krutová a plynová pružina, pouzdro, vnější zatížení, tíha.</li>
+<li><b>Analýza</b>: typ, délka, výstupy, kontrola kolize. <b>Kontrola DOF</b> = Grüblerův vzorec, pohyblivost, nadbytečné vazby.
+<b>Spustit pohyb</b>.</li>
+<li><b>Výsledky</b>: souhrn, animace („poloha CAD“ vrátí díly), graf libovolné veličiny, „Najít maximum“, „Přenést do MKP…“.</li>
+</ol>
+
+<h2>Typy kloubů</h2>
+<table class="grid">
+<tr><th>Kloub</th><th>Pohyb</th><th>Vazby (Grübler)</th></tr>
+<tr><td>Tuhý</td><td>žádný</td><td>6</td></tr>
+<tr><td>Rotační</td><td>otočení kolem osy</td><td>5</td></tr>
+<tr><td>Posuvný</td><td>posuv podél osy</td><td>5</td></tr>
+<tr><td>Válcový</td><td>otočení + posuv podél osy</td><td>4</td></tr>
+<tr><td>Čep v drážce</td><td>otočení + posuv podél drážky</td><td>3</td></tr>
+<tr><td>Rovinný</td><td>posuv v rovině + otočení kolem normály</td><td>3</td></tr>
+<tr><td>Kulový</td><td>otočení kolem bodu</td><td>3</td></tr>
+<tr><td>Univerzální</td><td>dvě otočení ⟂ osy kloubu (otočení kolem osy se přenáší)</td><td>4</td></tr>
+<tr><td>Šroubový</td><td>otočení spojené s posuvem (stoupání)</td><td>5</td></tr>
+<tr><td>Ozubení, hřeben a pastorek</td><td>dva klouby spojené poměrem</td><td>1</td></tr>
+<tr><td>Vzdálenost (spojka)</td><td>stálá vzdálenost dvou bodů</td><td>1</td></tr>
+</table>
+<p class="warn"><b>Nadbytečné vazby</b> (rovinný mechanismus z rotačních kloubů ve 3D, víko na dvou souosých pantech): pohyb je správný,
+ale <b>reakce se mezi klouby dělí nejednoznačně</b> (součet platí). Použijte rotační + kulový / válcový, poddajné pouzdro, nebo
+nadbytečné klouby při přenosu nastavte jako podpory.</p>
+
+<h2>Tření v kloubu</h2>
+<p>Z reakce kloubu: Coulomb μ·|R|·r (čep: s vůlí, zaběhnutý, přesný), viskózní c·v, Stribeck, valivé ložisko M = μ·F·d/2, vodicí šroub.
+Součinitele: <a href="treni.html">Tření a tlumení</a>.</p>
+
+<h2>Přenos do MKP</h2>
+<ul>
+<li><b>Okamžik</b> (zadané časy) nebo <b>okamžik maxima</b> veličiny → zatěžovací stav: reakce jako vzdálená zatížení (RBE3) na plochách
+kloubů, setrvačnost a tíha jako zatížení „Setrvačnost“ v osách tělesa.</li>
+<li>Jeden kloub je <b>podpora</b> (vzdálená podpora, odlehčení setrvačností); její reakce se musí shodovat s MBD – porovná <b>Kontrola podpory</b>.</li>
+<li><b>Celý průběh</b> → jednotkové zatěžovací stavy (6 složek na kloub, 12 setrvačných) a kanály pro únavu (krok Únava).</li>
+<li>Kloub potřebuje <b>plochu</b> (díra, čep): u navržených automaticky, jinak „Plocha A / B z výběru“.</li>
+</ul>
+
+<h2>Řešiče a poddajná tělesa</h2>
+<p><b>Exudyn</b> (výchozí); <b>Chrono</b> (kontakt těles z CAD) je volitelný, bez něj šedý. <b>Poddajné těleso</b>
+(Craig–Bampton, tvary s pevným rozhraním): dynamická analýza, jen izotropní materiály.</p>
+<p class="tip">Kontrola kolize bez kontaktu: tělesa se prostupují; hlásí se jen nejmenší vzdálenost a první kolize.</p>

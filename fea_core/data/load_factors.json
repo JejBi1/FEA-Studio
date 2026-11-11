@@ -1,0 +1,133 @@
+{
+  "comment": "Součinitele zatížení a kombinační součinitele podle evropských norem pro navrhování konstrukcí.",
+  "standards": {
+    "CSN_EN_1990": {
+      "title": "ČSN EN 1990 ed. 2 (730002) - Eurokód: Zásady navrhování konstrukcí",
+      "national_annex": "ČSN EN 1990 ed. 2 / Změna A1 (2021) - Národní příloha NA",
+      "psi_factors_table": "Tabulka A1.1 - Hodnoty součinitelů psi pro pozemní stavby",
+      "psi": {
+        "cat_A": {
+          "description": "Kategorie A: obytné plochy",
+          "psi_0": 0.7,
+          "psi_1": 0.5,
+          "psi_2": 0.3
+        },
+        "cat_B": {
+          "description": "Kategorie B: kancelářské plochy",
+          "psi_0": 0.7,
+          "psi_1": 0.5,
+          "psi_2": 0.3
+        },
+        "cat_C": {
+          "description": "Kategorie C: shromažďovací plochy",
+          "psi_0": 0.7,
+          "psi_1": 0.7,
+          "psi_2": 0.6
+        },
+        "cat_D": {
+          "description": "Kategorie D: obchodní plochy",
+          "psi_0": 0.7,
+          "psi_1": 0.7,
+          "psi_2": 0.6
+        },
+        "cat_E": {
+          "description": "Kategorie E: skladovací plochy",
+          "psi_0": 1.0,
+          "psi_1": 0.9,
+          "psi_2": 0.8
+        },
+        "cat_F": {
+          "description": "Kategorie F: dopravní plochy, tíha vozidla <= 30 kN",
+          "psi_0": 0.7,
+          "psi_1": 0.7,
+          "psi_2": 0.6
+        },
+        "cat_G": {
+          "description": "Kategorie G: dopravní plochy, 30 kN < tíha vozidla <= 160 kN",
+          "psi_0": 0.7,
+          "psi_1": 0.5,
+          "psi_2": 0.3
+        },
+        "cat_H": {
+          "description": "Kategorie H: střechy",
+          "psi_0": 0.0,
+          "psi_1": 0.0,
+          "psi_2": 0.0
+        },
+        "snow_cz_low": {
+          "description": "Zatížení sněhem pro stavby v ČR s nadmořskou výškou H <= 1000 m n.m. (ČSN EN 1991-1-3)",
+          "psi_0": 0.5,
+          "psi_1": 0.2,
+          "psi_2": 0.0
+        },
+        "snow_cz_high": {
+          "description": "Zatížení sněhem pro stavby s nadmořskou výškou H > 1000 m n.m.",
+          "psi_0": 0.7,
+          "psi_1": 0.5,
+          "psi_2": 0.2
+        },
+        "wind": {
+          "description": "Zatížení větrem (ČSN EN 1991-1-4)",
+          "psi_0": 0.6,
+          "psi_1": 0.2,
+          "psi_2": 0.0
+        },
+        "temperature": {
+          "description": "Zatížení teplotou (kromě požáru, ČSN EN 1991-1-5)",
+          "psi_0": 0.6,
+          "psi_1": 0.5,
+          "psi_2": 0.0
+        }
+      },
+      "design_situations": {
+        "STR_GEO_6_10": {
+          "name": "MSÚ STR/GEO - rovnice 6.10",
+          "description": "Mezní stav únosnosti: porušení nebo nadměrná deformace konstrukce / základové půdy",
+          "citation": "ČSN EN 1990 Tabulka A1.2(B), výraz 6.10; ČSN EN 1990/NA.2.3.2",
+          "gamma_G_unfav": 1.35,
+          "gamma_G_fav": 1.00,
+          "gamma_Q_unfav": 1.50,
+          "gamma_Q_fav": 0.00
+        },
+        "STR_GEO_6_10a_6_10b": {
+          "name": "MSÚ STR/GEO - rovnice 6.10a a 6.10b",
+          "description": "Alternativní postup podle Tabulky A1.2(B) s redukčním součinitelem xi (v ČR povoleno)",
+          "citation": "ČSN EN 1990 Tabulka A1.2(B), výrazy 6.10a a 6.10b; ČSN EN 1990/NA.2.3.2",
+          "gamma_G_unfav": 1.35,
+          "gamma_G_fav": 1.00,
+          "xi": 0.85,
+          "gamma_Q_unfav": 1.50,
+          "gamma_Q_fav": 0.00
+        },
+        "EQU": {
+          "name": "MSÚ EQU - ztráta statické rovnováhy",
+          "description": "Ztráta statické rovnováhy konstrukce nebo její části považované za tuhé těleso",
+          "citation": "ČSN EN 1990 Tabulka A1.2(A)",
+          "gamma_G_unfav": 1.10,
+          "gamma_G_fav": 0.90,
+          "gamma_Q_unfav": 1.50,
+          "gamma_Q_fav": 0.00
+        },
+        "SLS_CHAR": {
+          "name": "MSP charakteristická - rovnice 6.14",
+          "description": "Mezní stav použitelnosti pro nevratné mezní stavy (průhyby, trhliny)",
+          "citation": "ČSN EN 1990 Čl. 6.5.3, výraz 6.14",
+          "gamma_G": 1.00,
+          "gamma_Q": 1.00
+        },
+        "SLS_FREQ": {
+          "name": "MSP častá - rovnice 6.15",
+          "description": "Mezní stav použitelnosti pro vratné mezní stavy (kmitání, komfort)",
+          "citation": "ČSN EN 1990 Čl. 6.5.3, výraz 6.15",
+          "gamma_G": 1.00
+        },
+        "SLS_QUASI": {
+          "name": "MSP kvazistálá - rovnice 6.16",
+          "description": "Mezní stav použitelnosti pro dlouhodobé účinky (dotvarování)",
+          "citation": "ČSN EN 1990 Čl. 6.5.3, výraz 6.16",
+          "gamma_G": 1.00
+        }
+      }
+    }
+  }
+}

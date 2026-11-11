@@ -1,0 +1,112 @@
+<h1>Síť</h1>
+<p class="lead">Gmsh vytváří kvadratické čtyřstěny tet10 (v CalculiXu C3D10). Jemnost sítě určuje přesnost napětí a dobu výpočtu.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Zadejte <b>Velikost prvku</b> (největší délka hrany prvku, mm).</li>
+<li>Tam, kde záleží na napětí (oko, vrub, svar), přidejte <b>Místní zjemnění</b>: vyberte plochy ve 3D a klikněte na <b>Zjemnit výběr</b>.</li>
+<li>Klikněte na <b>Vytvořit síť</b>; počet uzlů a prvků a min. škálovaný jakobián zkontrolujte pod tlačítkem a v logu.</li>
+</ol>
+<p>Krok Řešení si síť vytvoří sám; vytvoření zde slouží jen ke kontrole. <b>Každá změna</b> geometrie, výběrů, materiálů, spojů, nastavení tisku nebo sítě zahodí síť (tečka kroku zoranžoví) i výsledky.</p>
+
+<h2>Ovládací prvky</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Velikost prvku</td><td>Globální maximální velikost prvku [mm].</td><td>Výchozí 5 mm. Ukázka 1: 2,5 mm, ukázka 2: 4 mm.</td></tr>
+<tr><td>Min. velikost</td><td>Dolní mez velikosti prvku [mm].</td><td><i>auto</i> = 1/20 velikosti prvku (0,25 mm při 5 mm). Zvyšte, když drobnosti zbytečně nafukují síť.</td></tr>
+<tr><td>Prvků na kružnici</td><td>Počet prvků na celý obvod (2π) zakřivené plochy.</td><td>Výchozí 12, rozsah 0–72, 0 = <i>vypnuto</i>. Při 12: díra Ø5 má prvky asi 1,3 mm, Ø10 asi 2,6 mm. Pro koncentraci napětí v díře 16–24.</td></tr>
+<tr><td>Místní zjemnění – seznam</td><td>Zjemněné výběry jako „název: velikost mm“. Klik na řádek zvýrazní plochy.</td><td>Ve 3D tyrkysové.</td></tr>
+<tr><td>Pole velikosti + Zjemnit výběr</td><td>Vybraným plochám předepíše menší prvek; vznikne výběr „Zjemnění 1“, „Zjemnění 2“…</td><td>Obvykle 1/3–1/2 globální velikosti; roste plynule a globální hodnoty dosáhne ve vzdálenosti 4× globální velikost prvku.</td></tr>
+<tr><td>Smazat zjemnění</td><td>Odstraní vybraný řádek (plochy i koule).</td><td></td></tr>
+<tr><td><b>Zjemnit okolí bodu (koule)</b>: Střed, R, prvek</td><td>Zjemnění uvnitř koule, i v objemu (místo maxima napětí, kořen svaru, vrub).</td>
+<td>Střed zadejte číslem, nebo vyberte bod filtrem <b>Bod</b> <span class="key">V</span> a stiskněte <b>Bod z výběru</b> (jinak střed hrany nebo těžiště ploch), případně filtr Hrana → „Použít střed“. R = 2–5× velikost detailu. Ve 3D tyrkysové kružnice.</td></tr>
+<tr><td>Vytvořit síť / Zrušit</td><td>Spustí Gmsh v samostatném procesu na pozadí; Zrušit ho ukončí.</td><td></td></tr>
+<tr><td>Text pod tlačítky</td><td>„N uzlů, M prvků C3D10, min. škálovaný jakobián X“.</td><td>DOF = 3 × počet uzlů.</td></tr>
+</table>
+<p class="tip"><b>Tip:</b> vypněte <b>Zobrazit síť</b> – díly se ukážou a plochy lze vybírat přímo v kroku Síť (výběry se přenášejí z kroků Vazby a Zatížení). Filtr <span class="key">H</span> vybere celou díru.</p>
+
+<h3>Nastavení, která v panelu nejsou</h3>
+<p>Oddíl <code>mesh</code> v <code>study.json</code> (uvnitř projektu .fea) má ještě tyto položky; běžně je neměňte:</p>
+<ul>
+<li><code>order</code> = 2 – kvadratické tet10 (čtyřstěn tet4 je v ohybu příliš tuhý).</li>
+<li><code>optimize_high_order</code> = true – optimalizuje zakřivené prvky, jen když je min. škálovaný jakobián pod 0,2 (jinak až 70 % času síťování).</li>
+<li><code>algorithm3d</code> = 10 – HXT (asi 2× rychlejší než Delaunay). Při selhání se použije Delaunay (1) s varováním.</li>
+<li><code>threads</code> = 0 – jedno vlákno Gmsh, síť je opakovatelná. Vyšší hodnoty jsou rychlejší, ale síť se mezi běhy liší.</li>
+</ul>
+
+<h2>Konvergence sítě</h2>
+<p>Ve <a href="vysledky.html#konvergence">Výsledcích</a>: tlačítko <b>Konvergence sítě…</b> (jemnější sítě, Richardson, GCI) a veličina <b>Odhad chyby napětí</b> (nad ~10 % zjemnit v místě).
+U 3D tisku kritická místa zjemníte tlačítkem v kroku <a href="tisk.html">3D tisk</a>.</p>
+
+<h2>Díly síťované samostatně (*TIE)</h2>
+<p>Díly, které se dotýkají plochou, sdílejí uzly. Když to nejde (tečný styk, „PLC Error: segment and facet intersect“) nebo má díl vlastní síť,
+zaškrtněte ho v <a href="spoje.html">Spojích</a> v seznamu <b>Díly síťované samostatně</b>; připojí se k sousedům vazbou *TIE (spojení jsou v tabulce pod seznamem a ve Zprávách).</p>
+
+<h2>Kvalita sítě</h2>
+<p>Měřítkem je <b>škálovaný jakobián</b> (SJ): 1 = ideální, 0 = plochý, záporný = naruby (nepoužitelný).</p>
+<ul>
+<li><b>min. SJ ≥ 0,2</b> – v pořádku.</li>
+<li><b>0 &lt; min. SJ &lt; 0,2</b> – optimalizují se zakřivené prvky (varování v logu „Zakřivené prvky min. SJ … – optimalizace vyššího řádu“).</li>
+<li><b>min. SJ ≤ 0</b> i po optimalizaci – síť se vytvoří znovu <b>s rovnými hranami</b>; díry a čepy se nahradí plôškami a napětí v nich je méně přesné. Zmenšete velikost prvku nebo zvyšte Prvků na kružnici.</li>
+</ul>
+
+<h2>Jak zvolit velikost prvku</h2>
+<ul>
+<li><b>Přes ohýbanou stěnu aspoň 2, lépe 3 prvky tet10</b> (deska 6 mm → 2–3 mm). Méně prvků podhodnotí ohybové napětí.</li>
+<li><b>V hodnoceném místě</b> (zaoblení, díra, vrub) aspoň 3–4 prvky na poloměr – místním zjemněním.</li>
+<li><b>Konvergence:</b> rozhodující místo zjemněte 2× a porovnejte; změna pod 5 % stačí. Pokud napětí stále roste, jde o singularitu (ostrý roh, hrana podpory) – viz <a href="vysledky.html">Výsledky</a>.</li>
+<li><b>Velikost úlohy:</b> poloviční prvek znamená asi 8× víc prvků a DOF (DOF ≈ 5 × počet tet10).</li>
+</ul>
+
+<h3>Tištěné díly</h3>
+<p>Tištěný díl má tuhou skořepinu (perimetry, plné vrstvy) a měkčí jádro z výplně. Podíl skořepiny se počítá v každém prvku, síť ji tedy nemusí kopírovat.
+Tloušťka skořepiny = perimetry × šířka linie (3 × 0,42 = 1,26 mm) a plné vrstvy × výška vrstvy (3 × 0,2 = 0,6 mm).</p>
+<ul>
+<li>Prvek u povrchu větší než 3× nejtenčí skořepina vyvolá varování „3D tisk '…': prvky u povrchu (…) jsou mnohem větší než skořepina…“. Tuhost je dobrá, napětí ve skořepině ale závisí na síti.</li>
+<li>Řešení: <b>místní zjemnění</b> jen v kritických místech (oko, kořen ramene) na 1–1,5 mm. Nezjemňujte celý povrch: držák 80×20×12 mm s prvkem 0,6 mm u povrchu měl 507 tis. uzlů a CalculiX potřeboval 15 GB.</li>
+</ul>
+
+<h2>Sestavy: společná (konformní) síť</h2>
+<p>Díly, které se v CADu dotýkají plochou, jsou <b>pevně spojené</b> (jako slepené): na stykových plochách vzniknou společné uzly.</p>
+<ul>
+<li>Mezera (i 0,01 mm) spojení neudělá. Bez šroubu, svaru nebo vazby jsou díly volnými tělesy a výpočet skončí chybou.</li>
+<li>Díly, které se dotýkají jen hranou nebo bodem, sdílejí jen několik uzlů – nereálné. Zkontrolujte tabulku <b>Spojené díly (sdílená síť)</b> v <a href="spoje.html">Spojích</a>.</li>
+<li>Šrouby se nesíťují (nahradí je nosník); dosedací plochy pod hlavou a maticí se zjemní na 0,25 × d (M6 → 1,5 mm). Svar se síťuje tělesem s prvkem velikosti a (je-li menší než globální).</li>
+<li>Díly vynechané z výpočtu se nesíťují.</li>
+<li><b>Kontaktní páry</b> (<a href="kontakty.html">Kontakty</a>) se síťují <b>samostatně</b> (nekonformně, nutné u přesahu), nebo konformně s <b>rozpojenou spárou</b> (šroubové spoje). Změna párů, stran nebo síťování spáry vyžaduje novou síť; změna μ, K, λ nebo přesahu ne.</li>
+</ul>
+
+<h2>Doba a paměť (orientačně, notebook 8 jader / 16 vláken)</h2>
+<table class="grid">
+<tr><th>Model</th><th>Síť (Gmsh)</th><th>Výpočet</th></tr>
+<tr><td>44 tis. prvků tet10, 213 tis. DOF</td><td>asi 4 s</td><td>CalculiX PARDISO asi 20 s</td></tr>
+<tr><td>197 tis. DOF, 3 zatěžovací stavy</td><td>asi 2 s</td><td>CalculiX asi 34 s</td></tr>
+<tr><td>706 tis. DOF</td><td>–</td><td>CalculiX asi 130 s a 6,8 GB RAM</td></tr>
+<tr><td>1,4 mil. DOF</td><td>Gmsh asi 0,3 GB</td><td>CalculiX nad 10 GB → <a href="reseni.html">řešič pro velké modely</a></td></tr>
+</table>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 – tištěný držák</h3>
+<ul>
+<li>Velikost prvku <b>2,5 mm</b>, bez místního zjemnění, Prvků na kružnici 12 (Ø5 vruty asi 1,3 mm, oko Ø8 asi 2,1 mm).</li>
+<li>Deska 6 mm má 2–3 prvky přes tloušťku, rameno 8 mm asi 3.</li>
+<li>Nejtenčí vrstva skořepiny je 0,6 mm (spodní vrstvy), takže prvek 2,5 mm vyvolá varování o hrubé síti. Zjemněte oko a kořen ramene na 1–1,5 mm a porovnejte bezpečnost tisku.</li>
+</ul>
+<h3>Ukázka 2 – sestava</h3>
+<ul>
+<li>Velikost prvku <b>4 mm</b>, místní zjemnění <b>Oko ramena: 1,5 mm</b>.</li>
+<li>Patka 10 mm a příruba ramene 8 mm mají 2–3 prvky přes tloušťku.</li>
+<li>Pod hlavami a maticemi šroubů M6 se síť zjemní automaticky na 1,5 mm; svary a4 mají globální prvek 4 mm.</li>
+<li>Patka, sloupek, svary a rameno sdílejí jednu síť; spojení zajišťují šrouby a svary.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<table class="grid">
+<tr><th>Hlášení / projev</th><th>Příčina a řešení</th></tr>
+<tr><td>„Objemová síť se nevytvořila – geometrie se pravděpodobně protíná nebo se díly dotýkají tečně … Gmsh: …“</td><td>Díly se překrývají nebo dotýkají tečně (čep v drážce, válec na rovině). Opravte geometrii (vůle nebo jasný styk) nebo díl vynechejte v <a href="spoje.html">Spojích</a>.</td></tr>
+<tr><td>„Díly 'A' a 'B' se překrývají (objem …); překryv přiřazen dílu 'A'“</td><td>Interference v CADu (šroub bez díry, nalisovaný kolík). Výpočet poběží, ale společný objem patří jednomu dílu. Opravte model.</td></tr>
+<tr><td>„Výběr '…': po fragmentaci nalezeno X z Y mm²“ nebo „Některé vybrané plochy nebyly nalezeny“</td><td>Plocha se při spojení rozdělila nebo zmizela pod jiným dílem. Vyberte volnou část plochy, nebo výběr obnovte tlačítkem <b>Plochy z výběru</b> v Vazbách / Zatížení.</td></tr>
+<tr><td>„Výběr '…': plocha není na povrchu tělesa“</td><td>Styková plocha dvou dílů je nyní uvnitř sestavy. Vazbu nebo zatížení dejte na vnější plochu.</td></tr>
+<tr><td>„Zakřivené prvky s nekladným jakobiánem…; síť vytvořena znovu s rovnými hranami“</td><td>Příliš velké prvky na malých rádiusech. Zmenšete Velikost prvku, zvyšte Prvků na kružnici nebo místně zjemněte.</td></tr>
+<tr><td>Statisíce prvků kvůli drobnostem</td><td>Sražení, závity, loga zjemňují síť. Zvyšte Min. velikost, snižte Prvků na kružnici, nebo detaily odstraňte v CADu.</td></tr>
+</table>

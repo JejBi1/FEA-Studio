@@ -1,0 +1,9 @@
+{
+	"server": "http://127.0.0.1:8765",
+	"token": "",
+	"fea_studio_home": "C:\\Programy\\FEA_studio",
+	"export_dir": "",
+	"open_gui": true,
+	"open_study": true,
+	"timeout_s": 300
+}

@@ -1,0 +1,54 @@
+<h1>Motion (mechanisms)</h1>
+<p class="lead">Rigid-body mechanisms: animation, kinematics, joint reactions, driver loads, energies. An instant or the whole
+history goes to FEA as load cases. Exudyn runs in a separate process.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li><b>Bodies</b>: parts moving together (“Body for each part” creates all). Mark one the <b>ground</b> (may have no parts).
+“Compute masses” takes mass and centre of gravity from CAD (printed parts indicative); a body without parts needs them entered.</li>
+<li><b>Joints</b>: “Suggest from geometry” finds pins in coaxial holes; confirm in the dialog. Others: type, bodies A → B,
+origin and axis (“Axis from selection”), stops with restitution, friction. “From Fusion metadata…” loads Fusion joints.</li>
+<li><b>Drivers and forces</b>: kinematic (angle, displacement, velocity) or force (torque, force) driver; law constant, table,
+sine, polynomial or <b>S-curve</b> (limited jerk); “Preview” shows both derivatives. Also spring, damper, torsion and gas spring,
+bushing, external loads, gravity.</li>
+<li><b>Analysis</b>: type, duration, outputs, collision check. <b>DOF check</b> = Grübler formula, mobility, redundant constraints.
+<b>Run motion</b>.</li>
+<li><b>Results</b>: summary, animation (“CAD position” returns the parts), chart of any quantity, “Find maximum”, “Transfer to FEA…”.</li>
+</ol>
+
+<h2>Joint types</h2>
+<table class="grid">
+<tr><th>Joint</th><th>Motion</th><th>Constraints (Grübler)</th></tr>
+<tr><td>Rigid</td><td>none</td><td>6</td></tr>
+<tr><td>Revolute</td><td>rotation about an axis</td><td>5</td></tr>
+<tr><td>Slider</td><td>translation along an axis</td><td>5</td></tr>
+<tr><td>Cylindrical</td><td>rotation + translation along the axis</td><td>4</td></tr>
+<tr><td>Pin slot</td><td>rotation + translation along the slot</td><td>3</td></tr>
+<tr><td>Planar</td><td>in-plane translation + rotation about the normal</td><td>3</td></tr>
+<tr><td>Ball</td><td>rotation about a point</td><td>3</td></tr>
+<tr><td>Universal</td><td>two rotations ⟂ the joint axis (axis rotation transmitted)</td><td>4</td></tr>
+<tr><td>Screw</td><td>rotation coupled with translation (lead)</td><td>5</td></tr>
+<tr><td>Gear, rack and pinion</td><td>two joints coupled by a ratio</td><td>1</td></tr>
+<tr><td>Distance (link)</td><td>constant distance of two points</td><td>1</td></tr>
+</table>
+<p class="warn"><b>Redundant constraints</b> (planar mechanism of revolute joints in 3D, lid on two coaxial hinges): motion is right,
+but <b>reactions split between joints ambiguously</b> (sum holds). Use revolute + ball / cylindrical, a compliant bushing, or make
+redundant joints supports in the transfer.</p>
+
+<h2>Joint friction</h2>
+<p>From the joint reaction: Coulomb μ·|R|·r (pin: clearance, worn-in, fitted), viscous c·v, Stribeck, rolling bearing
+M = μ·F·d/2, lead screw. Coefficients: <a href="treni.html">Friction and damping</a>.</p>
+
+<h2>Transfer to FEA</h2>
+<ul>
+<li><b>Instant</b> (given times) or <b>instant of the maximum</b> of a quantity → load case: reactions as remote loads (RBE3) on
+joint faces, inertia and gravity as the “Inertia” load in body axes.</li>
+<li>One joint is the <b>support</b> (remote support, inertia relief); its reaction must match MBD – <b>Support check</b> compares.</li>
+<li><b>Whole history</b> → unit load cases (6 components per joint, 12 inertial) and fatigue channels (Fatigue step).</li>
+<li>A joint needs a <b>face</b> (hole, pin): automatic for suggested joints, otherwise “Face A / B from selection”.</li>
+</ul>
+
+<h2>Solvers and flexible bodies</h2>
+<p><b>Exudyn</b> (default); <b>Chrono</b> (contact of CAD bodies) is optional, greyed out without it. A <b>flexible body</b>
+(Craig–Bampton, fixed-interface modes): dynamic analysis, isotropic materials only.</p>
+<p class="tip">Collision check without contact: bodies pass through each other; only minimum distance and first collision are reported.</p>

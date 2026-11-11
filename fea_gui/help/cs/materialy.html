@@ -1,0 +1,206 @@
+<h1>2. Materiály</h1>
+<p class="lead">Přiřazení materiálu dílům z vestavěné nebo vlastní knihovny, úprava vlastností a převodník označení ocelí a slitin mezi normami (ČSN, EN, W.Nr., DIN, AISI…).</p>
+
+<h2>Postup</h2>
+<ol>
+<li>V seznamu dílů vyberte díly (<span class="key">Ctrl</span> / <span class="key">Shift</span> = více), nebo klikněte na díly ve 3D (<span class="key">Ctrl</span>+klik přidá).</li>
+<li>V rozbalovacím seznamu zvolte materiál – jeho vlastnosti se načtou do skupiny <b>Vlastnosti</b>. Nebo napište označení z výkresu do <b>Převodníku</b>, který vybere odpovídající materiál sám.</li>
+<li>Vlastnosti případně upravte (u změněného materiálu změňte i <b>Název</b>).</li>
+<li><b>Přiřadit vybraným</b>, nebo <b>Přiřadit všem</b>.</li>
+</ol>
+<p>Seznam dílů ukazuje materiál každého dílu v hranatých závorkách. Díl bez vlastního přiřazení používá <b>výchozí materiál</b> studie – v nové studii ocel S235; <b>Přiřadit všem</b> nastaví nový výchozí.</p>
+
+<h2>Ovládací prvky</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam dílů</td><td>Vybere díly pro přiřazení; vybrané jsou zvýrazněny ve 3D.</td><td>„Patka   [Ocel S235]“</td></tr>
+<tr><td>Seznam materiálů</td><td>Vestavěná knihovna, vlastní knihovna a materiály této studie; výběr načte vlastnosti.</td><td></td></tr>
+<tr><td><b>Převodník</b> (pole „označení ČSN / EN / W.Nr. / AISI / JIS…“)</td><td>Najde označení, ukáže ekvivalenty v jiných normách a shodný nebo podobný materiál knihovny.</td><td>12050, 11 373, St 52-3, 1.4301, AISI 304, SAE1045, 6061</td></tr>
+<tr><td><b>Vlastnosti materiálu…</b></td><td>Otevře okno s formulářem: název, E, ν, ρ, Re, Rm, λ, α, c_p, zdroj a ortotropní konstanty; pod převodníkem je shrnutí formuláře.</td><td>Okno může zůstat otevřené; díly lze dál vybírat ve 3D.</td></tr>
+<tr><td><b>Přiřadit vybraným</b> / <b>Přiřadit všem</b></td><td>Vybrané díly (nebo všechny, jako výchozí) dostanou materiál z formuláře pod zadaným názvem.</td><td></td></tr>
+<tr><td><b>Uložit do mé knihovny materiálů</b></td><td>Uloží materiál do vlastní knihovny.</td><td>Cesta k souboru v bublině</td></tr>
+</table>
+
+<h2>Vlastnosti materiálu</h2>
+<table class="grid">
+<tr><th>Pole</th><th>Význam a použití</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Název</b></td><td>Pod tímto názvem je materiál uložen ve studii.</td><td>jiný název = nový materiál</td></tr>
+<tr><td><b>E</b> [MPa]</td><td>Youngův modul – tuhost.</td><td>ocel 210 000, Al 70 000, PLA 2 700–3 500</td></tr>
+<tr><td><b>ν</b></td><td>Poissonovo číslo.</td><td>ocel 0,30, Al 0,33, plasty 0,36–0,38; nejvýše 0,499</td></tr>
+<tr><td><b>ρ</b> [kg/m³]</td><td>Hustota – vlastní tíha, hmotnost, přechodové vedení tepla (interně uložena v t/mm³).</td><td>ocel 7 850</td></tr>
+<tr><td><b>Re (Rp0,2)</b> [MPa]</td><td>Mez kluzu – výsledek <b>Bezpečnost k Re</b>, svary, šrouby.</td><td>0 = nezadáno (plasty)</td></tr>
+<tr><td><b>Rm</b> [MPa]</td><td>Pevnost v tahu – odhad S-N pro únavu, f_u svaru, tištěné díly (v rovině vrstvy XY).</td><td></td></tr>
+<tr><td><b>λ (vodivost)</b> [W/(m·K)]</td><td>Nutná pro každý síťovaný díl, je-li ve studii tepelný stav.</td><td>ocel 53, nerez 15, Al 170, PLA 0,13; 0 = nezadáno</td></tr>
+<tr><td><b>α (roztažnost)</b> [·10⁻⁶/K]</td><td>Nutná pro tepelné zatížení.</td><td>ocel 12, nerez 16, Al 23,4, PLA 68</td></tr>
+<tr><td><b>c_p (tepelná kapacita)</b> [J/(kg·K)]</td><td>Jen pro přechodové vedení tepla (spolu s ρ).</td><td>ocel 440, Al 900, PLA 1 800</td></tr>
+<tr><td><b>Zdroj</b></td><td>Odkud hodnoty pocházejí (norma, katalogový list, zkouška); jde do protokolu.</td><td></td></tr>
+</table>
+<p>λ, α a c_p s hodnotou 0 znamenají „nezadáno“. Potřebné jsou jen pro <a href="teplo.html">vedení tepla</a> a <a href="zatizeni.html">tepelná zatížení</a>; kontrola připravenosti chybějící hodnotu ohlásí.</p>
+
+<h3>Tištěné materiály</h3>
+<p>Materiály „Tisk …“ jsou ortotropní: E a Rm platí v rovině vrstvy (XY), ostatní hodnoty kolmo na vrstvy. Pod formulářem je kurzívou shrnutí: „Tištěný materiál (E, Rm = rovina vrstvy XY): E_z … MPa, Rm_z … MPa“. E_z, ν_xz, G mezi vrstvami, Rm_z, pevnosti v tlaku a smyku se upravují v kroku <a href="tisk.html">3D tisk</a> (skupina „Tištěný materiál – plná extruze (100 % výplň)“) a při úpravě zde se zachovají.</p>
+
+<h3>Ortotropní materiál</h3>
+<p>Materiál se třemi navzájem kolmými osami symetrie (dřevo, kompozit, vrstvený svazek). V okně <b>Vlastnosti materiálu…</b> zaškrtněte skupinu <b>Ortotropní materiál (osy 1, 2, 3)</b> a zadejte:</p>
+<table class="grid">
+<tr><th>Konstanty</th><th>Význam</th></tr>
+<tr><td>E1, E2, E3 [MPa]</td><td>Moduly ve směru os 1, 2, 3 (E a ν výše se pak nepoužijí; E = E1, ν = ν12).</td></tr>
+<tr><td>ν12, ν13, ν23</td><td>Poissonova čísla: ε<sub>j</sub> = −ν<sub>ij</sub>·σ<sub>i</sub>/E<sub>i</sub> (konvence CalculiXu / Abaqus).</td></tr>
+<tr><td>G12, G13, G23 [MPa]</td><td>Smykové moduly.</td></tr>
+<tr><td>α1, α2, α3 [10⁻⁶/K]</td><td>Volitelné – teplotní roztažnost ve směru os; <i>izotropní</i> = α materiálu.</td></tr>
+</table>
+<p><b>Osy materiálu</b> pochází z souřadné soustavy (tlačítko <b>Systémy…</b>, stejné jako u zatížení): globální osy (1, 2, 3 = x, y, z), lokální kartézská soustava, nebo <b>válcová</b> (1 = radiální, 2 = tečná, 3 = podél osy – potrubí, navíjené díly, kmen). Tlačítko <b>Vyplnit izotropně z E, ν</b> předvyplní konstanty. Konstanty musí dát pozitivně definitní matici – kontroluje se v kroku Řešení.</p>
+<p class="warn"><b>Pozor:</b> bezpečnost k Re a von Mises se u ortotropního materiálu nepoužijí – složky napětí vyhodnoťte v osách materiálu proti jeho pevnostem (napětí ve výsledcích jsou v globálních osách). Ortotropní materiál řeší CalculiX (automatická volba ho vybere). Pro tisk použijte <a href="tisk.html">3D tisk</a>.</p>
+
+<h2>Vestavěná knihovna</h2>
+<p>Rozsáhlý katalog s hodnotami z mezinárodních norem (EN, ISO, ASTM), katalogových listů výrobců (Bambu Lab, Prusament, EOS, SSAB Hardox, Renishaw, AddUp a 3D Systems pro prášky L-PBF) a literatury o kompozitech (MIL-HDBK-17, Daniel &amp; Ishai, Wood Handbook).</p>
+
+<h3>Konstrukční, vysokopevnostní, otěruvzdorné a nástrojové oceli</h3>
+<table class="grid">
+<tr><th>Materiál</th><th>E [MPa] / Re / Rm [MPa]</th><th>Zdroj a poznámka</th></tr>
+<tr><td>Ocel S235, Ocel S275, Ocel S355</td><td>210 000 / 235, 275, 355 / 360, 430, 470</td><td>EN 10025-2; teplo EN 1993-1-2</td></tr>
+<tr><td>Ocel S690QL</td><td>210 000 / 690 / 800</td><td>EN 10025-6 (vysokopevnostní zušlechtěná, např. Weldox 700)</td></tr>
+<tr><td>Ocel S960QL</td><td>210 000 / 960 / 1 050</td><td>EN 10025-6 (ultra vysoká pevnost, mobilní jeřáby)</td></tr>
+<tr><td>Ocel Hardox 450</td><td>210 000 / 1 200 / 1 450</td><td>SSAB TDS (otěruvzdorný plech 450 HBW)</td></tr>
+<tr><td>Ocel C45 +N</td><td>210 000 / 340 / 620</td><td>EN ISO 683-1 (nelegovaná ocel se středním obsahem uhlíku)</td></tr>
+<tr><td>Ocel 16MnCr5</td><td>210 000 / 600 / 850</td><td>EN 10084 (cementační ocel; vlastnosti jádra)</td></tr>
+<tr><td>Ocel 42CrMo4 +QT</td><td>210 000 / 900 / 1 100</td><td>EN ISO 683-2 (zušlechtěná ocel Cr-Mo)</td></tr>
+<tr><td>Ocel 34CrNiMo6 +QT</td><td>210 000 / 800 / 1 000</td><td>EN ISO 683-2 (silně namáhané dynamické díly, kliková hřídel)</td></tr>
+<tr><td>Ocel 51CrV4</td><td>210 000 / 1 100 / 1 350</td><td>EN 10089 (pružinová ocel, zušlechtěná)</td></tr>
+<tr><td>Ocel 100Cr6</td><td>210 000 / 1 700 / 2 000</td><td>EN ISO 683-17 / ČSN 14 109 (ložisková ocel)</td></tr>
+<tr><td>Ocel 1.2379</td><td>210 000 / 1 650 / 1 950</td><td>EN ISO 4957 (X153CrMoV12 / AISI D2; střihací nástroje, 60 HRC)</td></tr>
+<tr><td>Ocel 1.2343</td><td>215 000 / 1 300 / 1 520</td><td>EN ISO 4957 (X37CrMoV5-1 / AISI H11; nástroje pro tváření za tepla)</td></tr>
+</table>
+<p>Hodnoty ocelí platí pro tloušťky do 16 mm, není-li uvedeno jinak. Pro silnější díly nebo jiné tepelné zpracování definujte vlastní materiály.</p>
+
+<h3>Nerezové oceli, superslitiny a litiny</h3>
+<table class="grid">
+<tr><th>Materiál</th><th>E [MPa] / Re / Rm [MPa]</th><th>Zdroj a poznámka</th></tr>
+<tr><td>Nerez 1.4301, Nerez 1.4404</td><td>200 000 / 210, 220 / 520, 530</td><td>EN 10088-3 (austenitická, AISI 304, 316L)</td></tr>
+<tr><td>Nerez 1.4016</td><td>220 000 / 260 / 450</td><td>EN 10088-3 (AISI 430, feritická)</td></tr>
+<tr><td>Nerez 1.4057</td><td>215 000 / 600 / 800</td><td>EN 10088-3 (AISI 431, martenzitická +QT800)</td></tr>
+<tr><td>Nerez 1.4542</td><td>196 000 / 1 000 / 1 070</td><td>EN 10088-3 (17-4 PH / AISI 630, H1025)</td></tr>
+<tr><td>Nerez 1.4462</td><td>200 000 / 460 / 700</td><td>EN 10088-3 (duplex 2205)</td></tr>
+<tr><td>Inconel 718</td><td>205 000 / 1 030 / 1 240</td><td>AMS 5662 / ASTM B637 (niklová superslitina 2.4668, do 650 °C)</td></tr>
+<tr><td>Šedá litina EN-GJL-150</td><td>100 000 / – / 150 (tlak 600)</td><td>EN 1561 (GG-15, dobré tlumení vibrací)</td></tr>
+<tr><td>Šedá litina EN-GJL-250</td><td>115 000 / – / 250 (tlak 800)</td><td>EN 1561 (GG-25; v tahu křehká)</td></tr>
+<tr><td>Tvárná litina EN-GJS-400-15</td><td>165 000 / 250 / 400</td><td>EN 1563 (GGG-40, A = 15 %)</td></tr>
+<tr><td>Tvárná litina EN-GJS-500-7</td><td>170 000 / 320 / 500</td><td>EN 1563 (GGG-50, vysoká houževnatost)</td></tr>
+</table>
+
+<h3>Lehké a neželezné slitiny (hliník, hořčík, titan, měď, bronz, mosaz)</h3>
+<table class="grid">
+<tr><th>Materiál</th><th>E [MPa] / Re / Rm [MPa]</th><th>Zdroj a poznámka</th></tr>
+<tr><td>Hliník EN AW-6082 T6</td><td>70 000 / 260 / 310</td><td>EN 755-2 (konstrukční AlSi1MgMn)</td></tr>
+<tr><td>Hliník EN AW-6061 T6</td><td>69 000 / 240 / 290</td><td>EN 755-2 / ASTM B221 (AlMg1SiCu)</td></tr>
+<tr><td>Hliník EN AW-6060 T6</td><td>69 000 / 150 / 190</td><td>EN 755-2 (AlMgSi0.5, profily z lisování)</td></tr>
+<tr><td>Hliník EN AW-7075 T6</td><td>71 700 / 480 / 540</td><td>EN 754-2 (letecká slitina AlZn5.5MgCu)</td></tr>
+<tr><td>Hliník EN AW-2024 T3</td><td>73 000 / 290 / 440</td><td>EN 755-2 (duralumínium AlCu4Mg1)</td></tr>
+<tr><td>Hliník EN AW-5083 H111</td><td>70 000 / 125 / 275</td><td>EN 755-2 (námořní, AlMg4.5Mn0.7)</td></tr>
+<tr><td>Hliník EN AC-43000</td><td>75 000 / 230 / 340</td><td>EN 1706 (slévárenská AlSi10Mg, T6)</td></tr>
+<tr><td>Hořčík AZ91D</td><td>45 000 / 150 / 230</td><td>ASTM B94 / EN-MC21120 (tlakové lití, ρ = 1,81 g/cm³)</td></tr>
+<tr><td>Titan třída 5 (Ti-6Al-4V)</td><td>114 000 / 830 / 900</td><td>ASTM B348 / ISO 5832-3</td></tr>
+<tr><td>Titan třída 2</td><td>105 000 / 275 / 345</td><td>ASTM B348 (čistý titan)</td></tr>
+<tr><td>Měď Cu-ETP</td><td>115 000 / 200 / 260</td><td>EN 13601 (CW004A / E-Cu58, R250)</td></tr>
+<tr><td>Bronz CuSn8</td><td>115 000 / 300 / 450</td><td>EN 12163 (CW453K / ČSN 42 3123, pružné kontakty a pouzdra)</td></tr>
+<tr><td>Hliníkový bronz CuAl10Fe3Mn2</td><td>110 000 / 350 / 700</td><td>EN 12163 (CW306G / ČSN 42 3046, kluzné)</td></tr>
+<tr><td>Mosaz CuZn40</td><td>105 000 / 250 / 440</td><td>EN 12164 (CW509L)</td></tr>
+<tr><td>Mosaz CuZn39Pb3</td><td>105 000 / 250 / 420</td><td>EN 12164 (CW614N / ČSN 42 3213 / Ms58)</td></tr>
+</table>
+
+<h3>3D tisk – polymery FDM / FFF / SLS a filamenty</h3>
+<p>Plná extruze / slinování (100 % výplň). Hodnoty ve směru stavby Z jsou v závorce (příčná izotropie v kroku 3D tisk):</p>
+<table class="grid">
+<tr><th>Materiál</th><th>E [MPa] (XY / Z)</th><th>Rm [MPa] (XY / Z)</th><th>Zdroj a poznámka</th></tr>
+<tr><td>Tisk PLA Bambu Basic</td><td>2 680 / 2 160</td><td>39 / 35</td><td>Bambu Lab TDS PLA Basic V2.0 (ISO 527)</td></tr>
+<tr><td>Tisk PLA obecně (Z 60 %)</td><td>3 000 / 2 500</td><td>45 / 27</td><td>literatura (snížení mezi vrstvami 50–70 %)</td></tr>
+<tr><td>Tisk PETG (orientačně)</td><td>2 000 / 1 700</td><td>45 / 30</td><td>orientační průměr (ISO 527)</td></tr>
+<tr><td>Tisk ASA Prusament</td><td>1 600 / 1 700</td><td>42 / 11</td><td>Prusament ASA TDS (přilnavost vrstev 11 MPa)</td></tr>
+<tr><td>Tisk ABS Bambu</td><td>2 200 / 1 960</td><td>33 / 28</td><td>Bambu Lab TDS ABS (do 90 °C)</td></tr>
+<tr><td>Tisk PC Blend Prusament</td><td>1 900 / 2 000</td><td>63 / 63</td><td>Prusament PC Blend TDS (Tg 115 °C)</td></tr>
+<tr><td>Tisk PLA-CF Bambu</td><td>4 200 / 2 300</td><td>52 / 28</td><td>Bambu Lab TDS PLA-CF</td></tr>
+<tr><td>Tisk PETG-CF Bambu</td><td>2 460 / 1 340</td><td>35 / 29</td><td>Bambu Lab TDS PETG-CF</td></tr>
+<tr><td>Tisk PAHT-CF Bambu</td><td>3 860 / 2 180</td><td>92 / 47</td><td>Bambu Lab TDS PAHT-CF</td></tr>
+<tr><td>Tisk TPU 95A Bambu</td><td>80 / 65</td><td>30 / 23</td><td>Bambu Lab TDS TPU 95A (Shore 95A)</td></tr>
+<tr><td>Tisk PEEK</td><td>3 800 / 2 700</td><td>95 / 45</td><td>ThermaX PEEK TDS (ISO 527, Tg 143 °C, Tm 343 °C, žíhání 200 °C)</td></tr>
+<tr><td>Tisk PEI Ultem 9085</td><td>2 400 / 2 000</td><td>68 / 40</td><td>Stratasys Ultem 9085 TDS (ASTM D638, letecký termoplast FAR 25.853)</td></tr>
+<tr><td>Tisk SLS PA12</td><td>1 650 / 1 550</td><td>48 / 42</td><td>EOS PA 2200 MDS (kvazi-izotropní)</td></tr>
+<tr><td>PLA tisk XY, PETG tisk XY (orientačně)</td><td>3 500, 2 000 (izotropní)</td><td>50, 45</td><td>izotropní odhad, ponechán pro starší studie</td></tr>
+</table>
+
+<h3>Kovy pro 3D tisk (L-PBF)</h3>
+<p>Kovy z laserového tavení prášku v loži (L-PBF, dříve SLM / DMLS). Program je bere jako <b>izotropní</b>: krok <a href="tisk.html">3D tisk</a> (perimetry, výplň) je určen pro plasty FDM, takže kovový díl se tiskne plný. Vlastnosti tištěného kovu ale silně závisí na <b>tepelném zpracování</b> (stav po tisku má zbytková pnutí a u Ti-6Al-4V nízkou tažnost), na <b>směru stavby</b> (mez kluzu a tažnost bývají ve směru Z nižší; u 17-4PH je rovina XY slabší) a na stroji. Knihovna proto bere nejnižší hodnoty z uvedených zdrojů pro Re a Rm (obvykle směr Z) a název říká podmínku: <i>as-built</i> = bez tepelného zpracování; <i>annealed / stress-relieved / aged / hardened / HIP</i> = po uvedeném zpracování.</p>
+<table class="grid">
+<tr><th>Materiál</th><th>E [MPa] / Re / Rm [MPa]</th><th>Zdroj a podmínka</th></tr>
+<tr><td>Ti-6Al-4V L-PBF as-built</td><td>111 000 / 1 100 / 1 250</td><td>AddUp MDS Ti6Al4V ELI (as-built, A 10 %)</td></tr>
+<tr><td>Ti-6Al-4V L-PBF annealed</td><td>115 000 / 900 / 1 010</td><td>Renishaw RenAM 500 MDS (800 °C/4 h); Gao et al. 2025, Materials 18:3475</td></tr>
+<tr><td>Ti-6Al-4V L-PBF HIP</td><td>115 000 / 810 / 910</td><td>Gao et al. 2025 (HIP 920 °C/150 MPa); AddUp MDS (940 °C/4 h); ASTM F2924</td></tr>
+<tr><td>AlSi10Mg L-PBF as-built, odpouštěno</td><td>70 000 / 230, 155 / 395, 260</td><td>Renishaw RenAM 500 MDS (as-built; 275 °C/2 h)</td></tr>
+<tr><td>316L L-PBF as-built, žíhaná</td><td>190 000, 185 000 / 495, 395 / 595, 625</td><td>Renishaw RenAM 500 MDS (as-built; 900 °C/2 h)</td></tr>
+<tr><td>17-4PH L-PBF kalená H900</td><td>165 000 / 890 / 1 115</td><td>Renishaw RenAM 500 MDS (1040 °C + 480 °C/1 h)</td></tr>
+<tr><td>Inconel 718 L-PBF as-built, stárnutá</td><td>170 000, 190 000 / 585, 1 160 / 950, 1 385</td><td>Renishaw RenAM 500 MDS (as-built; 980 °C + 720/620 °C)</td></tr>
+<tr><td>Inconel 625 L-PBF as-built, žíhaná</td><td>170 000, 180 000 / 585, 505 / 860, 825</td><td>Renishaw RenAM 500 MDS (as-built; 1048 °C/1 h)</td></tr>
+<tr><td>Maraging 1.2709 L-PBF as-built, stárnutá</td><td>160 000, 175 000 / 820, 1 850 / 975, 1 915</td><td>Renishaw RenAM 500 MDS M300 (as-built; 490 °C/6 h)</td></tr>
+<tr><td>CoCrMo L-PBF as-built, žíhaná</td><td>220 000, 230 000 / 685, 560 / 1 190, 1 065</td><td>Renishaw RenAM 500 MDS Co28Cr6Mo (as-built; 1050 °C/2 h)</td></tr>
+<tr><td>Ocel 1.2344 (H13) L-PBF kalená</td><td>198 000 / 1 485 / 1 760</td><td>Renishaw RenAM 500 MDS (1020 °C + 560 °C)</td></tr>
+<tr><td>Scalmalloy L-PBF</td><td>70 000 / 470 / 500</td><td>3D Systems Certified Scalmalloy (A) (325 °C/4 h)</td></tr>
+<tr><td>CuCrZr L-PBF stárnutá</td><td>120 000 / 470 / 495</td><td>Xie et al. 2023, J. Mater. Res. Technol. 23:3322 (λ 255 W/(m·K) ve Z)</td></tr>
+</table>
+<p class="warn"><b>Pozor:</b> hodnoty jsou orientační. U nosných dílů vytiskněte zkušební tělesa na stejném stroji se stejnými parametry, směrem stavby a tepelným zpracováním (ISO 6892-1 / ASTM E8) a naměřené hodnoty zadejte jako vlastní materiál. Stav po tisku (drsnost Ra 5–15 µm) a póry výrazně snižují únavovou pevnost; pro únavu zadejte S-N křivku pro daný povrch (HIP a obrábění ji zlepšují).</p>
+
+<h3>Ortotropní vlákna a dřevo</h3>
+<p>Definováno 9 nezávislými pružnými konstantami v osách materiálu (osa 1 = směr vláken nebo dřeňových paprsků):</p>
+<table class="grid">
+<tr><th>Materiál</th><th>E1 / E2 / E3 [MPa]</th><th>G12 / G13 / G23 [MPa]</th><th>ν12 / ν13 / ν23</th><th>Pevnost Rm / Rc [MPa]</th><th>Zdroj a skladba</th></tr>
+<tr><td>Kompozit CFRP UD</td><td>140 000 / 10 000 / 10 000</td><td>5 000 / 5 000 / 3 500</td><td>0,30 / 0,30 / 0,40</td><td>1 500 / 1 200</td><td>MIL-HDBK-17-2F / Tsai-Hahn (AS4/3501-6)</td></tr>
+<tr><td>Kompozit CFRP HM</td><td>210 000 / 7 000 / 7 000</td><td>4 500 / 4 500 / 3 000</td><td>0,30 / 0,30 / 0,40</td><td>1 800 / 1 000</td><td>Toray M40J / epoxid (vysoký modul)</td></tr>
+<tr><td>Kompozit CFRP tkanina 2D</td><td>65 000 / 65 000 / 10 000</td><td>5 000 / 3 800 / 3 800</td><td>0,05 / 0,30 / 0,30</td><td>600 / 550</td><td>Daniel &amp; Ishai (keprová tkanina 2D)</td></tr>
+<tr><td>Kompozit GFRP UD</td><td>43 000 / 11 000 / 11 000</td><td>4 500 / 4 500 / 3 500</td><td>0,28 / 0,28 / 0,42</td><td>1 000 / 700</td><td>MIL-HDBK-17-2F (sklo/epoxid UD)</td></tr>
+<tr><td>Kompozit GFRP tkanina 2D</td><td>24 000 / 24 000 / 10 000</td><td>4 200 / 3 500 / 3 500</td><td>0,13 / 0,30 / 0,30</td><td>380 / 320</td><td>Barbero: FEA of Composites (vyvážená skleněná tkanina)</td></tr>
+<tr><td>Kompozit AFRP UD (Kevlar 49)</td><td>76 000 / 5 500 / 5 500</td><td>2 300 / 2 300 / 1 800</td><td>0,34 / 0,34 / 0,40</td><td>1 400 / 280</td><td>MIL-HDBK-17-2F (aramid/epoxid)</td></tr>
+<tr><td>Smrkové dřevo</td><td>11 000 / 750 / 450</td><td>700 / 600 / 50</td><td>0,38 / 0,45 / 0,55</td><td>80 / 40</td><td>DIN 68364 / Wood Handbook (L, R, T při 12 % vlhkosti)</td></tr>
+<tr><td>Bukové dřevo</td><td>14 000 / 1 600 / 900</td><td>1 200 / 850 / 250</td><td>0,45 / 0,50 / 0,70</td><td>120 / 60</td><td>DIN 68364 / Wood Handbook (listnáč, 12 % vlhkosti)</td></tr>
+</table>
+
+<h2>Tření mezi materiály</h2>
+<p>Součinitel tření patří dvojici povrchů, ne jednomu materiálu, proto ho formulář materiálu nemá. Pro <a href="kontakty.html">kontakty</a> (μ = 0 ve formuláři páru = z knihovny) a tření v kloubech <a href="pohyb.html">mechanismů</a> si program vezme μ z <b>knihovny tření</b> podle dvojice materiálů a účelu: pro přenos síly třením (prokluz spoje, lisovaný spoj) dolní mez μ_min, pro odpor mechanismu horní mez μ_max. Hodnoty se zdroji a orientační tlumení jsou na stránce <a href="treni.html">Tření a tlumení</a>; vlastní naměřené hodnoty uložíte v <b>Nástroje → Kalkulačky… → Knihovna tření</b>.</p>
+
+<h2>Vlastní knihovna materiálů</h2>
+<p>Soubor <code>%APPDATA%\FEAStudio\materials.json</code>. <b>Uložit do mé knihovny materiálů</b> přidá materiál z formuláře; materiál se stejným názvem se nahradí. Vestavěný materiál nejde přepsat – zvolte jiný název. Vlastní materiály jsou nabízeny ve všech studiích; studie si navíc drží vlastní kopii použitých materiálů, takže se otevře i na počítači bez vaší knihovny.</p>
+
+<h2>Převodník označení</h2>
+<p>Zadejte označení z výkresu v libovolném systému – ČSN (11 373, 12 050.1, 17 240), EN (S235JR, C45E), W.Nr. (1.0503), DIN (St 52-3, Ck45), AISI/SAE, UNS, ASTM, JIS, KS, GB, GOST, PN, AFNOR, BS. Zná i nové materiály knihovny (1.4542 / 17-4 PH, 100Cr6 / AISI 52100, 1.2379 / AISI D2, CuZn39Pb3 / CW614N) a kovy pro 3D tisk (2.4856 / Inconel 625, 1.2344 / H13, Co28Cr6Mo, CuCrZr / CW106C, Scalmalloy). Ukáže:</p>
+<ul>
+<li>skupinu a rodinu materiálu („jen přibližná shoda“ = ekvivalent není přesný, označen „≈“);</li>
+<li>označení v jiných normách, případně jiné možné skupiny („Také:“);</li>
+<li><b>V knihovně:</b> odkaz na shodný materiál knihovny (vybere se hned), nebo <b>podobné</b> materiály s rozdílem (složení, Rm) – klik na odkaz materiál vybere;</li>
+<li>počet záznamů S-N v databázi PragTic (použijete je v kroku <a href="unava.html">Únava</a>).</li>
+</ul>
+<p class="warn"><b>Pozor:</b> převodník mapuje označení, ne vlastnosti konkrétní tavby. Rozhodují hodnoty normy pro váš stav a tloušťku (mez kluzu s tloušťkou klesá; +N / +QT / +C se liší).</p>
+
+<h2>Úprava a nový materiál</h2>
+<ul>
+<li>Vyberte nejbližší materiál, upravte hodnoty, <b>změňte Název</b> (např. „S355 t = 40 mm“) a přiřaďte.</li>
+<li>Přiřazení pod existujícím názvem přepíše materiál studie se stejným názvem u všech dílů, které ho používají.</li>
+<li>Materiály, které po přiřazení žádný díl nepoužívá (a nejsou výchozí), se ze studie odstraní.</li>
+<li>Chcete-li materiál zachovat pro další studie, uložte jej tlačítkem <b>Uložit do mé knihovny materiálů</b>.</li>
+</ul>
+<p class="tip"><b>Tip:</b> přiřazení materiálu nemaže ostatní materiály studie (kalibrovaný tištěný materiál, materiály variant tisku); nepoužité materiály nejsou v protokolu.</p>
+
+<h2>V ukázkách</h2>
+<ul>
+<li><b>Ukázka 1 – tištěný držák:</b> jediný díl má <b>Tisk PLA Bambu Basic</b> (výchozí materiál studie). Pod formulářem je E_z 2 160 MPa a Rm_z 35 MPa; skořepina, výplň a směr stavby jsou v kroku 3D tisk. Re není zadáno, proto se bezpečnost bere z výsledku „3D tisk – bezpečnost“, ne z „Bezpečnost k Re“.</li>
+<li><b>Ukázka 2 – sestava:</b> patka, sloupek a svary mají výchozí <b>Ocel S235</b>, rameno <b>Tisk PLA Bambu Basic</b>. Oba mají λ, α a c_p, takže projdou ustálený i přechodový tepelný stav i teplotní napětí. Šrouby nedostávají třídu z materiálu, ale z názvu dílu (8.8).</li>
+</ul>
+<p class="tip"><b>Tip:</b> do Převodníku napište „11 375“ – vybere se Ocel S235; „12050“ ukáže skupinu C45 (1.0503, AISI 1045, S45C…) a vybere Ocel C45 +N.</p>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„Díl '…' nemá přiřazený materiál“</b> – díl nemá ani vlastní, ani výchozí materiál (studie vytvořená skriptem nebo ručně upravený study.json). Vyberte díl a stiskněte <b>Přiřadit vybraným</b>, nebo <b>Přiřadit všem</b>.</li>
+<li><b>„Materiál '…' (díl '…') nemá tepelnou vodivost k [W/(m·K)]“</b> / <b>„… nemá hustotu ani měrnou tepelnou kapacitu c_p (nutné pro přechodový stav)“</b> – studie má tepelný stav. Doplňte λ (a pro přechodový stav ρ a c_p) a přiřaďte znovu.</li>
+<li><b>„Materiál '…' (díl '…') nemá součinitel teplotní roztažnosti α [1/K] (teplotní zatížení)“</b> – doplňte α ve formuláři (v 10⁻⁶/K) a přiřaďte.</li>
+<li><b>„Vestavěný materiál nejde přepsat – zvolte jiný název.“</b> – uložte do vlastní knihovny pod svým názvem.</li>
+<li><b>„Vlastní knihovnu materiálů … nelze načíst …“</b> – soubor materials.json je poškozený (ruční úprava). Program jej nepřepisuje, takže se data neztratí; opravte nebo přejmenujte soubor.</li>
+<li><b>Bezpečnost k Re plastového dílu je všude 10</b> – materiál nemá Re. U tištěných dílů použijte výsledek 3D tisk – bezpečnost; u jiných plastů zadejte Re (mez kluzu / dovolené napětí) do vlastního materiálu.</li>
+<li><b>„Spektrální únava: materiál bez Rm a bez S-N (…) – únava se nepočítá“</b> – pro poškození od náhodných vibrací doplňte Rm (odhad S-N), nebo zadejte S-N křivku v kroku Únava; viz <a href="dynamika.html">Dynamika</a>.</li>
+</ul>

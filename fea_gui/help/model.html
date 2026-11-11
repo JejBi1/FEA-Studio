@@ -1,0 +1,101 @@
+<h1>1. Model</h1>
+<p class="lead">Loads a STEP file or a .fea project, checks the geometry and lists the parts. Later steps refer to parts by name and faces by shape and position.</p>
+<p class="tip">Preparing the model in CAD: <a href="cad.html">Export from CAD</a> (STEP settings, <b>Send to FEA Studio</b> for Fusion,
+SOLIDWORKS and Inventor, materials from CAD).</p>
+
+<h2>Opening a model</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td><b>Open STEP / project…</b> (panel)<br><b>Open…</b> <span class="key">Ctrl+O</span></td>
+<td>a STEP file (.step, .stp) creates a new study; a .fea file opens a saved project with results</td><td>afterwards Materials opens (a project with results opens Results)</td></tr>
+<tr><td>Dropping a file onto the window</td><td>a .step, .stp or .fea file dragged from Explorer (or onto the shortcut, or <b>Send to → FEA Studio</b>) opens as with Open</td><td>unsaved changes: asks to save</td></tr>
+<tr><td>Model overview (panel)</td><td>file name, number of bodies, table <b>Show</b> / <b>Analyze</b> / <b>Part</b> / <b>Status</b> / <b>Volume [cm³]</b> / <b>Material</b></td><td>units: mm, N, MPa, t, s</td></tr>
+</table>
+<p>A new study from STEP gets:</p>
+<ul>
+<li>material <b>Steel S235</b> for all parts (change in <a href="materialy.html">Materials</a>); CAD metadata (<code>&lt;same name&gt;.json</code>) next to the STEP give parts the CAD material if it is in the library (<a href="cad.html">Export from CAD</a>);</li>
+<li>element size ≈ model diagonal / 30, rounded down to 1 / 2 / 2.5 / 5 × 10ⁿ mm (240 mm model → 5 mm);</li>
+<li>an empty <b>Load case 1</b>.</li>
+</ul>
+
+<h3>Frame structure without CAD</h3>
+<p><b>New frame (no CAD)</b> (also in <b>Tools</b>) creates a study from members only (frame, truss, beam). 3D printing, Joints, Supports, Heat and Mesh
+are disabled; define the structure in <a href="pruty.html">Members</a>. A .fea without STEP opens like any other (example 6).</p>
+
+<h2>What a STEP file should contain</h2>
+<ul>
+<li><b>Solid bodies</b>: faces and shells without volume are ignored.</li>
+<li><b>Assembly with part names</b>: name from the instance or component (Fusion: “Deska:1”; several bodies “Deska:1_1”, “Deska:1_2”). Generic names (“SOLID”, “Body1”…) are replaced by the component name; duplicates get “ (2)”, “ (3)”.</li>
+<li><b>Units</b>: converted to mm.</li>
+<li>Bolts, nuts, washers with a standard name (“ISO 4017 - M8 x 30 - 8.8”) become <a href="spoje.html">Joints</a>. Welds as separate bodies (name “Svar…”, colour or layer).</li>
+<li>Hidden bodies are not exported from Fusion.</li>
+</ul>
+
+<h2>Geometry check</h2>
+<p>Checked on loading; problems appear in a window and the log (“Geometry check: …”). The analysis is not blocked but may fail or be inaccurate.</p>
+<table class="grid">
+<tr><th>Message</th><th>Meaning</th><th>What to do</th></tr>
+<tr><td>The STEP file contains faces or shells without volume (ignored…)</td><td>faces that are not a body (e.g. imported surface)</td><td>knit into a body in CAD, or leave – not analyzed</td></tr>
+<tr><td>Part '…': the body is not topologically valid (BRepCheck)</td><td>faulty edges or faces</td><td>heal in CAD, export again; meshing may fail</td></tr>
+<tr><td>Part '…': zero or negative volume</td><td>inverted faces or an open body</td><td>fix in CAD</td></tr>
+<tr><td>The STEP file contains no body (solid)</td><td>only faces exported</td><td>export bodies, not faces</td></tr>
+</table>
+
+<h2>Parts in the study tree</h2>
+<p>The <b>Parts</b> branch lists all parts; Info shows material or status:</p>
+<ul>
+<li><b>bolt (beam)</b> – bolt, nut or washer: not meshed, a beam replaces it (Joints);</li>
+<li><b>excluded</b> – excluded from the analysis;</li>
+<li><b>no material</b> (red).</li>
+</ul>
+
+<h3>Assemblies: touching parts are bonded (without a contact pair)</h3>
+<p>The mesh is continuous: parts touching by a face share nodes and are <b>rigidly connected</b> (no friction, no gap). The table
+<b>Connected parts (shared mesh)</b> in Joints lists them (Part A / Part B / Contact [mm²]). Parts touching only by an edge or point are not reliably connected – check them.</p>
+<p>For separation, friction, press fit or compression only, define a pair in <a href="kontakty.html">Contacts</a> (<b>Find touching parts</b> scans the assembly); pair parts are meshed separately and the analysis is nonlinear. Bolted-joint interfaces: check box <b>bolted joint interfaces as contact</b> (Contacts).</p>
+
+<h3 id="telesa">Switching bodies on and off: Show / Analyze</h3>
+<ul>
+<li><b>Show</b> – visible in 3D. Display only (analysis, mesh, results unchanged); a hidden body cannot be picked (to see inner parts). Saved in the project; Ctrl+Z undoes it.</li>
+<li><b>Analyze</b> – in the analysis. A switched-off body (magnet, pin, cable, bought part) is not meshed or analyzed and is transparent in 3D. Discards the mesh; selections, supports and loads of other bodies remain.</li>
+</ul>
+<p>A tick in a selected row applies to all selected rows. Right-click the table: hide / show, <b>Show only the selected bodies</b>, <b>Show all</b>, <b>Include all in the analysis</b>, <b>By name</b> (e.g. <i>bolt</i>, <i>M6*</i>, <i>*magnet*</i>; without an asterisk part of the name suffices). The buttons below the table and the right-click menu of a part in the tree do the same.</p>
+<p>Bodies hidden in CAD (Fusion assembly from .f3d / .f3z, metadata <code>"hidden": true</code>) load hidden and excluded. Parts can also be excluded in <a href="spoje.html">Joints</a> (group <b>Parts excluded from the analysis</b>).</p>
+
+<h2>Face selection and selectors</h2>
+<p>Supports, loads, thermal conditions and refinement use <b>face selections</b>. A selection stores a <b>selector</b> (part name, face type, area, centroid, a point with normal, envelope), not a face number, so a project survives a new export of the same model.</p>
+<ul>
+<li>Names follow purpose and sequence: “Fixed support 1”, “Displacement 2”, “Cylindrical support 1”, “Force 3”, “Pressure 1”, “Bearing load 1”, “Refinement 1”… Results reactions use them.</li>
+<li>A face is found only on a nearly exact match (area, centroid, envelope within 0.01 % of the face size); a changed face (size, position, split) is not found.</li>
+<li>Replace faces of an existing support or load with <b>Faces from selection</b> in its step.</li>
+</ul>
+
+<h2>Colours in 3D</h2>
+<table class="grid">
+<tr><th>Colour</th><th>Meaning</th><th>Note</th></tr>
+<tr><td>light alternating colours</td><td>parts</td><td>CAD colours are only read for weld detection (Joints)</td></tr>
+<tr><td>light blue</td><td>face / part under the cursor</td><td></td></tr>
+<tr><td>orange</td><td>selected faces</td><td></td></tr>
+<tr><td>blue with a label</td><td>supports (cylindrical support also shows the axis)</td><td>Supports, Loads, Solve</td></tr>
+<tr><td>red with arrows</td><td>forces (components, bearing, remote)</td><td>current case</td></tr>
+<tr><td>purple</td><td>pressure</td><td></td></tr>
+<tr><td>turquoise</td><td>local mesh refinement</td><td>Mesh</td></tr>
+<tr><td>magenta</td><td>selected edge (Edge filter)</td><td></td></tr>
+<tr><td>transparent</td><td>parts excluded from the analysis</td><td></td></tr>
+</table>
+
+<h2>In the examples</h2>
+<ul>
+<li><b>Example 1 – printed bracket:</b> one part “Drzak (tisk PLA)” – wall plate 60×40×6 mm with Ø5 screw holes, arm with a Ø8 eye, a rib. The geometry check reports nothing.</li>
+<li><b>Example 2 – assembly:</b> 13 parts – Patka (base plate), Sloupek (post), Svar a4 vlevo (left weld), Svar a4 vpravo (right weld), Rameno (tisk PLA, arm), two bolts “ISO 4017 - M6 x 30 - 8.8:1/:2”, four washers “ISO 7089 - 6 - 200 HV”, two nuts “ISO 4032 - M6 - 8”. Bolts, washers and nuts show “bolt (beam)” and are not meshed. The arm sits on the base plate by its flange and is bonded in the mesh (Connected parts table); welds are separate bodies.</li>
+</ul>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“The file cannot be opened: Cannot read STEP …”</b> – invalid or damaged STEP; export again (AP214 / AP242).</li>
+<li><b>“Some selected faces were not found in the model (did the model change?)”</b> – faces changed (size, split, renamed part). Select again and press <b>Faces from selection</b> on the item. During the analysis it reads “Some selected faces, edges, or points were not found”.</li>
+<li><b>A renamed part got a different material</b> – materials follow part names; a new name gets the default. Check the Material column, reassign in Materials.</li>
+<li><b>“The volume mesh was not generated – the geometry probably self-intersects or parts touch tangentially (cylinder in a slot, coincident faces).”</b> – parts overlap or touch along a line (pin in a slot). Remove the overlap in CAD or exclude the part.</li>
+<li><b>“Some parts are not connected to a support (free bodies – the problem would be singular)”</b> – the part touches nothing by a face and is neither bolted nor welded. The program offers to exclude it; otherwise fix the geometry or add a joint.</li>
+<li><b>“Selection '…': part '…' is excluded (not meshed)”</b> – a support or load lies on an excluded part (or bolt). Move it to a load-carrying part or include the part.</li>
+</ul>

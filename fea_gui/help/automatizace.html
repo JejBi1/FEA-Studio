@@ -1,0 +1,193 @@
+<h1>Automation</h1>
+<p class="lead">Everything the GUI does is also available without it: the command line, Python scripts, an MCP server for AI assistants (Claude, Cursor), and a REST API for CAD adapters and other programs. The commands on this page can be copied.</p>
+
+<h2>Preparation</h2>
+<p>Run commands from the installation folder (e.g. <code>C:\FEA Studio</code>) with its Python. In PowerShell:</p>
+<pre>cd "C:\FEA Studio"
+$env:PYTHONIOENCODING = "utf-8"
+.venv\Scripts\python.exe -m fea_core --help</pre>
+<p>In cmd use <code>set PYTHONIOENCODING=utf-8</code> instead. Without it Czech characters may be garbled.</p>
+<p class="tip"><b>Tip:</b> a .fea project is a zip with <code>study.json</code> (input), <code>model.step</code> (geometry) and possibly results. For commands that need study.json, rename the project to .zip and extract it; study.json refers to model.step in the same folder.</p>
+
+<h2>Command line (python -m fea_core)</h2>
+<table class="grid">
+<tr><th>Command</th><th>What it does</th><th>Options</th></tr>
+<tr><td><code>faces model.step</code></td><td>Lists parts (volume) and faces: index, type, area, centroid, normal – a basis for selections in a script.</td><td><code>--part NAME</code> one part only</td></tr>
+<tr><td><code>check study.json</code></td><td>Readiness check (as in Solve, without the rigid-body check). Return code 1 = errors.</td><td></td></tr>
+<tr><td><code>run study.json</code></td><td>Mesh, thermal cases, statics; prints a JSON summary and saves <code>results.npz</code> and <code>summary.json</code>.</td><td><code>-o FOLDER</code> (default <code>&lt;study&gt;_run</code>), <code>-v</code> CalculiX output</td></tr>
+<tr><td><code>fatigue study.json</code></td><td>Fatigue from the study's load history: method, S-N, worst locations; saves <code>fatigue.npz</code>.</td><td><code>--results results.npz</code> (no new analysis), <code>--top 10</code>, <code>-o</code></td></tr>
+<tr><td><code>detect model.step</code></td><td>Bolts (by name and shape) and welds (name, colour, layer, attribute).</td><td><code>--add study.json</code> writes into the study; <code>--accept-shape</code>; <code>--no-shape</code>; <code>--weld-color #rrggbb</code> (repeatable)</td></tr>
+<tr><td><code>joints study.json</code></td><td>Assessment of bolts (VDI 2230, EN 1993-1-8) and welds, as text.</td><td><code>--results results.npz</code>, <code>-o</code></td></tr>
+<tr><td><code>report study.json | projekt.fea</code></td><td>Word report – see <a href="protokol.html">Report</a>.</td><td><code>-o</code>, <code>--safety</code>, <code>--author</code>, <code>--company</code>, <code>--title</code>, <code>--keep-images</code>, <code>--no-images</code>, <code>--no-solve</code>, <code>--no-fatigue</code>, <code>--results</code>, <code>--workdir</code></td></tr>
+</table>
+<p>Examples:</p>
+<pre>.venv\Scripts\python.exe -m fea_core faces model.step --part "Patka"
+.venv\Scripts\python.exe -m fea_core check studie\study.json
+.venv\Scripts\python.exe -m fea_core run studie\study.json -o studie\vypocet
+.venv\Scripts\python.exe -m fea_core fatigue studie\study.json --results studie\vypocet\results.npz --top 20
+.venv\Scripts\python.exe -m fea_core detect sestava.step --add studie\study.json
+.venv\Scripts\python.exe -m fea_core joints studie\study.json --results studie\vypocet\results.npz
+.venv\Scripts\python.exe -m fea_core report projekt.fea --safety 1.5 -o projekt_protokol.docx</pre>
+
+<h3>Other commands</h3>
+<pre># GUI with an open file (like FEA Studio.bat)
+.venv\Scripts\pythonw.exe -m fea_gui projekt.fea
+# re-create the examples including results
+.venv\Scripts\python.exe -m examples.create --solve
+# verification problems (statics V1–V18, heat T1–T7, joints, printing, fatigue, beams, 2D, shells,
+# contacts K…, dynamics Y…, mechanisms MB…)
+.venv\Scripts\python.exe -m verification.run_all
+# only selected problems
+.venv\Scripts\python.exe -m verification.run_all V1 V7 K1 Y2 MB1</pre>
+<p>Verification problems compare results with analytical solutions and print an agreement table – useful after installation or an update.</p>
+
+<h2>Python script</h2>
+<p>Templates: <code>examples\create.py</code> and <code>verification\</code>. Faces are selected geometrically (<code>find_faces</code>: part, plane x/y/z, cylinder radius, normal, custom condition), not by index, so the script survives model changes in CAD.</p>
+<pre>from fea_core import materials as matlib
+from fea_core.geometry import read_step
+from fea_core.selectors import find_faces
+from fea_core.study import Study, Fixed, Force, LoadCase, MeshSettings
+from fea_core.solve import run_study
+from fea_core.project import save_project
+
+parts = read_step("konzola.step")
+st = Study("Konzola", "konzola.step")
+st.add_material(matlib.by_name("Ocel S235"), default=True)
+st.add_selection("Vetknutí", find_faces(parts, x=0))
+st.add_selection("Konec", find_faces(parts, x=200))
+st.constraints.append(Fixed("Vetknutí"))
+st.load_cases.append(LoadCase("Síla", [Force("Konec", [0, 0, -100])]))
+st.mesh = MeshSettings(size=3.0)
+
+res = run_study(st, "konzola_run", on_log=print, parts=parts)
+s = res.steps[0]
+print(f"max. displacement {s.umag.max():.3f} mm, max. von Mises {s.mises.max():.1f} MPa")
+save_project("konzola.fea", st, "konzola.step", res)     # open in the GUI</pre>
+<p>Run: <code>.venv\Scripts\python.exe muj_skript.py</code>. Units mm, N, MPa, t, s.</p>
+
+<h2>MCP server (AI assistants)</h2>
+<p>The MCP server exposes the whole workflow – geometry, face selections, materials, supports, loads, heat, mesh, analysis, results and PNG images, fatigue, joints, 3D printing, contacts, dynamics, mechanisms, calculators, Word report – to language models via the Model Context Protocol. An assistant can then, for example, “load bracket.step, fix the face x = 0, apply a 200 N downward bearing load to the eye, solve and show von Mises; are the maxima singularities?”.</p>
+<pre># stdio – this is how the clients below launch it
+.venv\Scripts\python.exe -m fea_core.mcp
+# HTTP – one server with one shared study, URL http://127.0.0.1:8766/mcp
+.venv\Scripts\python.exe -m fea_core.mcp --transport streamable-http</pre>
+<p>Options: <code>--workdir FOLDER</code> (default <code>%LOCALAPPDATA%\FEAStudio\mcp</code>, or <code>FEA_MCP_WORKDIR</code>), <code>--host</code>, <code>--port</code>, <code>--token</code>. HTTP default port 8766; REST uses 8765 – both can run together.</p>
+<p class="warn"><b>Warning:</b> in HTTP mode one session (study, mesh, results) is shared by all clients – a second assistant sees and can overwrite the first one's work. For parallel independent work use another <code>--port</code> and <code>--workdir</code>, or stdio (each client has its own process). The tools read and write any path and run analyses, so without a token the server listens on 127.0.0.1 only; any other address (<code>--host 0.0.0.0</code>) requires <code>--token</code> (or <code>FEA_MCP_TOKEN</code>), and clients send <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+
+<h3>Registration in all AI clients with one click</h3>
+<p>Double-click <b>Register MCP.bat</b> in the program folder to write the “fea-studio” server into all detected clients: Claude Desktop, Claude Code, Cursor, Windsurf, Antigravity, Gemini CLI, LM Studio, VS Code (Copilot) and Codex CLI. Originals are backed up (<code>….fea-zaloha</code>) and other settings kept. Then restart the clients. The installer does this too (disable with <code>--no-mcp</code>).</p>
+<pre>.venv\Scripts\python.exe -m fea_core.mcp.setup --dry-run    # only show what will change
+.venv\Scripts\python.exe -m fea_core.mcp.setup --remove     # remove from all clients</pre>
+<p class="tip"><b>Tip:</b> trailing commas (VS Code <code>mcp.json</code>) are fine. A file that cannot be read (e.g. <code>mcp.json</code> with comments) is not overwritten and is listed – add the entry by hand per the examples below.</p>
+
+<h3>Claude Desktop</h3>
+<p>File <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Settings → Developer → Edit Config):</p>
+<pre>{
+  "mcpServers": {
+    "fea-studio": {
+      "command": "C:\\FEA Studio\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "fea_core.mcp"],
+      "cwd": "C:\\FEA Studio",
+      "env": {"PYTHONPATH": "C:\\FEA Studio", "PYTHONIOENCODING": "utf-8"}
+    }
+  }
+}</pre>
+<p>Restart Claude Desktop after saving.</p>
+
+<h3>Claude Code</h3>
+<pre>claude mcp add --scope user fea-studio -e PYTHONPATH="C:\FEA Studio" -e PYTHONIOENCODING=utf-8 -- "C:\FEA Studio\.venv\Scripts\python.exe" -m fea_core.mcp</pre>
+<p>The server name comes before <code>-e</code>; without <code>--scope user</code> the entry applies only in the folder where the command ran.</p>
+
+<h3>Cursor</h3>
+<p>File <code>.cursor\mcp.json</code> in the project, or <code>%USERPROFILE%\.cursor\mcp.json</code> – same content as Claude Desktop (without <code>cwd</code>). Antigravity: Manage MCP Servers → View raw config, same content.</p>
+
+<h3>What MCP offers</h3>
+<ul>
+<li><b>Tools</b> (186): study (<code>fea_study_new/open/save/status</code>); geometry and face selections (<code>fea_geometry_find_faces</code> returns ids <code>Díl#i</code>); materials; supports (fixed, displacement, cylindrical – also several holes in one selection, remote); loads (force, pressure, gravity, remote force, bearing load, temperature); thermal cases and conditions; mesh (<code>fea_mesh_generate</code>); check (<code>fea_check_readiness</code>, incl. rigid-body motion); analysis (<code>fea_solve_run</code>); results (<code>fea_results_summary</code>, <code>_probe</code>, <code>_hotspots</code> with singularity classification, <code>_render_image</code>); model image; fatigue; joints; 3D printing (<code>fea_print_get</code>, <code>fea_print_set</code>, <code>fea_print_creep</code>, <code>fea_print_props</code>, <code>fea_print_calibrate</code> – ISO 527 calibration, <code>fea_print_render_shell</code> – shell fraction image without analysis, <code>fea_print_results</code>, variants, sweep <code>fea_print_sweep</code>, advice <code>fea_print_advice</code>, build directions <code>fea_print_rank_build_direction</code>, presets <code>fea_print_presets</code>); report (<code>fea_report_word</code>); beams, 2D sections, shells, natural frequencies and buckling.</li>
+<li><b>Contacts</b>: <code>fea_contact_detect</code>, <code>fea_contact_set/list/remove</code>, <code>fea_contact_check</code>, <code>fea_contact_settings</code> (formulation, interface meshing, NLGEOM, bolted joint interface as contact), <code>fea_analysis_set_sequence</code> (branches or step sequence, prescribed motion, cycles), <code>fea_contact_results</code>, <code>fea_contact_render</code>, <code>fea_results_history</code> (force–travel curve).</li>
+<li><b>Dynamics</b>: <code>fea_dyn_settings</code>, <code>fea_dyn_damping_set</code>, <code>fea_dyn_harmonic_set</code>, <code>fea_dyn_transient_set</code>, <code>fea_dyn_random_set</code>, <code>fea_dyn_shock_set</code>, <code>fea_dyn_prestress_set</code>, probes <code>fea_dyn_probe_add/list/remove</code>, added mass <code>fea_dyn_mass_add/list/remove</code>, results <code>fea_dyn_results</code>, <code>fea_dyn_frf_get</code>, <code>fea_dyn_render</code>, <code>fea_dyn_plot</code>, test profiles <code>fea_dyn_profile_presets</code>.</li>
+<li><b>Mechanisms</b>: bodies <code>fea_motion_body_add/list/remove</code>, joints <code>fea_motion_joint_add/list/remove</code>, <code>fea_motion_joints_from_cad</code>, <code>fea_motion_force_add</code>, <code>fea_motion_driver_add</code>, <code>fea_motion_load_add</code>, <code>fea_motion_contact_add</code> (Chrono), <code>fea_motion_settings</code>, <code>fea_motion_check_dof</code>, <code>fea_motion_run</code>, <code>fea_motion_results</code>, <code>fea_motion_render</code>, transfer to FEA <code>fea_motion_export_loads</code>.</li>
+<li><b>Calculators</b>: <code>fea_calc_snapfit</code>, <code>fea_calc_pressfit</code>, <code>fea_calc_hertz</code>, <code>fea_calc_friction</code>, <code>fea_calc_friction_library</code>, <code>fea_calc_mechanism</code>, <code>fea_calc_damping</code>, <code>fea_calc_drop</code>.</li>
+<li><b>Asynchronous jobs</b>: <code>fea_job_start</code> (kind <code>solve</code> = whole study like <code>fea_solve_run</code>, or <code>motion</code>) returns a <code>job_id</code> at once; <code>fea_job_status</code> (fraction 0–1, phase, time, last log lines), <code>fea_job_cancel</code>, <code>fea_job_result</code>. One job at a time; default time limits: linear 30 min, dynamics 2 h, contact 4 h, mechanism 1 h.</li>
+<li><b>Prompts</b>: <code>fea_setup_static_analysis</code>, <code>fea_setup_thermal_analysis</code>, <code>fea_mesh_convergence_check</code>, <code>fea_interpret_stress_results</code>, <code>fea_setup_contact</code>, <code>fea_setup_vibration_test</code>, <code>fea_setup_mechanism</code> – prepared procedures.</li>
+<li>An assistant saves its study with <code>fea_study_save</code> as a regular .fea project (with results) – open and check it in the GUI.</li>
+</ul>
+<p class="warn"><b>Warning:</b> an assistant may specify supports or loads differently from what you intended. Always check the input (model image with arrows, <code>fea_study_status</code>, or the project in the GUI), as you would any manual input.</p>
+
+<h2>REST API</h2>
+<p>An HTTP interface with the same tools as MCP (same names, parameters and error messages), for CAD adapters, scripts in other languages and internal applications.</p>
+<pre># this computer only, port 8765
+.venv\Scripts\python.exe -m fea_core.rest
+# different port and a token
+.venv\Scripts\python.exe -m fea_core.rest --port 8775 --token TAJNE_HESLO
+# access from the network (only with a token)
+.venv\Scripts\python.exe -m fea_core.rest --host 0.0.0.0 --token TAJNE_HESLO</pre>
+<ul>
+<li>The default address 127.0.0.1 = this computer only. Any other address without a token is rejected.</li>
+<li>With a token (<code>--token</code> or <code>FEA_REST_TOKEN</code>) each request needs <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+<li>Documentation of all endpoints and tools in the browser: <code>http://127.0.0.1:8765/docs</code>.</li>
+<li>One server = one open study. During an analysis other requests return 409 (busy); <code>/api/status</code> and <code>fea_job_status</code>, <code>fea_job_cancel</code>, <code>fea_job_result</code> always respond – so start long analyses asynchronously (<code>fea_job_start</code>).</li>
+</ul>
+<table class="grid">
+<tr><th>Endpoint</th><th>What it does</th><th>Note</th></tr>
+<tr><td>GET /api/status</td><td>Version, open study, busy, results, last import.</td><td></td></tr>
+<tr><td>GET /api/tools</td><td>Tools with the JSON schema of their parameters.</td><td></td></tr>
+<tr><td>POST /api/tools/{name}</td><td>Calls a tool; body = JSON arguments.</td><td><code>?images=url|base64|both</code> for images</td></tr>
+<tr><td>GET /api/study</td><td>Current input (study JSON).</td><td></td></tr>
+<tr><td>POST /api/import</td><td>Import of STEP + CAD metadata (multipart <code>file</code>, <code>metadata</code>).</td><td>Creates a study, matches parts by name, assigns library materials.</td></tr>
+<tr><td>GET /api/files/{path}</td><td>Download from the working folder (PNG, .docx, .fea).</td><td></td></tr>
+<tr><td>POST /api/open-gui</td><td>Opens a file (default the last import) in the GUI.</td><td>The GUI runs separately.</td></tr>
+</table>
+<p>PowerShell example (import with <code>curl.exe</code>, not the alias <code>curl</code>; tools with <code>Invoke-RestMethod</code>):</p>
+<pre>Invoke-RestMethod http://127.0.0.1:8765/api/status
+curl.exe -F "file=@drzak.step" http://127.0.0.1:8765/api/import
+Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"x": 0}' `
+    -Uri http://127.0.0.1:8765/api/tools/fea_geometry_find_faces</pre>
+<p>Metadata format and a Python example: <code>fea_core\rest\README.md</code>.</p>
+
+<h2>CAD adapters</h2>
+<p>An adapter exports the model to STEP with body names, adds metadata (material and properties, colour, attributes) and sends them to the REST API. Without a running server it saves STEP + JSON to a folder and starts the GUI (variable <code>FEA_STUDIO_HOME</code> = installation folder). A material is assigned only if it matches the library (e.g. “S235”, “AISI 304”); generic names (“Steel”) are reported and not assigned.</p>
+<table class="grid">
+<tr><th>CAD</th><th>Installation and use</th><th>Verification status</th></tr>
+<tr><td>Autodesk Fusion</td><td>Copy the folder <code>adapters\fusion\FEAStudio</code> to <code>%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\</code> (or Tools → Add-Ins → Scripts and Add-Ins → Add-Ins → “+”). Run the add-in; the <b>Odeslat do FEA Studia</b> (Send to FEA Studio) button is in the <b>FEA STUDIO</b> panel between INSERT and SELECT (SOLID, SURFACE, MESH, SHEET METAL… tabs) and in UTILITIES → ADD-INS. Settings in <code>settings.json</code> (template <code>settings.example.json</code>) or the variables <code>FEA_REST_URL</code>, <code>FEA_REST_TOKEN</code>, <code>FEA_STUDIO_HOME</code>.</td><td>Export and metadata verified on a real assembly; the toolbar button verified in live Fusion.</td></tr>
+</table>
+<p>Metadata from Fusion also contain the <b>joints</b> (type, axis, limits); the <a href="pohyb.html">Motion</a> step proposes mechanism joints from them with <b>From Fusion metadata…</b> (not yet verified in live Fusion).</p>
+<p>Procedure: start the REST server (<code>python -m fea_core.rest</code>), then the adapter in CAD. Parts keep the CAD names (for Fusion the occurrence name, e.g. “Deska:1”); metadata are matched by them.</p>
+
+<h2>Installation and modules</h2>
+<p>The program is installed <b>by modules</b>: a small base (the FEA core) and optional parts that can be added or removed at any time. Everything stays in the program folder (<code>.venv</code>, <code>tools</code>); no administrator rights are needed. Details: <code>installer\README.md</code>.</p>
+<ol>
+<li>Extract <code>FEAStudio-&lt;version&gt;.zip</code> (Linux <code>.tar.gz</code>) to a permanent folder – not a synchronised one (OneDrive, Dropbox…).</li>
+<li>Run <b>Install FEA Studio.bat</b> (Linux <code>./install.sh</code>) and choose: <b>minimal</b> (core), <b>standard</b> (+ GUI, plots, Numba, PARDISO, beams, report, mechanisms), <b>full</b> (+ MCP/REST, NGSolve, hypre), or a custom selection. Without prompts: <code>Install FEA Studio.bat --profile standard --quiet</code>.</li>
+<li>The installer downloads <code>uv</code>, Python 3.11, the locked packages and CalculiX 2.23, prunes unneeded files, creates shortcuts and the .fea association, and runs a verification analysis. Running it again is safe.</li>
+</ol>
+<table class="grid">
+<tr><th>Module</th><th>What it adds</th></tr>
+<tr><td>core</td><td>FEA core, command line, CalculiX, Gmsh, OpenCascade: statics, heat, frequencies, buckling, beams, 2D, shells, joints and welds, contacts and dynamics</td></tr>
+<tr><td>gui, plots</td><td>graphical interface, plots</td></tr>
+<tr><td>accel</td><td>Numba: fatigue, 3D printing, result images for MCP and the report</td></tr>
+<tr><td>pardiso</td><td>Intel MKL: faster CalculiX (PARDISO); with the ngsolve module also NGSolve + PARDISO</td></tr>
+<tr><td>beams, report</td><td>custom member cross-sections, Word report</td></tr>
+<tr><td><b>motion</b></td><td>kinematics and dynamics of mechanisms (Exudyn) – <a href="pohyb.html">Motion</a> step, transfer to FEA, fatigue</td></tr>
+<tr><td><b>chrono</b></td><td>body contact in a mechanism (Project Chrono, ~600 MB) – optional, in no profile; requires motion</td></tr>
+<tr><td><b>native</b></td><td>opening Inventor parts and assemblies .ipt / .iam and Fusion designs .f3d / .f3z without CAD and without STEP export (optional, in no profile) – <a href="cad.html#nativni">details</a></td></tr>
+<tr><td>mcp</td><td>MCP server and REST API</td></tr>
+<tr><td>ngsolve, hypre</td><td>optional solvers NGSolve + PARDISO (many cases at once) and NGSolve + hypre (large models); on Windows hypre needs Microsoft MPI with administrator rights – <code>--msmpi</code> during installation, the <code>mpi</code> command, or Tools → Program modules…</td></tr>
+<tr><td>verify, docs</td><td>verification problems and MYSTRAN; building the PDF manuals (developers only)</td></tr>
+</table>
+<pre>.venv\Scripts\python.exe -m fea_core.modules                  # overview (✓ installed)
+.venv\Scripts\python.exe -m fea_core.modules install motion   # also installs dependencies
+.venv\Scripts\python.exe -m fea_core.modules install chrono
+.venv\Scripts\python.exe -m fea_core.modules remove report mcp</pre>
+<p>The same in the GUI: <b>Tools → Program modules…</b>. Without a module the program does not crash: the function that needs it reports “Module … is missing. Install it: python -m fea_core.modules install …” (e.g. without chrono the Chrono solver in Motion is greyed out). Other installer commands: <code>python installer\fea_setup.py install | remove | list | slim | doctor | shortcuts | mpi | uninstall [--all]</code>; uninstalling from the Start menu removes shortcuts and the extension; <code>uninstall --all</code> also removes <code>.venv</code> and <code>tools</code>.</p>
+
+<h2>Common problems</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and solution</th></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'fea_core'</code></td><td>Python from outside the installation, or another working folder. Use <code>.venv\Scripts\python.exe</code> from the installation; in the MCP configuration set <code>cwd</code> and <code>PYTHONPATH</code> to the installation folder.</td></tr>
+<tr><td>Garbled Czech characters in output</td><td>Set <code>PYTHONIOENCODING=utf-8</code> (in the MCP <code>env</code>).</td></tr>
+<tr><td>REST or MCP (HTTP) does not start – port in use</td><td>Another program or instance uses the port. REST default 8765 (used by CAD adapters), MCP HTTP 8766. Start with another <code>--port</code> (and set the same address in the adapter via <code>FEA_REST_URL</code>).</td></tr>
+<tr><td>REST responds 401 / 403</td><td>401: token missing or wrong (header <code>Authorization: Bearer …</code>). 403: a request from an address other than 127.0.0.1 / localhost without a token, or from a web page (protection against browser abuse).</td></tr>
+<tr><td>REST responds 409</td><td>The server is meshing or computing. Wait (<code>GET /api/status</code>, field <code>busy</code>).</td></tr>
+<tr><td>The adapter saves files to a folder instead of sending</td><td>REST is not running, or the adapter points elsewhere – start <code>python -m fea_core.rest</code> and check <code>FEA_REST_URL</code>.</td></tr>
+</table>

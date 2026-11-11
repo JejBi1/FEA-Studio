@@ -1,0 +1,29 @@
+<h1>Detail tisku (voxely)</h1>
+<p class="lead">Model 3D tisku (skořepina + výplň) nevidí jednotlivé housenky. <b>Voxelový detail</b> přepočítá malou oblast
+kolem kritického místa z housenek: perimetry, horní / dolní vrstvy, výplň a tenká místa z nastavení tisku.
+Používá prvky hex8 C3D8I s materiálem plné extruze v osách housenky. Okrajové posuvy pocházejí z celého dílu.
+Otevře se ve <a href="vysledky.html">Výsledcích</a> tlačítkem <b>Detail tisku (voxely)…</b> (jen u tištěného dílu).</p>
+<p class="warn"><b>ORIENTAČNÍ:</b> dráhy housenek vycházejí z nastavení tisku, ne z G-code slicéru. Okrajové podmínky
+pocházejí z homogenizovaného modelu. Minimum v integračním bodě klesá se zjemněním (schody voxelů a kouty housenek jsou
+singularity). Hodnoťte bezpečnost z průměru prvku a 1. percentilu.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Střed oblasti: <b>Nejnižší bezpečnost</b>, <b>Klik ve 3D</b>, nebo souřadnice. „automaticky“ = najde se při výpočtu.</li>
+<li>Velikost oblasti v osách tisku (výchozí 6 × 6 × 4 mm), okraj (nese okrajové podmínky, nehodnotí se), rozlišení
+<b>w/2</b> (voxel = půl šířky housenky) nebo <b>w/4</b> (~8× víc voxelů), stav, prvek.</li>
+<li><b>Odhad velikosti</b>: počty voxelů, rovnice, paměť, čas. „NELZE“ nad 1,5 mil. rovnic nebo 80 % volné RAM.
+Kvádr oblasti je ve 3D oranžový.</li>
+<li><b>Spustit detail</b>: běží na pozadí (Zrušit přeruší).</li>
+</ol>
+
+<h2>Výsledek</h2>
+<ul>
+<li><b>Řez vrstvou</b> (posuvník <i>Vrstva</i> od podložky): pole druhu voxelu (perimetr červeně, vrstva oranžově, výplň
+modře, tenké místo fialově), bezpečnost (Tsai-Wu / Hill), úhel linie, von Mises, posuv, napětí v osách housenky σ11
+(podél), σ22 (napříč), σ33 (kolmo na vrstvy), τ12, τ13, τ23. <i>Směr housenek</i> = čárky ve směru linie.</li>
+<li><b>Tabulka po stavech</b>: bezpečnost z průměrného napětí prvku (hlavní údaj), 1. percentil, minimum v integračním
+bodě (*), homogenizovaná bezpečnost ve stejné oblasti, poměr detail / homogenizovaný, rozdíl průměrného napětí přes
+oblast (kontrola okrajových podmínek, má být malý), místo minima.</li>
+</ul>
+<p>Ověřeno úlohami X1–X4 (homogenní pole, ohyb C3D8I, P2, generátor drah): <code>python -m verification.voxel_cases</code>.</p>

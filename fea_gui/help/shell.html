@@ -1,0 +1,46 @@
+<h1>Shell model</h1>
+<p class="lead">Thin-walled parts (plates, bent sheet metal, surface parts from STEP) as <b>shells</b>: a mid-surface with thickness
+(S6 elements in CalculiX). Far fewer elements than 3D; gives top / bottom, membrane and bending stress. Set up in
+<a href="reseni.html">Solve</a>, group <b>Shell model</b>.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Supports and loads as in 3D on part faces. Surface parts also take <b>edges</b> (Edge filter <span class="key">E</span>);
+<b>Fixed support from selection</b> uses selected edges when no faces are selected.</li>
+<li>Check <b>analyze the shell model instead of 3D</b>. The table shows detected type and thickness; an unrecognized part is red, with the reason.</li>
+<li>Surface part from STEP: select the row, enter <b>Part thickness</b>, press <b>Set thickness</b> (plates from solids take it from
+geometry; an entered value overrides).</li>
+<li>Run; in Results select case <b>Shells: …</b> and the quantity.</li>
+</ol>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td>analyze the shell model instead of 3D</td><td>shell analysis, no 3D mesh; excludes 2D section analysis (one turns the other off)</td></tr>
+<tr><td>Parts table</td><td>part (checked = in the shell model; nothing checked = all), type (plate, sheet metal, surface part), model thickness, entered thickness, rejection reason</td></tr>
+<tr><td>Part thickness + Set thickness</td><td>thickness of the selected part [mm]; “from geometry” = detected plate thickness</td></tr>
+<tr><td>Face position</td><td>surface part from STEP: CAD surface is the middle, top or bottom (plates from solids always mid-surface)</td></tr>
+<tr><td>Element size</td><td>shell element size [mm]; “same as 3D mesh” = Mesh step</td></tr>
+<tr><td>Detect plates</td><td>detects plates and sheet metal in solids again</td></tr>
+<tr><td>Load surface parts from STEP</td><td>adds surfaces and shells without volume (normal loading skips them), selectable in 3D; a STEP with surfaces only loads this way and turns the shell model on</td></tr>
+</table>
+
+<h2>Detection of plates and sheet metal</h2>
+<ul>
+<li><b>Plate</b>: two parallel planar faces of opposite normals (largest area) at distance t, constant thickness
+(volume = t·(A₁ + A₂)/2 within 2 %). Slenderness √A / t ≥ 5; below 10 a warning (thick plate).</li>
+<li><b>Sheet metal</b> with cylindrical bends: mid-surface by offset. Plates joined in T or L: mid-surface extended by t/2.</li>
+</ul>
+
+<h2>Results</h2>
+<p>Contours on the mid-surface (shape per the Deformation option). Quantities: von Mises max of surfaces, top, middle, bottom;
+<b>membrane</b> (mid-surface) and <b>bending</b> ((top − bottom)/2) stress; principal stresses; σx, σy of top and bottom; displacements;
+thickness. The probe shows the displayed layer. The summary lists reactions (forces, moments about the reference point) and the equilibrium check.</p>
+
+<h2>Limitations</h2>
+<ul>
+<li>Supports: fixed and prescribed displacement. Loads: force, pressure, gravity, rotation (no local coordinate systems).</li>
+<li>No bolts, welds, heat, 3D printing, orthotropy, contacts or dynamics; no mixing with solids.</li>
+<li>Verified with Sh1–Sh7 (cantilever against 3D 0.06%, T&amp;W-K plate 1%, Lamé pipe, plate with a hole, T-beam,
+bent sheet): <code>python -m verification.run_all Sh1 … Sh7</code>.</li>
+</ul>

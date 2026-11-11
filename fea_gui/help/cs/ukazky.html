@@ -1,0 +1,150 @@
+<h1>Ukázky a průvodce</h1>
+<p class="lead">Deset hotových projektů s možnostmi programu. Průvodce je otevře a krok za krokem vysvětlí, co je zadáno a proč.</p>
+
+<h2>Spuštění průvodce</h2>
+<ul>
+<li><a href="fea:pruvodce1"><b>Ukázka 1 – tištěný držák</b></a>: jeden díl z PLA; 3D tisk a tečení (14 kroků).</li>
+<li><a href="fea:pruvodce2"><b>Ukázka 2 – sestava ocel + tisk</b></a>: šrouby, svary, teplo, všechny druhy vazeb a zatížení (12 kroků).</li>
+<li><a href="fea:pruvodce3"><b>Ukázka 3 – přírubový spoj</b></a>: potrubí s víkem, 4× šroub M10, vnitřní přetlak 2,5 MPa, VDI 2230 (7 kroků).</li>
+<li><a href="fea:pruvodce4"><b>Ukázka 4 – svařovaný výložník</b></a>: S355, 5 koutových svarů a4, 5000 N, únava svarů podle EN 1993-1-8 a IIW (7 kroků).</li>
+<li><a href="fea:pruvodce5"><b>Ukázka 5 – chladič elektroniky</b></a>: žebrovaný hliník + nerez modul, 40 W, konvekce, ustálené a přechodové teplo, teplotní napětí (6 kroků).</li>
+<li><a href="fea:pruvodce6"><b>Ukázka 6 – rám haly z prutů</b></a>: prutová soustava bez CAD, průřezy EN, sníh a vítr, vlastní frekvence, EN 1993-1-1 (5 kroků).</li>
+<li><a href="fea:pruvodce7"><b>Ukázka 7 – dynamika přípravku s DPS</b></a>: bodová a plošná hmota, vlastní frekvence, harmonická odezva na 1 g, náhodné vibrace (ASD), sondy (9 kroků).</li>
+<li><a href="fea:pruvodce8"><b>Ukázka 8 – klikový mechanismus</b></a>: tělesa z CAD, klouby z geometrie, pohon, animace, reakce kloubů, převod okamžiku maxima do MKP (8 kroků).</li>
+<li><a href="fea:pruvodce9"><b>Ukázka 9 – šroubovaná patka (kontakt)</b></a>: spára šroubového spoje jako kontakt s třením, předpětí, rozevření spáry, nelineární posloupnost (8 kroků).</li>
+<li><a href="fea:pruvodce10"><b>Ukázka 10 – konzola, topologická optimalizace</b></a>: odlehčení metodou BESO, výsledný tvar a hustota ve 3D, export STL (7 kroků).</li>
+</ul>
+<p>Průvodce je panel vpravo: <b>Ukaž v programu</b> přepne program do stavu, o kterém krok mluví, <b>Další</b> / <b>Zpět</b> listuje kroky, <b>Nápověda ke kroku</b> otevře podrobnou stránku. Mezi kroky můžete s programem libovolně pracovat.</p>
+<p class="tip"><b>Tip:</b> průvodce otevírá <i>kopii</i> ukázky v <code>%LOCALAPPDATA%\FEAStudio\ukazky</code>; <span class="key">Ctrl+S</span> originál nepřepíše.</p>
+<p>Bez průvodce: <span class="key">Ctrl+O</span> → složka <code>examples</code> v instalaci → <code>example1_bracket.fea</code> až <code>example10_bracket_topology.fea</code>.</p>
+
+<h2>Ukázka 1 – tištěný držák</h2>
+<p>Držák z PLA (Bambu Basic), směr stavby Z: svislá deska 60×40×6 mm se dvěma dírami Ø5 pro vruty, vodorovné rameno 64×24×8 mm a na jeho konci výstupek s okem Ø8 (ložný čep) a trojúhelníkové žebro.</p>
+<p><img src="example1_model.png" alt="Model ukázky 1"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Tisk PLA Bambu Basic (E 2680 / E_z 2160 MPa, Rm 39 / Rm_z 35 MPa)</td></tr>
+<tr><td>3D tisk</td><td>stavba Z, vrstva 0,2 mm, linie 0,42 mm, 3 perimetry, 5/3 plné vrstvy, gyroid 20 %; Tsai-Wu; tečení 1000 h při 30 °C pro stav Zatížení oka</td></tr>
+<tr><td>Vazby</td><td>válcová vazba každé díry pro vrut (Horní vrut, Dolní vrut), zadní plocha ux = 0</td></tr>
+<tr><td>Zatížení</td><td>Zatížení oka 200 N (ložné zatížení dolů); Vlastní tíha</td></tr>
+<tr><td>Síť</td><td>2,5 mm, tet10</td></tr>
+<tr><td>Únava</td><td>sinus 0–1 × Zatížení oka (pulzující 0–200 N), 100 000 opakování</td></tr>
+</table>
+
+<h2>Ukázka 2 – sestava ocel + tisk</h2>
+<p>Ocelová patka 180×70×10 mm (S235) se 4 kotevními dírami Ø9, sloupek 10×70×90 mm přivařený dvěma koutovými svary a4 a na patce vytištěné rameno PLA přišroubované 2× ISO 4017 M6 x 30 - 8.8 s podložkami ISO 7089 a maticemi ISO 4032.</p>
+<p><img src="example2_model.png" alt="Model ukázky 2"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Ocel S235 (výchozí), rameno Tisk PLA Bambu Basic</td></tr>
+<tr><td>3D tisk</td><td>rameno: 3 perimetry, gyroid 25 %, tečení 2000 h / 30 °C pro Síla na oko ramena</td></tr>
+<tr><td>Spoje</td><td>2 šrouby M6 8.8 s automatickým předpětím (stav Předpětí šroubů); 2 koutové svary a4 (posouzení EN 1993-1-8, únava kořene a paty)</td></tr>
+<tr><td>Vazby</td><td>válcová vazba 4 kotevních děr</td></tr>
+<tr><td>Teplo</td><td>15 W do díry sloupku; konvekce ramene 10 W/(m²·K) na 25 °C; spodek patky 20 °C; ustálený stav a přechodový náběh 1 h</td></tr>
+<tr><td>Zatížení</td><td>Síla na oko ramena 300 N (ložná); boční síla 250 N na sloupek v bodě [35; 35; 150]; Vlastní tíha; Ohřev za provozu (teplotní napětí z ustáleného stavu)</td></tr>
+<tr><td>Síť</td><td>4 mm; místní zjemnění oka ramena 1,5 mm</td></tr>
+<tr><td>Únava</td><td>dva sinusové kanály posunuté o 90° (neproporcionální zatížení), 200 000 opakování</td></tr>
+</table>
+
+<h2>Ukázka 3 – přírubový spoj</h2>
+<p>Tlakové potrubí Ø50/36 s přivařenou přírubou Ø120 a plným víkem, spojené 4× šroubem ISO 4017 M10 × 45 8.8 s podložkami a maticemi. Ověřuje výpočet předpětí a posudek šroubového spoje podle <b>VDI 2230</b>.</p>
+<p><img src="example3_model.png" alt="Model ukázky 3"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Ocel S355 (výchozí pro přírubu a víko)</td></tr>
+<tr><td>Spoje</td><td>4 šrouby M10 8.8 s automatickým předpětím (utahovací faktor alpha_A = 1,6, součinitel tření μ = 0,12)</td></tr>
+<tr><td>Vazby</td><td>pevné uložení na spodním čele potrubí</td></tr>
+<tr><td>Zatížení</td><td>vnitřní přetlak 2,5 MPa na vnitřní válec potrubí; osový tah potrubí 10 kN na horním čele víka; Vlastní tíha; Předpětí šroubů</td></tr>
+<tr><td>Síť</td><td>5,0 mm, tet10</td></tr>
+<tr><td>Posouzení</td><td>VDI 2230: montážní předpětí, utahovací moment, bezpečnost proti kluzu a proti rozevření spáry</td></tr>
+</table>
+
+<h2>Ukázka 4 – svařovaný výložník</h2>
+<p>Svařovaný konzolový výložník: kotevní deska se 4 dírami Ø13, vodorovné rameno 50×60 o délce 220 mm s okem pro ložný čep 5000 N, trojúhelníkové výztužné žebro tloušťky 12 mm a 5 koutových svarů a4.</p>
+<p><img src="example4_model.png" alt="Model ukázky 4"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Ocel S355 (výchozí)</td></tr>
+<tr><td>Spoje</td><td>5 koutových svarů a4 (rameno k desce nahoře, svary žebra k desce a k rameni)</td></tr>
+<tr><td>Vazby</td><td>válcová vazba 4 kotevních děr; zadní stěna kotevní desky ux = 0 (opřená o zeď)</td></tr>
+<tr><td>Zatížení</td><td>břemeno 5000 N v oku (ložné zatížení); boční síla 800 N na čele ramene; Vlastní tíha</td></tr>
+<tr><td>Síť</td><td>6,0 mm, tet10</td></tr>
+<tr><td>Únava</td><td>cyklické zdvihání 0–5 kN (200 000 cyklů) posunuté proti boční síle; IIW a EN 1993-1-8</td></tr>
+</table>
+
+<h2>Ukázka 5 – chladič elektroniky</h2>
+<p>Žebrovaný hliníkový chladič 90×80×30 mm se 6 žebry a nerezový výkonový modul 30×30×4 mm s výkonovými ztrátami 40 W.</p>
+<p><img src="example5_model.png" alt="Model ukázky 5"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Hliník EN AW-6082 T6 (chladič, k = 170 W/(m·K)); nerez 1.4301 (modul, k = 15 W/(m·K))</td></tr>
+<tr><td>Vazby</td><td>válcová vazba 4 montážních děr Ø4,5 mm</td></tr>
+<tr><td>Teplo</td><td>ztráty 40 W do modulu; přirozená konvekce h = 15 W/(m²·K) na žebrech k okolí 25 °C; ustálený stav a přechodový náběh 10 minut</td></tr>
+<tr><td>Mechanika</td><td>Ohřev za provozu (teplotní pole z ustáleného stavu způsobí ohyb bimetalu a napětí); Vlastní tíha</td></tr>
+<tr><td>Síť</td><td>4,0 mm, tet10</td></tr>
+</table>
+
+<h2>Ukázka 6 – rám haly z prutů</h2>
+<p>Ocelová hala jen z prutů (studie bez geometrie STEP): dva rámy, vaznice a ztužení. Výsledky se v ukázce neukládají – spočítají se za několik sekund.</p>
+<p><img src="example6_model.png" alt="Model ukázky 6"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Pruty</td><td>sloupy HEA 260, vazníky IPE 300 (rozpětí 12 m, sedlová střecha), vaznice UPE 160 kloubově, ztužení CHS 76.1×3,6 (jen osová síla), vetknuté paty sloupů; posudek EN 1993-1-1 (délky vzpěru sloupů)</td></tr>
+<tr><td>Zatížení</td><td>Vlastní tíha; sníh 0,8 kN/m² na vazníky; vítr zleva na sloupy + 2 kN ve štítu</td></tr>
+<tr><td>Řešení</td><td>statika + 6 vlastních frekvencí (1. ~4,8 Hz)</td></tr>
+</table>
+
+<h2>Ukázka 7 – dynamika přípravku s DPS</h2>
+<p>Hliníkový držák upnutý na vibrační stůl, deska plošných spojů FR-4 100×70×1,6 mm na 4 mosazných distančních sloupcích Ø6, transformátor 80 g a osazení desky.</p>
+<p><img src="example7_model.png" alt="Model ukázky 7"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Hliník EN AW-6082 T6; mosaz CuZn39Pb3; vlastní „DPS FR-4 (orientačně)“ (E 22 GPa, ρ 1 900 kg/m³)</td></tr>
+<tr><td>Vazby</td><td>pevná spodní plocha základny (= buzená základna)</td></tr>
+<tr><td>Dynamika</td><td>bodová hmota 80 g s rotační setrvačností (tuhá vazba na patku); plošná hmota 1,5 kg/m² na desce; 20 módů, ζ = 3 %; harmonické buzení sinus 1 g ve směru Y 10–2 000 Hz; náhodné vibrace ASD 20 Hz 0,008 → 50–500 Hz 0,02 → 2 000 Hz 0,005 g²/Hz (4,8 g<sub>rms</sub>, 0,5 h, Dirlik) – <b>PŘÍKLAD ve struktuře IEC 60068-2-64, ne hodnoty z normy</b>; sondy na patce, desce a držáku</td></tr>
+<tr><td>Síť</td><td>6 mm, 3 mm u desky (místní zjemnění), tet10, 32 tis. uzlů; výpočet asi 1 min</td></tr>
+</table>
+
+<h2>Ukázka 8 – klikový mechanismus</h2>
+<p>Rám s ložiskem a vedením; klika r = 25 mm, ojnice l = 100 mm, píst (posuvník); motor 3 000 ot/min, plynová síla 3 000 N.</p>
+<p><img src="example8_model.png" alt="Model ukázky 8"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Materiály</td><td>Ocel C45 +N (rám, klika, píst); ojnice Ocel 42CrMo4 +QT</td></tr>
+<tr><td>Pohyb</td><td>4 tělesa (pevný rám); 3 rotační klouby navržené z geometrie – čepy ojnice změněny na kulový + kardanový (nepřeurčená sada); posuvné vedení pístu; pohon konstantní úhlovou rychlostí 314,16 rad/s; síla 3 000 N na píst; tíha; kinematika 1 otáčky, 121 výstupů</td></tr>
+<tr><td>Převod do MKP</td><td>okamžik maxima reakce v čepu pístu → zatěžovací stav ojnice: vzdálené zatížení na oko B, setrvačnost (Inertia), oko A na rozdělovací vzdálené podpoře (odlehčení setrvačností); rám, klika a píst vynechány z MKP</td></tr>
+<tr><td>Síť</td><td>2 mm, jen ojnice</td></tr>
+</table>
+
+<h2>Ukázka 9 – šroubovaná patka (kontakt)</h2>
+<p>Patka sloupu 100×60×10 s průřezem 24×24 na základové desce 120×60×15, 2× ISO 4017 M10 × 45 8.8 s podložkami a maticemi.</p>
+<p><img src="example9_model.png" alt="Model ukázky 9"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Zadání</th></tr>
+<tr><td>Spoje</td><td>2 šrouby M10 8.8, automatické předpětí (VDI 2230)</td></tr>
+<tr><td>Kontakty</td><td>spáry šroubových spojů jako kontakt s třením μ = μ_T = 0,15 (penalta K = 10·E); nelineární výpočet jako posloupnost kroků: předpětí šroubů → tah 20 kN</td></tr>
+<tr><td>Vazby</td><td>základová deska pevně na koncích x = ±60</td></tr>
+<tr><td>Zatížení</td><td>tah 20 kN na horní část sloupu (z = 70)</td></tr>
+<tr><td>Síť</td><td>6 mm, tet10, konformní síť s rozpojenou spárou</td></tr>
+</table>
+
+<h2>Ukázka 10 – konzola, topologická optimalizace</h2>
+<p>Plný ocelový plech 160×90×12 mm (S235) jako návrhový prostor konzoly: dvě díry Ø11 pro šrouby M10 do zdi (x = 15 mm, z = 15 a 75 mm) a oko Ø14 na volném konci (x = 142 mm, z = 45 mm). Topologická optimalizace odebere málo namáhaný materiál a ponechá tvar, který při daném objemu nese zatížení.</p>
+<p><img src="example10_model.png" alt="Model ukázky 10"></p>
+<table class="grid">
+<tr><th>Krok</th><th>Nastavení</th></tr>
+<tr><td>Materiály</td><td>Ocel S235 (izotropní pružný materiál – požadavek topologické optimalizace)</td></tr>
+<tr><td>Vazby</td><td>válcová vazba děr Šroub 1 a Šroub 2; plocha Podpora u zdi ux = 0</td></tr>
+<tr><td>Zatížení</td><td>stav Zatížení 4 kN – ložné zatížení v oku, dolů</td></tr>
+<tr><td>Síť</td><td>4 mm, tet10</td></tr>
+<tr><td>Výsledky</td><td>statika celého návrhu a výsledek optimalizace (veličiny Topologie – hustota, Topologie – výsledný tvar)</td></tr>
+<tr><td>Topologie (BESO)</td><td>cíl 40 % objemu, filtr R 8 mm, ER 4 %/krok, nejvýše 60 iterací, všechny výběry chráněny (díry, oko, podpora u zdi); popis v <a href="vysledky.html#topologie">Výsledky – Topologická optimalizace</a>; výsledek: 40 iterací, objem 40,0 %, poddajnost 2,2× celého návrhu</td></tr>
+</table>
+
+<h2>Vytvoření ukázek znovu</h2>
+<p>Ukázky vytvoří skript (geometrie přímo v Pythonu přes OCCT, výpočet přes jádro programu):</p>
+<pre>.venv\Scripts\python.exe -m examples.create --solve
+.venv\Scripts\python.exe -m examples.create --solve --only 8      (jen jedna ukázka)
+.venv\Scripts\python.exe -m examples.create --solve --only 10     (ukázka 10: topologie, desítky běhů ccx)
+.venv\Scripts\python.exe -m examples.frames                     (ukázka 6)</pre>
+<p>Bez <code>--solve</code> se uloží jen vstup. Skript <code>examples\create.py</code> je i šablonou pro stavbu studie z Pythonu – viz <a href="automatizace.html">Automatizace</a>.</p>

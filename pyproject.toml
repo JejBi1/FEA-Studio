@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=77"]     # PEP 639: license = SPDX expression (since setuptools 77)
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fea-studio"
+dynamic = ["version"]
+description = "FEA Studio – finite element analysis on CalculiX / Gmsh with CAD integration"
+requires-python = ">=3.11,<3.12"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "LICENSE-EXCEPTIONS.md", "THIRD_PARTY_LICENSES.md"]
+# core; optional modules = extras below (identical to fea_core/modules.json, checked by tests/test_modules.py).
+# The normal installation goes through installer/fea_setup.py (version locks, slimming, CalculiX) – pip install -e . is for development.
+# mkl MUST stay 2023.2.0 (MKL 2024.2 + PARDISO with >= 8 threads silently gives wrong results).
+dependencies = [
+    "numpy==1.26.4",
+    "scipy==1.17.1",
+    "gmsh==4.15.2",
+    "psutil==7.2.2",
+    "cadquery-ocp==8.0.1.1.0",
+]
+
+[project.optional-dependencies]
+gui = [
+    "PySide6_Essentials==6.11.2",
+    "shiboken6==6.11.2",
+]
+plots = [
+    "matplotlib==3.11.2",
+]
+accel = [
+    "numba==0.68.0",
+    "llvmlite==0.50.0",
+]
+pardiso = [
+    "mkl==2023.2.0",
+]
+ngsolve = [
+    "ngsolve==6.2.2608",
+]
+hypre = [
+    "mpi4py==4.1.2",
+]
+beams = [
+    "shapely==2.2.0",
+    "more-itertools==11.2.0",
+    "rich==15.0.0",
+    "sectionproperties==3.10.2",
+]
+report = [
+    "python-docx==1.2.0",
+]
+motion = [
+    "exudyn==1.13.6",
+]
+chrono = []                 # conda environment tools/chrono_env (installer), not pip
+native = []                 # program code only (fea_core.native_cad – .ipt / .f3d without CAD)
+mcp = [
+    "mcp==2.3.0",
+    "fastapi==0.143.0",
+    "uvicorn==0.54.0",
+    "python-multipart==0.0.32",
+]
+docs = [
+    "PySide6_Addons==6.11.2",
+    "pypdfium2",
+]
+verify = [
+    "pytest==9.1.1",
+    "rainflow==3.2.0",
+    "httpx==0.28.1",
+    "pyNastran==1.4.1",
+    "cpylog==1.6.0",
+    "docopt-ng==0.9.0",
+    "colorama==0.4.6",
+    "FLife==2.2.2",
+    "fatpack==0.7.8",
+    "pyExSi==0.43.3",
+]
+dev = [
+    "pytest",
+    "rainflow",
+    "httpx",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "fea_core.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["fea_core*", "fea_gui*", "examples*", "verification*"]
+
+[tool.setuptools.package-data]
+fea_core = ["*.json", "data/*.json", "i18n/*.json", "i18n/*.md"]
+fea_gui = ["help/*.html", "help/*.png", "help/*.css", "help/cs/*.html", "help/cs/*.png", "help/cs/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: verification cases with Gmsh and CalculiX"]

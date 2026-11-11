@@ -1,0 +1,36 @@
+.venv/
+__pycache__/
+.pytest_cache/
+scratch/
+tools/_download/
+verification/out/
+*_run/
+verification/out_bench/
+verification/out_mystran/
+verification/out_abaqus/
+# srovnání s Abaqusem: jen lokálně, ne do gitu ani do balíčků
+docs/Srovnani_Abaqus.html
+# celá složka tools/ = binárky a prostředí třetích stran (stáhne instalátor) – nic z ní se neverzuje
+/tools/
+tools/calculix/
+tools/mystran/
+.claude/settings.local.json
+.claude/worktrees/
+.codex/
+dist/
+# nástroje stažené instalátorem (uv, Python od uv, CalculiX…) a předsestavené binárky
+tools/uv/
+tools/python/
+tools/_download/
+installer/linux/prebuilt/
+# prostředí Project Chrono (modul chrono, instalátor)
+tools/chrono_env/
+# Inno Setup (ISCC.exe) pro sestavení setup.exe – získá se skriptem installer/get_innosetup.py, není v gitu
+tools/innosetup/
+# manifest souborů balíčku (vytváří make_package.py) a protokol instalátoru
+installer/manifest.json
+install.log
+# licence třetích stran (generuje installer/collect_licenses.py; v balíčcích jako licenses/)
+/licenses/
+# místní pokyny agentům (osobní, mimo repozitář)
+CLAUDE.local.md

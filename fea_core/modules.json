@@ -1,0 +1,430 @@
+{
+  "_comment": "Jediný zdroj pravdy o modulech programu: čte ho instalátor (installer/fea_setup.py) i program (fea_core/modules.py). pip = balíčky s přesnými verzemi (ověřené sady, viz installer/constraints.txt); pip_nodeps = bez závislostí; ext = vnější komponenty instalátoru (ccx, hypre, mystran…); import = moduly Pythonu, jejichž přítomnost značí nainstalovaný modul; size_mb = přibližné místo na disku po instalaci (Windows).",
+  "profiles": {
+    "minimal": [
+      "core"
+    ],
+    "standard": [
+      "core",
+      "gui",
+      "plots",
+      "accel",
+      "pardiso",
+      "beams",
+      "report",
+      "motion"
+    ],
+    "full": [
+      "core",
+      "gui",
+      "plots",
+      "accel",
+      "pardiso",
+      "beams",
+      "report",
+      "mcp",
+      "ngsolve",
+      "hypre",
+      "motion"
+    ]
+  },
+  "modules": {
+    "core": {
+      "title": {
+        "cs": "Jádro MKP (STEP → síť → CalculiX → výsledky, příkazová řádka)",
+        "en": "FEA core (STEP → mesh → CalculiX → results, command line)"
+      },
+      "desc": {
+        "cs": "Statika, teplo, vlastní frekvence, vzpěr, pruty, 2D, skořepiny, spoje a svary, kontroly. Řešič CalculiX (Windows PaStiX / SPOOLES, Linux SPOOLES).",
+        "en": "Statics, heat, modes, buckling, beams, 2D, shells, joints and welds, checks. CalculiX solver (Windows PaStiX / SPOOLES, Linux SPOOLES)."
+      },
+      "required": true,
+      "pip": [
+        "numpy==1.26.4",
+        "scipy==1.17.1",
+        "gmsh==4.15.2",
+        "psutil==7.2.2"
+      ],
+      "pip_nodeps": [
+        "cadquery-ocp==8.0.1.1.0",
+        "cadquery-ocp-proxy==8.0.1.1.0",
+        "vtk==9.6.2"
+      ],
+      "import": [
+        "numpy",
+        "scipy",
+        "gmsh",
+        "OCP",
+        "psutil"
+      ],
+      "ext": [
+        "ccx_static"
+      ],
+      "size_mb": {
+        "win": 693,
+        "linux": 960
+      }
+    },
+    "gui": {
+      "title": {
+        "cs": "Grafické rozhraní",
+        "en": "Graphical user interface"
+      },
+      "desc": {
+        "cs": "Okno programu s 3D pohledem, průvodci a nápovědou (Qt, bez prohlížeče WebEngine).",
+        "en": "Program window with 3D view, wizards and help (Qt, without the WebEngine browser)."
+      },
+      "requires": [
+        "core",
+        "plots"
+      ],
+      "pip": [
+        "PySide6_Essentials==6.11.2",
+        "shiboken6==6.11.2"
+      ],
+      "import": [
+        "PySide6.QtWidgets"
+      ],
+      "size_mb": {
+        "win": 80,
+        "linux": 95
+      }
+    },
+    "plots": {
+      "title": {
+        "cs": "Grafy a obrázky (matplotlib)",
+        "en": "Plots and images (matplotlib)"
+      },
+      "desc": {
+        "cs": "Grafy v GUI, obrázky výsledků pro protokol a MCP, řezy a voxely.",
+        "en": "Plots in the GUI, result images for reports and MCP, sections and voxels."
+      },
+      "requires": [
+        "core"
+      ],
+      "pip": [
+        "matplotlib==3.11.2"
+      ],
+      "import": [
+        "matplotlib"
+      ],
+      "size_mb": {
+        "win": 43,
+        "linux": 45
+      }
+    },
+    "accel": {
+      "title": {
+        "cs": "Urychlení (Numba): únava, 3D tisk, obrázky výsledků",
+        "en": "Acceleration (Numba): fatigue, 3D printing, result images"
+      },
+      "desc": {
+        "cs": "Únava (rainflow, kritická rovina), model 3D tisku a rychlé vykreslení výsledků bez GPU. Bez něj tyto části nejdou.",
+        "en": "Fatigue (rainflow, critical plane), 3D print model and fast GPU-free result rendering. Those parts do not run without it."
+      },
+      "requires": [
+        "core"
+      ],
+      "pip": [
+        "numba==0.68.0",
+        "llvmlite==0.50.0"
+      ],
+      "import": [
+        "numba"
+      ],
+      "size_mb": {
+        "win": 129,
+        "linux": 140
+      }
+    },
+    "pardiso": {
+      "title": {
+        "cs": "Rychlý přímý řešič PARDISO (Intel MKL)",
+        "en": "Fast direct solver PARDISO (Intel MKL)"
+      },
+      "desc": {
+        "cs": "O ~40 % rychlejší CalculiX (ccx_i4, přímý řešič soustavy PARDISO). Řešič NGSolve + PARDISO potřebuje navíc modul ngsolve. MKL musí být verze 2023.2.0.",
+        "en": "About 40 % faster CalculiX (ccx_i4, direct equation solver PARDISO). The NGSolve + PARDISO solver also needs the ngsolve module. MKL must be version 2023.2.0."
+      },
+      "requires": [
+        "core"
+      ],
+      "pip": [
+        "mkl==2023.2.0"
+      ],
+      "import": [],
+      "ext": [
+        "ccx_i4"
+      ],
+      "check": "pardiso",
+      "size_mb": {
+        "win": 396,
+        "linux": 420
+      }
+    },
+    "ngsolve": {
+      "title": {
+        "cs": "Řešič NGSolve (matice, přímý PARDISO)",
+        "en": "NGSolve solver (matrices, direct PARDISO)"
+      },
+      "desc": {
+        "cs": "Řešič NGSolve + PARDISO: matice sestavená v C++, jedna faktorizace pro všechny zatěžovací stavy (rychlejší od 2 stavů). Potřebuje ho i řešič velkých modelů (modul hypre).",
+        "en": "NGSolve + PARDISO solver: matrix assembled in C++, one factorization for all load cases (faster from 2 cases). The large-model solver (hypre module) needs it as well."
+      },
+      "requires": [
+        "core",
+        "pardiso"
+      ],
+      "pip": [
+        "ngsolve==6.2.2608"
+      ],
+      "import": [
+        "ngsolve"
+      ],
+      "size_mb": {
+        "win": 176,
+        "linux": 200
+      }
+    },
+    "hypre": {
+      "title": {
+        "cs": "Řešič velkých modelů (hypre BoomerAMG, MPI)",
+        "en": "Large-model solver (hypre BoomerAMG, MPI)"
+      },
+      "desc": {
+        "cs": "Iterační řešič NGSolve + hypre (PCG + AMG, paměť roste lineárně); automaticky se volí od 600 000 neznámých. Potřebuje MPI: Windows Microsoft MPI (instaluje se zvlášť, práva správce), Linux MPICH z prostředí hypre.",
+        "en": "Iterative NGSolve + hypre solver (PCG + AMG, memory grows linearly); selected automatically from 600,000 unknowns. Needs MPI: Microsoft MPI on Windows (installed separately, administrator rights), MPICH from the hypre environment on Linux."
+      },
+      "requires": [
+        "core",
+        "ngsolve"
+      ],
+      "pip": [
+        "mpi4py==4.1.2"
+      ],
+      "import": [
+        "mpi4py"
+      ],
+      "ext": [
+        "hypre",
+        "mpi"
+      ],
+      "check": "hypre",
+      "size_mb": {
+        "win": 72,
+        "linux": 210
+      }
+    },
+    "beams": {
+      "title": {
+        "cs": "Vlastní průřezy prutů (sectionproperties)",
+        "en": "Custom beam sections (sectionproperties)"
+      },
+      "desc": {
+        "cs": "Vlastnosti libovolného průřezu prutu z obrysu. Knihovna 471 profilů EN funguje i bez něj.",
+        "en": "Properties of an arbitrary beam cross-section from its outline. The library of 471 EN profiles works without it."
+      },
+      "requires": [
+        "core",
+        "plots"
+      ],
+      "pip": [
+        "shapely==2.2.0",
+        "more-itertools==11.2.0",
+        "rich==15.0.0"
+      ],
+      "pip_nodeps": [
+        "sectionproperties==3.10.2"
+      ],
+      "import": [
+        "sectionproperties"
+      ],
+      "size_mb": {
+        "win": 15,
+        "linux": 16
+      }
+    },
+    "motion": {
+      "title": {
+        "cs": "Kinematika a dynamika mechanismů (Exudyn)",
+        "en": "Kinematics and dynamics of mechanisms (Exudyn)"
+      },
+      "desc": {
+        "cs": "Mechanismy tuhých těles: klouby, pohony, pružiny, tření v kloubech, reakce a převod okamžiků i průběhu do MKP a únavy.",
+        "en": "Rigid-body mechanisms: joints, drives, springs, joint friction, reactions and transfer of instants and histories to FEA and fatigue."
+      },
+      "requires": [
+        "core"
+      ],
+      "pip": [
+        "exudyn==1.13.6"
+      ],
+      "import": [
+        "exudyn"
+      ],
+      "size_mb": {
+        "win": 22,
+        "linux": 30
+      }
+    },
+    "chrono": {
+      "title": {
+        "cs": "Kontakt v mechanismu – Project Chrono (volitelný)",
+        "en": "Contact in mechanisms – Project Chrono (optional)"
+      },
+      "desc": {
+        "cs": "Řešič Chrono (prostředí conda-forge tools/chrono_env, bez MKL): kontakt trojúhelníkových sítí z CAD (vačky, dorazy, valení se skluzem), tření, restituce, valivý odpor.",
+        "en": "Chrono solver (conda-forge environment tools/chrono_env, no MKL): contact of triangle meshes from CAD (cams, stops, rolling with slip), friction, restitution, rolling resistance."
+      },
+      "requires": [
+        "core",
+        "motion"
+      ],
+      "pip": [],
+      "import": [],
+      "ext": [
+        "chrono"
+      ],
+      "check": "chrono",
+      "size_mb": {
+        "win": 600,
+        "linux": 650
+      }
+    },
+    "native": {
+      "title": {
+        "cs": "Nativní soubory Inventor .ipt / .iam a Fusion .f3d (volitelný)",
+        "en": "Native Inventor .ipt / .iam and Fusion .f3d files (optional)"
+      },
+      "desc": {
+        "cs": "Otevře díly Inventoru (.ipt) a návrhy Fusionu (.f3d, .f3z) přímo, bez CADu a bez exportu STEP (vlastní čtečka jádra ShapeManager; převedený model se kontroluje). Sestavy Inventoru (.iam) s díly ve složce sestavy a sestavy Fusionu s polohami výskytů; spojovací součásti .iam jako virtuální šrouby. Neoficiální čtení formátů Autodesk – u důležitých modelů výsledek porovnejte s exportem STEP.",
+        "en": "Opens Inventor parts (.ipt) and Fusion designs (.f3d, .f3z) directly, without the CAD and without STEP export (own ShapeManager kernel reader; the converted model is checked). Inventor assemblies (.iam) with parts in the assembly folder and Fusion assemblies with occurrence positions; .iam fasteners as virtual bolts. Unofficial reading of Autodesk formats – compare important models with a STEP export."
+      },
+      "requires": [
+        "core"
+      ],
+      "pip": [],
+      "import": [],
+      "check": "native",
+      "size_mb": {
+        "win": 1,
+        "linux": 1
+      }
+    },
+    "report": {
+      "title": {
+        "cs": "Protokol Word (.docx)",
+        "en": "Word report (.docx)"
+      },
+      "desc": {
+        "cs": "Výpočetní protokol s obrázky, tabulkami a hodnocením v češtině nebo angličtině.",
+        "en": "Calculation report with images, tables and assessment in Czech or English."
+      },
+      "requires": [
+        "core",
+        "plots",
+        "accel"
+      ],
+      "pip": [
+        "python-docx==1.2.0"
+      ],
+      "import": [
+        "docx"
+      ],
+      "size_mb": {
+        "win": 11,
+        "linux": 12
+      }
+    },
+    "mcp": {
+      "title": {
+        "cs": "Server MCP a REST API pro AI agenty a CAD adaptéry",
+        "en": "MCP server and REST API for AI agents and CAD adapters"
+      },
+      "desc": {
+        "cs": "Přes 180 nástrojů pro LLM agenty (Claude, Cursor, VS Code…), REST pro adaptér Fusion.",
+        "en": "Over 180 tools for LLM agents (Claude, Cursor, VS Code…), REST for the Fusion adapter."
+      },
+      "requires": [
+        "core",
+        "plots",
+        "accel"
+      ],
+      "pip": [
+        "mcp==2.3.0",
+        "fastapi==0.143.0",
+        "uvicorn==0.54.0",
+        "python-multipart==0.0.32"
+      ],
+      "import": [
+        "mcp"
+      ],
+      "size_mb": {
+        "win": 42,
+        "linux": 45
+      }
+    },
+    "docs": {
+      "title": {
+        "cs": "Tvorba PDF příruček (Qt WebEngine)",
+        "en": "PDF manual generation (Qt WebEngine)"
+      },
+      "desc": {
+        "cs": "Jen pro vývojáře: znovu vytvoří PDF příručky. Hotová PDF jsou v balíčku (složka docs), běžný uživatel to nepotřebuje.",
+        "en": "Developers only: regenerates the PDF manuals. Ready PDFs are in the package (docs folder); normal users do not need it."
+      },
+      "requires": [
+        "gui"
+      ],
+      "pip": [
+        "PySide6_Addons==6.11.2",
+        "pypdfium2"
+      ],
+      "import": [
+        "PySide6.QtWebEngineCore"
+      ],
+      "size_mb": {
+        "win": 384,
+        "linux": 420
+      }
+    },
+    "verify": {
+      "title": {
+        "cs": "Ověřování a testy (MYSTRAN, pytest, rainflow)",
+        "en": "Verification and tests (MYSTRAN, pytest, rainflow)"
+      },
+      "desc": {
+        "cs": "Ověřovací úlohy V/U/S/W/T…, křížová kontrola proti MYSTRAN a automatické testy.",
+        "en": "Verification cases, MYSTRAN cross-check and automated tests."
+      },
+      "requires": [
+        "core",
+        "plots"
+      ],
+      "pip": [
+        "pytest==9.1.1",
+        "rainflow==3.2.0",
+        "httpx==0.28.1"
+      ],
+      "pip_nodeps": [
+        "pyNastran==1.4.1",
+        "cpylog==1.6.0",
+        "docopt-ng==0.9.0",
+        "colorama==0.4.6",
+        "FLife==2.2.2",
+        "fatpack==0.7.8",
+        "pyExSi==0.43.3"
+      ],
+      "import": [
+        "pytest"
+      ],
+      "ext": [
+        "mystran"
+      ],
+      "size_mb": {
+        "win": 51,
+        "linux": 30
+      }
+    }
+  }
+}

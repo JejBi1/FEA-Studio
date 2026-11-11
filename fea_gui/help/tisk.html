@@ -1,0 +1,261 @@
+<h1>3. 3D printing</h1>
+<p class="lead">Sets the print method for FDM/FFF parts: perimeters, solid layers, infill and build direction. A printed part is analyzed as a shell of solid
+extrusion around an infill core. The result gives a safety factor (Tsai-Wu or Tsai-Hill) and an indicative creep estimate.</p>
+
+<p class="warn"><b>Warning:</b> infill properties, anisotropy ratios, creep parameters and print S-N curves are <b>INDICATIVE</b> (sparse literature data, own estimates).
+For a critical part calibrate them with your own tensile tests (see <a href="#kalibrace">Calibration</a>) and treat results as comparative.</p>
+
+<h2>How the program models a printed part</h2>
+<p>A part is printed when a <b>printed material</b> is assigned: separate properties in the layer plane (E, Rm) and normal to the layers (E_z, Rm_z).
+All material values are for <b>solid extrusion</b> (100 % infill); the infill and shell effect is computed by the program.</p>
+<ul>
+<li><b>Shell</b> = solid material at the surface. Vertical walls: perimeters, thickness <i>perimeters × line width</i> (2 × 0.42 = 0.84 mm). Horizontal faces: top and bottom solid layers, <i>layers × layer height</i> (5 × 0.2 = 1.0 mm top, 3 × 0.2 = 0.6 mm bottom). On inclined faces the larger contribution governs. A face touching another part is also a print surface.</li>
+<li><b>Core</b> = infill with <b>homogenized</b> properties from the pattern and density (Gibson–Ashby type: E_core = E · k · ρ<sup>n</sup>); single infill ribs are not modeled.</li>
+<li><b>Shell fraction per element:</b> 32 points are sampled on the shell boundary of each element (0 = infill, 1 = solid), rounded to tenths. Stiffness is a mix of shell and core with the same strain (isostrain); mass is computed the same way.</li>
+<li><b>Build direction</b> (printer Z) gives the material axes: 1 and 2 in the layer plane, 3 normal to the layers (transversely isotropic).</li>
+<li><b>Line anisotropy in perimeters:</b> the line runs along the contour, so along the line the material is stiffer and stronger than across it. The line direction is the wall tangent in the layer, rounded to 5°. With r = across/along, the value along the line is 2/(1 + r) · XY and across it r × that. Default PLA (r = 0.55 for strength): Rm = 39 MPa gives 50 MPa along the line and 28 MPa across. Solid top and bottom layers are isotropic in the plane.</li>
+</ul>
+<p class="tip"><b>Tip:</b> in bending the shell carries most of the load, so more perimeters usually help more than more infill. Change <i>Perimeters</i> and watch the “Shell / Core” line.</p>
+
+<h2>Procedure in the step</h2>
+<ol>
+<li>Select the printed parts in the part list (<span class="key">Ctrl</span> / <span class="key">Shift</span>). The status in brackets shows e.g. <i>[material; 2× perimeter, infill 15 % Grid; Z = +Z]</i>, <i>[Steel S235 – not printed]</i> or <i>[bolt / omitted]</i>.</li>
+<li>Choose the printed material and press <b>Assign</b>.</li>
+<li>Enter the slicer parameters and press <b>Apply to selected parts</b> (nothing is saved before).</li>
+<li>Choose the <b>Failure criterion</b>. For sustained loads turn on <b>Creep</b> and check the long-term cases.</li>
+<li>After meshing (<a href="sit.html">Mesh</a>), check the shell distribution with <b>Shell / core</b>.</li>
+</ol>
+
+<h2>Controls</h2>
+<h3>Parts and material</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Part list</td><td>Selects parts for a material or print settings; clicking loads the part's settings.</td><td>Bolts and omitted parts are not printed.</td></tr>
+<tr><td>Material list + <b>Assign</b></td><td>Assigns a printed material (library or study). A part without settings takes the form values.</td><td>Only materials with E_z are offered.</td></tr>
+</table>
+
+<h3>Print settings of the selected parts</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>shell + infill (otherwise the whole part is solid)</td><td>Turns the shell + infill model on. Off = solid extrusion, still orthotropic by build direction.</td><td>Off for 100 % infill.</td></tr>
+<tr><td>Build direction (printer Z)</td><td>+Z (usual), −Z, ±X, ±Y or a <i>custom</i> vector. The sign decides which faces get top and bottom layers.</td><td>Depends on how the part lies on the bed.</td></tr>
+<tr><td>Layer height</td><td>Thickness of one layer.</td><td>0.2 mm (0.02–2 mm)</td></tr>
+<tr><td>Line width</td><td>Width of the extruded perimeter line.</td><td>0.42 mm (0.4 mm nozzle)</td></tr>
+<tr><td>Perimeters</td><td>Number of contour walls.</td><td>2–4</td></tr>
+<tr><td>Solid layers – top / bottom</td><td>Solid layers on top and bottom faces.</td><td>5 / 3</td></tr>
+<tr><td>Infill</td><td>Density in %; from 99 % the core is solid.</td><td>15–25 %</td></tr>
+<tr><td>Infill pattern</td><td>Changes core stiffness and strength in XY and Z (table below).</td><td>Grid, Gyroid…</td></tr>
+<tr><td><b>Apply to selected parts</b></td><td>Saves the settings to all selected parts.</td><td></td></tr>
+<tr><td><b>Preset</b> + <b>To form</b> / <b>Save as…</b> / <b>Delete</b></td><td>Built-in “3D print standard” or your own presets. <b>To form</b> only fills the form (build direction stays); <b>Apply</b> saves it.</td><td>Standard: 2 × 0.42 mm, 5/3 × 0.2 mm, grid 15 %. A faulty presets file gives an orange warning and is not overwritten.</td></tr>
+<tr><td>solid infill of thin regions + width limit [mm]</td><td>Thin ribs and walls that sparse infill cannot fill are solid (as in slicers). Limit 0 = auto (2 × line width).</td><td>On. Thin regions are magenta in Shell / core.</td></tr>
+<tr><td><b>Build direction from face</b></td><td>Click the button, then a planar face on the bed in 3D. The build direction is the opposite of its outward normal for the selected parts; other settings stay. Click again to cancel.</td><td>An orange arrow and the bed outline show in 3D.</td></tr>
+<tr><td><b>Advanced</b> (▸)</td><td><i>bins</i>: shell fraction rounded to 1/bins. <i>samples</i>: points per boundary element. <i>line_bins</i>: line direction classes of 180°/line_bins.</td><td>10 / 32 / 36 (5°). A change needs a new computation; the mesh stays.</td></tr>
+<tr><td>“Shell: … / Core: …” line</td><td>Shell thicknesses (walls, top, bottom) and effective E_xy, E_z, Rm_xy, Rm_z of the core with percentages of solid extrusion.</td><td>Quick check of infill effects.</td></tr>
+</table>
+<p><b>Tolerance (surface loss)</b> [mm]: the part is printed smaller by δ on every free face (undersized walls, rounded beads, shrinkage). Free surface nodes move inward by δ in the analysis; faces with a support or load stay. The mesh does not change. Typically 0.05–0.2 mm (safe side).</p>
+
+<h3>Effective infill properties</h3>
+<p>Indicative core-to-solid ratios at 20 % infill; for other densities they are rescaled with a power of the density.</p>
+<table class="grid">
+<tr><th>Infill pattern</th><th>Core E XY / Z</th><th>Core strength XY / Z</th><th>Note</th></tr>
+<tr><td>Grid, Triangles, Triangles-hexagons</td><td>6–7 % / 20 %</td><td>6–7 % / 18 %</td><td>Vertical walls carry Z load across the section.</td></tr>
+<tr><td>Rectilinear, Aligned rectilinear, Zig-zag</td><td>7 % / 4.5 %</td><td>7 % / 4.5 %</td><td>Layers only cross in Z.</td></tr>
+<tr><td>Gyroid</td><td>6.5 % / 6.5 %</td><td>7.2 % / 7.2 %</td><td>Nearly isotropic.</td></tr>
+<tr><td>Cubic, Adaptive cubic</td><td>3.7 % / 3.7 %</td><td>3.7 % / 3.7 %</td><td></td></tr>
+<tr><td>Crosshatch, 3D honeycomb</td><td>2.7 % / 2.7 %</td><td>2.7 % / 2.7 %</td><td></td></tr>
+<tr><td>Honeycomb</td><td>1.2 % / 20 %</td><td>2 % / 18 %</td><td>Flexible in bending in the plane.</td></tr>
+<tr><td>Concentric</td><td>10 % / 20 %</td><td>10 % / 18 %</td><td></td></tr>
+<tr><td>Lightning – non-structural</td><td>0.1 %</td><td>0.1 %</td><td>Supports only the top layers.</td></tr>
+</table>
+
+<h3>Printed material – solid extrusion (100 % infill)</h3>
+<p>Editing creates a new study material. Thermal properties (λ, α, c_p) are edited in <a href="materialy.html">Materials</a>.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Name</td><td>Material name; a built-in material cannot be overwritten.</td><td></td></tr>
+<tr><td>E in layer plane (XY) / E normal to layers (Z)</td><td>Moduli of solid extrusion.</td><td>PLA 2700–3500 / 2100–2500 MPa</td></tr>
+<tr><td>ν in plane / ν_xz (0 = as ν)</td><td>Poisson's ratios.</td><td>0.36</td></tr>
+<tr><td>G between layers (0 = estimate)</td><td>Interlayer shear modulus; 0 = E_z/(2(1 + ν)).</td><td>Usually 0</td></tr>
+<tr><td>ρ</td><td>Density of solid material.</td><td>PLA 1240 kg/m³</td></tr>
+<tr><td>Rm tension XY / Rm tension Z (layer bond)</td><td>Tensile strength in the layer plane and normal to layers.</td><td>Z is usually 50–70 % of XY.</td></tr>
+<tr><td>compressive strength XY (0 = Rm) / Z (0 = Rc)</td><td>Compressive strengths.</td><td>PLA ~60 MPa</td></tr>
+<tr><td>in-plane shear (0 = Rm/√3) / interlayer shear (0 = Rm_z/√3)</td><td>Shear strengths.</td><td>Usually 0 (estimate)</td></tr>
+<tr><td>Source</td><td>TDS, own test; stated in the report.</td><td></td></tr>
+<tr><td><b>Save and assign to selected</b></td><td>Saves to the study and assigns to selected parts (none selected → parts already using a material of that name).</td><td>E and E_z required.</td></tr>
+<tr><td><b>To my library</b></td><td>Saves to the user library (%APPDATA%/FEAStudio).</td><td>Available in other studies.</td></tr>
+</table>
+
+<h3>Built-in printed materials</h3>
+<table class="grid">
+<tr><th>Material</th><th>E XY / Z [MPa]</th><th>Rm XY / Z [MPa]</th><th>Source</th></tr>
+<tr><td>Print PLA Bambu Basic</td><td>2680 / 2160</td><td>39 / 35</td><td>Bambu Lab TDS PLA Basic V2.0, ISO 527, 100 % infill, <b>annealed 55 °C / 8 h</b>; Rc = 60 MPa, ν and shear estimated.</td></tr>
+<tr><td>Print PLA generic (Z 60 %)</td><td>3000 / 2500</td><td>45 / 27</td><td>Literature, Z strength 60 % of XY; calibration necessary.</td></tr>
+<tr><td>Print PETG (approximate)</td><td>2000 / 1700</td><td>45 / 30</td><td>Indicative; calibration necessary.</td></tr>
+</table>
+<p class="warn"><b>Warning:</b> the 90 % Z/XY ratio of “Print PLA Bambu Basic” applies to annealed specimens. Non-annealed parts from an ordinary printer usually reach 50–70 % of XY in interlayer strength; without test data use “Print PLA generic (Z 60 %)”. “PLA print XY (approximate)” and “PETG print XY (approximate)” in Materials are isotropic and do not turn on the print model.</p>
+
+<h3>Assessment and calibration</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Failure criterion</td><td><b>Tsai-Wu</b> (default) distinguishes tension and compression with one quadratic criterion. <b>Tsai-Hill</b> takes the tensile or compressive strength per component by its sign.</td><td>Tsai-Wu</td></tr>
+<tr><td><b>Calibration from ISO 527 tests…</b></td><td>Dialog computing solid extrusion properties from tensile tests.</td><td>See below.</td></tr>
+<tr><td><b>Shell / core</b>, section X / Y / Z, slider</td><td>Section through the printed parts coloured by shell fraction (1 = shell, 0 = infill). The image redraws when the slider is released.</td><td>Needs the mesh from Mesh.</td></tr>
+</table>
+<p>Editing a printed material keeps its other properties (Re, λ, α, c_p). Study materials not assigned to any part (e.g. calibrated ones) are kept when another material is assigned.</p>
+
+<h3>Refine mesh at critical locations and recompute</h3>
+<p>After the analysis, the mesh around the locations with the lowest print safety factor (1–8 <b>locations</b>) is refined in spheres to about the shell thickness and the study is recomputed (two-step refinement). Refining the whole surface would be too expensive. Below the button the min. safety before and after, and node counts are shown; you can then adopt the spheres into the study (Mesh step) and the new results.</p>
+<p class="warn">If the minimum after refinement lies at a sharp inner edge it is a <b>singularity</b>: the value falls with each refinement and has no finite limit. Add the real corner radius in CAD, or evaluate away from the edge; the program then also states the lowest safety factor outside the singularity.</p>
+
+<h3>Print detail (voxels)</h3>
+<p>In Results, <b>Print detail (voxels)…</b> computes a small region around the critical location from individual beads (perimeters, layers, infill) – see <a href="voxel.html">Print detail (voxels)</a>. Indicative.</p>
+
+<h2>Print safety factor and failure index</h2>
+<p>The strain at the 4 Gauss points of each element is taken from the displacements and converted to print axes (line axes for perimeters). Shell and core share the strain but have stresses σ = C·ε; each is assessed with its own strengths, and the worse governs the element.</p>
+<ul>
+<li><b>Safety factor λ</b> (“3D printing – safety factor (Tsai-Wu/Hill)” in <a href="vysledky.html">Results</a>): the factor by which <b>all loads of the case</b> must be multiplied to reach criterion 1. λ = 2 = failure at twice the load. For Tsai-Wu this is not a simple stress/strength ratio (linear terms differ for tension and compression).</li>
+<li><b>Failure index</b> = 1/λ (“3D printing – failure index”): 1 = failure, 0.5 = half utilization.</li>
+<li>At a node the worst surrounding element is shown, without averaging across material jumps. Non-printed parts show λ = 10 and index 0.</li>
+<li>The results info panel and the bottom of the step list, per case and part, the <b>min. safety factor</b>, location, region (<i>shell</i>, <i>perimeter (line axes, across, Z)</i> or <i>core (infill)</i>) and σ11 σ22 σ33 τ12 τ13 τ23 in print axes. σ33 shows whether tension between layers governs.</li>
+</ul>
+<p class="warn"><b>Warning:</b> “Safety factor to Re” does not assess printed parts (plastics have no yield strength); use “3D printing – safety factor”. Each load case is assessed separately; put simultaneous loads in one case. The report rates the print PASS already at λ ≥ 1; judge the margin yourself (for uncalibrated data rather 2–3).</p>
+
+<h2><a name="kalibrace"></a>Calibration from ISO 527 tests</h2>
+<p>Specimens have a shell and infill like parts. The <b>Printed material calibration – ISO 527</b> dialog back-calculates the <b>solid extrusion</b> with the same model the analysis uses, so parts with other print settings match.</p>
+<h3>How to test</h3>
+<ul>
+<li>ISO 527-2 type 1A/1B specimens (gauge b = 10 mm, h = 4 mm). <b>xy</b> = lying flat (tension in the layer plane); <b>z</b> = standing upright (tension normal to layers).</li>
+<li>Print with 100 % infill if possible; at least 3 specimens per direction (the dialog gives the coefficient of variation).</li>
+<li>Measure modulus with an extensometer; crosshead travel includes machine and grip compliance and gives a much lower modulus.</li>
+</ul>
+<h3>Dialog controls</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Specimen table</td><td>Specimen, Direction (xy / z), E [MPa], Rm [MPa], b [mm], h [mm], Perimeters, Line [mm], Top, Bottom, Layer [mm], Infill [%], Pattern. E and Rm are measured values for the whole b × h section.</td><td>Decimal comma or point.</td></tr>
+<tr><td><b>Add XY</b> / <b>Add Z</b></td><td>Adds a row with the print settings from the step form.</td><td></td></tr>
+<tr><td><b>Remove</b></td><td>Deletes the selected row.</td><td></td></tr>
+<tr><td><b>Load curve (CSV)…</b></td><td>Loads the record for the selected row; fills E (secant between ε = 0.05 % and 0.25 %, ISO 527-1) and Rm (maximum stress). Asks for extensometer gauge length L0.</td><td>L0 = 50 mm; 0 = second column is strain in %.</td></tr>
+<tr><td>Default material</td><td>Source of ν, compressive and shear strengths (scaled as tension) and of the Z/XY ratio if Z tests are missing.</td><td></td></tr>
+<tr><td>Result name</td><td>Name of the calibrated material.</td><td>“PLA – calibration”</td></tr>
+<tr><td>also save to my material library</td><td>Also saves the result to the user library.</td><td>On</td></tr>
+<tr><td><b>Calculate</b></td><td>Table of φ_E, φ_R, solid E and R per specimen, and E_xy, E_z, Rm_xy, Rm_z with coefficients of variation and the Z/XY ratio.</td><td></td></tr>
+<tr><td><b>Create material</b></td><td>Creates the material and assigns it to the selected parts (none selected → only added to the list). Tests are saved to the study.</td><td></td></tr>
+</table>
+<h3>CSV file format</h3>
+<p>Two numeric columns: <b>force [N]</b> and <b>elongation [mm]</b> (or strain [%] with L0 = 0). Separator comma, semicolon, tab or space; decimal comma allowed. Text rows (header) are skipped; at least 5 numeric rows. Stress = force / (b · h).</p>
+<pre>Force [N];Elongation [mm]
+0;0
+120,5;0,021
+...</pre>
+<h3>What is computed</h3>
+<p>For each specimen the load-bearing fraction is φ = (A_perimeters · c + A_solid layers + A_core · k)/A, where k is the infill ratio in the direction and c = 2/(1 + r) (perimeters of an XY specimen are loaded along the line; r = across/along line ratio; c = 1 for Z specimens). Hence the solid E_xy comes out slightly lower than the measured average, and the analysis then returns exactly the measured stiffness. Line ratios of the default material (<b>Apply to material</b>) are inherited. Solid extrusion: E_solid = E_meas/φ_E and R_solid = Rm_meas/φ_R, averaged per direction.</p>
+
+<h2>Perimeters, creep and fatigue of the material</h2>
+<p>The <b>Perimeters, creep and fatigue of the material (indicative, printing.props)</b> box holds extra properties of the <b>selected printed material</b>. Defaults come from the polymer family guessed from the name (PLA, PETG, ABS/ASA; unknown = PLA); the <i>Family (defaults)</i> line shows which.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Default PLA / PETG / ABS</th></tr>
+<tr><td>Line: E across / along</td><td>Ratio of moduli across and along the line in perimeters (1 = none).</td><td>0.8 / 0.85 / 0.85</td></tr>
+<tr><td>Line: Rm across / along</td><td>Ratio of tensile strengths across and along the line.</td><td>0.55 / 0.6 / 0.6</td></tr>
+<tr><td>Creep: a [h^-n], Creep: n</td><td>Findley law φ(t) = a·t<sup>n</sup> (t in h, 23 °C); long-term modulus E_c = E/(1 + φ).</td><td>a 0.04 / 0.03 / 0.03; n 0.4 / 0.4 / 0.35</td></tr>
+<tr><td>Long-term strength: β</td><td>Strength drop k_R = 1 − β·log10(1 + t), at least 0.3.</td><td>0.10 / 0.08 / 0.08</td></tr>
+<tr><td>S-N: SD / Rm</td><td>Fatigue amplitude at ND as a fraction of Rm (XY).</td><td>0.1</td></tr>
+<tr><td>S-N: SD (priority)</td><td>Amplitude in MPa; if entered, it overrides the ratio.</td><td>“from ratio”</td></tr>
+<tr><td>S-N: ND</td><td>Cycles at the knee.</td><td>2·10⁶</td></tr>
+<tr><td>S-N: slope k / slope k2 below knee</td><td>Slopes above and below the knee (plastics have no true endurance limit).</td><td>5.5 / 10</td></tr>
+<tr><td>S-N: SD_z / SD_xy</td><td>Interlayer to in-plane fatigue ratio.</td><td>“= Rm_z/Rm”</td></tr>
+<tr><td><b>Apply to material</b></td><td>Saves the values to the study for this material.</td><td></td></tr>
+<tr><td><b>Default (literature)</b></td><td>Removes the override, restores family defaults.</td><td></td></tr>
+</table>
+<p>Below the table, a creep temperature table (temperature, k_E, k_φ) with its limit, and the check “1000 h at 23 °C”: for PLA φ = 0.63, E_c/E = 0.61, strength × 0.70.</p>
+<table class="grid">
+<tr><th>Family</th><th>Temperature table (T: k_E, k_φ)</th><th>Valid up to</th></tr>
+<tr><td>PLA (Tg ≈ 55–60 °C)</td><td>23 °C: 1; 1 · 30 °C: 0.97; 1.5 · 40 °C: 0.92; 3 · 45 °C: 0.85; 5</td><td>45 °C</td></tr>
+<tr><td>PETG (Tg ≈ 78–80 °C)</td><td>23 °C: 1; 1 · 40 °C: 0.95; 1.6 · 50 °C: 0.9; 2.5 · 60 °C: 0.8; 4.5</td><td>60 °C</td></tr>
+<tr><td>ABS/ASA (Tg ≈ 105 °C)</td><td>23 °C: 1; 1 · 50 °C: 0.92; 2 · 70 °C: 0.8; 4</td><td>70 °C</td></tr>
+</table>
+<p><b>Sources (all INDICATIVE):</b> line anisotropy: Song et al., Mater. Des. 123 (2017); Khosravani et al., Sci. Rep. 12 (2022) 1016 (raster 90°/0°: Rm 0.54–0.58; modulus ratio 0.8 is an estimate). PLA creep: estimate from FDM PLA creep tests (Waseem et al., Polymers 12 (2020) 2962); PETG: Polymers 2025 (PMC12349189). S-N: Ezeh &amp; Susmel, Int. J. Fatigue 126 (2019) 319–326 (FFF PLA, k = 5.5, SD(2·10⁶) ≈ 0.1 Rm, survival 95 %). PETG and ABS S-N taken from PLA; their Z ratio is not verified.</p>
+
+<h2>Creep – long-term load</h2>
+<p>A linear analysis does not capture plastic creep: PLA creeps under sustained load even at room temperature, faster when warm. The <b>Creep – long-term load (isochronous modulus)</b> box turns on an indicative estimate.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>estimate creep of long-term cases</td><td>Turns the estimate on.</td><td></td></tr>
+<tr><td>Load duration</td><td>How long the load acts continuously.</td><td>1000 h ≈ 6 weeks, 8760 h = 1 year</td></tr>
+<tr><td>Part temperature</td><td>Uniform temperature for the whole duration.</td><td>23–30 °C; above the table limit → error.</td></tr>
+<tr><td>Long-term cases</td><td>Checked cases act continuously (hanging weight, spring preload). Do not check short-term impacts.</td><td></td></tr>
+</table>
+<h3>What the estimate adds to the results</h3>
+<ul>
+<li>Each long-term case is recomputed <b>on the same mesh</b> with E_c = k_E·E/(1 + k_φ·φ(t)) and strengths × k_R. Results gain a case “<i>&lt;case&gt; – creep 1000 h, 30 °C</i>” with all quantities; its print safety factor refers to the long-term strength.</li>
+<li>The bottom of the 3D printing step and the report summarize: max. displacement short-term → long-term and their ratio, short-term utilization, and the min. long-term safety factor.</li>
+<li>Metal parts do not creep, so the estimate shows the redistribution of forces between rigid and creeping parts. For a single-material model the long-term displacement is the short-term one divided by the stiffness factor and stresses do not change.</li>
+</ul>
+<h3>Limits of the estimate</h3>
+<ul>
+<li>Linear viscoelasticity holds up to ~30–35 % of strength. If short-term print utilization (1/λ) exceeds 35 %, a warning says real creep will be larger: the estimate is <b>non-conservative</b>.</li>
+<li>The load must be constant and the temperature uniform. Humidity and ageing are not included.</li>
+<li><b>Relaxation of bolt preload</b> in plastic is not computed (see <a href="spoje.html">Joints</a>).</li>
+</ul>
+<p class="warn"><b>Warning:</b> every study with a printed part shows a warning, and the Word report always contains the red notice “WARNING – CREEP: the linear model does not capture plastic creep…”. If long-term cases were not computed, the report says so (“long-term cases were not computed (3D printing step → Creep)”); the summary then assesses the print <b>without creep</b>. The notice cannot be turned off – it is a deliberate limitation of the method.</p>
+
+<h2>Fatigue of printed parts</h2>
+<p>Set up in <a href="unava.html">Fatigue</a> as for metals, with a print-specific procedure:</p>
+<ul>
+<li>Stress is computed in print axes (line axes for perimeters), separately for shell and core. Multiaxial stress becomes a signed <b>Hill equivalent</b>; directional fatigue strengths = static strengths × SD/Rm.</li>
+<li>Then as for metals: rainflow, mean-stress correction (Goodman/Gerber with Rm XY), Miner's rule; a node takes the worst surrounding element.</li>
+<li>S-N curve from the Perimeters, creep and fatigue box (default Ezeh &amp; Susmel). Marin factors are not used (test specimens already contain print defects). An S-N curve entered in Fatigue applies to XY.</li>
+<li>Limits: one slope for all directions; compressive amplitudes taken as tensile (conservative); no frequency effect; no notch sensitivity of the print.</li>
+</ul>
+
+<h2><a name="varianty"></a>Variants, sweep and advice – how to strengthen or lighten a part</h2>
+<p>Below the settings in the 3D printing step: the <b>Internal structure variants</b> group and two collapsible sections, <b>▸ Parameter sweep</b> and <b>▸ Advice by failure location and build direction</b>.</p>
+<p>Print settings do not change the mesh: all variants run on a <b>single mesh</b> (no remeshing) and differ only in shell and infill assignment. Each variant reports the min. print safety factor (and where), max. displacement and printed mass.</p>
+<h3>Variants</h3>
+<p>A variant = named overrides per part (perimeters, solid layers, infill, pattern, line, layer, build direction, material). <b>Compute variants</b> runs the study settings and all variants; the recommended one is the lightest with safety factor ≥ the required one (default 1.5). Adopt the selected variant into the study.</p>
+<h3>Parameter sweep</h3>
+<p>Enter perimeters, infill densities, patterns and optionally build directions; all combinations run on one mesh (at most 60 variants). Separate values by commas or spaces (“2, 3, 4”); with a decimal comma use semicolons (“7,5; 15”). <b>Estimate</b> shows variant count and time. The mass × safety plot shows the <b>Pareto front</b> (no other variant beats it in both mass and safety). The recommended variant is green, Pareto points ★; clicking the plot selects the table row. <b>Adopt selected variant</b> applies it and recomputes; <b>Add it to variants</b> keeps it.</p>
+<h3>Advice by failure location</h3>
+<p>From the weakest location of each part (perimeter, solid layers, infill, thin region) and stress components in print axes, the program suggests: stress along the perimeter line → more perimeters; infill governs → higher density (gyroid for multi-directional loading); loaded layer bond (σ33, τ13, τ23) → different build direction. Each advice can be tried at once (<b>Try as variant</b>); for infill, <b>Sweep infill</b> prefills the sweep.</p>
+<p class="warn"><b>Warning:</b> advice is INDICATIVE – verify the benefit with a variant (analysis) and, for important parts, a test.</p>
+<h3>Rank build directions</h3>
+<p>Computes the part built along all six axes ±X / ±Y / ±Z and ranks them by print safety factor. Adopt the best with one click (other settings stay).</p>
+<h3>Presets</h3>
+<p>Save print settings (layer, line, perimeters, top/bottom layers, infill, pattern, thin regions) under a name and apply them to other parts; the build direction stays. Only “3D print standard” is built in. Presets are stored in <code>%APPDATA%\FEAStudio\print_presets.json</code>.</p>
+<h3>Solid infill of thin regions</h3>
+<p>Where the interior after subtracting perimeters is narrower than the limit (default 2 × line width), sparse infill does not fit and slicers print solid; the program does the same. The limit can be entered or the option turned off. Indicative – slicers decide by region area.</p>
+<h3>In-plane anisotropy of infills</h3>
+<p>Grid, rectilinear and zig-zag infills have lines at ±45° to the print axes: same modulus in print axes, but stiffer in in-plane shear (indicatively after Gibson and Ashby). Gyroid, cubic, honeycomb and triangles are approximately isotropic in the plane.</p>
+
+<h2>Recommendations</h2>
+<ul>
+<li><b>Orientation on the bed:</b> the principal tensile stress should lie in the layer plane. Layers normal to it are the weakest (typically 50–70 % of XY strength, less for non-annealed PLA) and fail in a brittle way. Rotate bent arms and hooks so the bending plane lies in the layers.</li>
+<li><b>Bolt holes</b> with an axis parallel to the build direction are surrounded by perimeters running around the contour – best for bearing and tension.</li>
+<li><b>Mesh and shell:</b> the shell is usually 0.6–1.3 mm and elements 2–4 mm, so shell stress depends on the mesh. At critical places (eye, notch, rib root) refine locally in <a href="sit.html">Mesh</a>, ideally to about the shell thickness. Do not refine the whole surface: for thin parts it means hundreds of thousands of nodes and tens of GB of solver memory.</li>
+<li>Check the <b>Shell / core</b> section. Thin walls (≤ 2 × perimeter thickness) are fully solid, as in real printing.</li>
+<li>For critical parts <b>calibrate</b> the properties and verify with a test of the part.</li>
+<li>Printed parts can also use the large-model solver (NGSolve); results are identical to CalculiX.</li>
+</ul>
+
+<h2>In the examples</h2>
+<h3>Example 1 “Printed bracket”</h3>
+<p>Single part “Drzak (tisk PLA)”, material <b>Print PLA Bambu Basic</b>. Build +Z, <b>3 perimeters</b> (wall 1.26 mm), solid layers 5/3 × 0.2 mm (1.0/0.6 mm), <b>infill 20 % Gyroid</b>. The “Core” line shows E_xy ≈ 6.5 % and Rm ≈ 7 % of solid. Criterion Tsai-Wu. Creep on: <b>1000 h, 30 °C</b>, long-term case “Eye load 200 N” (permanent hanging weight): at 30 °C stiffness factor 0.50, strength factor 0.70; the long-term displacement is roughly twice the short-term one and the long-term safety is 0.70 × the short-term one. Fatigue: pulsating 0–200 N, 10⁵ cycles, print S-N from PLA defaults. With a 2.5 mm mesh expect “elements at the surface … are much larger than the shell”. In <b>Shell / core</b> (X axis) check whether the minimum lies in the wall with holes (σ33 normal to layers) or in the arm.</p>
+<h3>Example 2 “Assembly”</h3>
+<p>Only “Rameno (tisk PLA)” is printed; base plate and post are steel S235 (“not printed”); bolts, nuts and washers are “bolt / omitted”. Build +Z, 3 perimeters, <b>infill 25 % Gyroid</b>. Creep: <b>2000 h, 30 °C</b>, long-term case “Force on arm eye”; PLA stiffness factor 0.43, strength factor 0.67. Steel does not creep, so the displacement ratio is not 1/0.43 but shows force redistribution. Mesh 4 mm with 1.5 mm local refinement at the arm eye, where pin pressure governs. The arm is clamped by two M6 bolts: the automatic preload limits the pressure under the washer to PLA, and the bolt check warns about settlement and creep. In the thermal analysis the arm's conductivity is reduced by the solid fraction (see <a href="teplo.html">Heat</a>).</p>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“3D printing 'part': elements at the surface (~2.5 mm) are much larger than the shell (0.6 mm) – shell stiffness is only averaged…”</b><br>
+Elements are over 3× the thinnest shell. Stiffness is usually fine, but shell stress depends on the mesh. Define local refinement at the minimum-safety location in Mesh and repeat; keep refining while the minimum changes significantly.</li>
+<li><b>“Creep 'material': temperature 50 °C is outside the validity of the estimate (up to 45 °C, near the glass transition) – the linear model cannot be used”</b><br>
+Near PLA's glass transition (55–60 °C) the linear estimate is invalid. Lower the Part temperature, or choose a higher-Tg material (PETG up to 60 °C, ABS/ASA up to 70 °C).</li>
+<li><b>“Creep '…': short-term print utilization 48 % > 35 % – outside linear viscoelasticity…”</b><br>
+The permanent load exceeds the linear-creep limit and the estimate is non-conservative. Enlarge the section, add perimeters or change orientation until utilization is below 35 %.</li>
+<li><b>“Creep is enabled, but no load case is marked as long-term”</b><br>
+Tick the continuously acting cases in the Long-term cases list. After a rename the tick carries over; after deleting and recreating a case it does not.</li>
+<li><b>“Part '…' has print settings, but its material is not a printed material (E_z missing) – treated as isotropic”</b><br>
+An ordinary material was assigned later in Materials. Assign a printed material here, or ignore the print settings.</li>
+<li><b>“Generate the mesh first (Mesh step).”</b> after Shell / core<br>
+The section needs a mesh. “No part has a printed material.” = no meshed part has a material with E_z.</li>
+<li><b>Calibration: “The curve does not reach a strain of 0.25 %” / “The file does not contain two numeric columns (force, elongation)”</b><br>
+Check L0 (0 only if the second column is strain in %) and the file format. “the infill carries a large part of the cross-section (φ_E &lt; 0.6)” means the result depends on the infill estimate: print the specimens with 100 % infill.</li>
+</ul>

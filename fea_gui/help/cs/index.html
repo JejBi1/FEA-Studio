@@ -1,0 +1,81 @@
+<h1>FEA Studio – nápověda</h1>
+<p class="lead">Pevnostní analýza dílů a sestav: lineární statika, kontakty a nelineární analýza, vlastní frekvence, vzpěr, dynamika
+(kmitání, náhodné kmitání, ráz), optimalizace topologie (BESO), kombinace zatížení (EN 1990), mechanismy, šroubové a svarové spoje,
+díly z 3D tisku, prutové soustavy (Timošenko), vedení tepla a teplotní napětí, únava (S-N i ε-N). Řešič CalculiX, síťovač Gmsh, Exudyn
+pro mechanismy. Několik funkcí je dostupných jen přes <a href="automatizace.html">MCP server nebo Python API</a>, ne v tomto okně –
+viz <a href="#api-only">níže</a>.</p>
+
+<h2>Začínáme</h2>
+<ol>
+<li><b>Ukázky s průvodcem</b> (nejrychlejší): <a href="fea:pruvodce1">Ukázka 1 – tištěný držák</a>,
+<a href="fea:pruvodce2">Ukázka 2 – ocelová + tištěná sestava</a>, <a href="fea:pruvodce3">Ukázka 3 – přírubový spoj (VDI 2230)</a>,
+<a href="fea:pruvodce4">Ukázka 4 – svařované rameno</a>, <a href="fea:pruvodce5">Ukázka 5 – chladič elektroniky</a>.
+Průvodce ukázku otevře a vysvětlí každý krok – <a href="ukazky.html">Ukázky a průvodce</a>.</li>
+<li><b>Testování</b>: sedm úloh se známým výsledkem – <a href="testovani.html">Testování programu</a>.</li>
+<li><b>Vlastní model</b>: <span class="key">Ctrl+O</span>, soubor STEP z CAD (Fusion, Onshape, SolidWorks…), pak záložky fází zleva doprava.
+Volitelné analýzy (3D tisk, Kontakty, Pruty, Pohyb, Teplo, Dynamika, Únava) se přidají tlačítkem <b>+</b> za záložkami kroků (nebo Zobrazit → Volitelné kroky postupu).</li>
+</ol>
+<p class="tip"><b>Tip:</b> <span class="key">F1</span> = nápověda k prvku pod kurzorem nebo k aktuálnímu kroku; <span class="key">Shift+F1</span>
+= interaktivní režim „Co je to?“. Jazyk (🇨🇿 Čeština / 🇬🇧 English) a vzhled: nabídka Zobrazit.</p>
+
+<h2>Postup (fáze a kroky)</h2>
+<p>Pět <b>fází</b> seskupuje kroky: <b>Model</b> (Model, Materiály, 3D tisk), <b>Sestava</b> (Spoje, Kontakty, Pruty),
+<b>Podmínky</b> (Podpory, Pohyb, Teplo, Zatížení, Dynamika), <b>Výpočet</b> (Síť, Řešení), <b>Výsledky</b> (Výsledky, Únava). Kroky fáze jsou
+záložky nad pravým panelem. Nová studie ukazuje osm základních kroků; ostatní se aktivují podle obsahu studie nebo tlačítkem <b>+</b>.
+Panely mají sbalitelné sekce. Tečka kroku: <b>zelená</b> = hotovo, <b>oranžová</b> = varování nebo probíhá, <b>červená</b> = chybí povinný vstup,
+<b>šedá</b> = nepoužito. Strom studie (vpravo nahoře) ukazuje totéž; klik na položku otevře krok.</p>
+<table class="grid">
+<tr><th>Krok</th><th>Co se zadává</th></tr>
+<tr><td><a href="model.html">1. Model</a></td><td>načtení STEP, kontrola geometrie, díly</td></tr>
+<tr><td><a href="materialy.html">2. Materiály</a></td><td>materiál dílu z knihovny (kovy, plasty, tisk), převodník označení</td></tr>
+<tr><td><a href="tisk.html">3. 3D tisk</a></td><td>tištěné díly: směr stavby, perimetry, výplň, kritérium porušení, kalibrace, tečení</td></tr>
+<tr><td><a href="spoje.html">4. Spoje</a></td><td>šrouby (VDI 2230, EN 1993-1-8) a svary (EN 1993-1-8/-1-9, IIW)</td></tr>
+<tr><td><a href="kontakty.html">5. Kontakty</a></td><td>bez tření, s třením (μ z <a href="treni.html">knihovny tření</a>), přesah, jen tlak, dokonalé vedení tepla přes uzavřené páry; nelineární kroky (volitelné)</td></tr>
+<tr><td><a href="pruty.html">6. Pruty</a></td><td>uzly, pruty (Timošenko), průřezy EN, podpory, kontrola EN 1993-1-1 (volitelné; i bez CAD)</td></tr>
+<tr><td><a href="vazby.html">7. Podpory</a></td><td>pevná, posuv, symetrie, válcová, vzdálená, pružná (podpora jen pro tlak je v Kontakty)</td></tr>
+<tr><td><a href="pohyb.html">8. Pohyb</a></td><td>tělesa, klouby (i z geometrie), pohony, animace, reakce kloubů, přenos do MKP (volitelné)</td></tr>
+<tr><td><a href="teplo.html">9. Teplo</a></td><td>ustálené / přechodové vedení tepla, sálání do okolí (volitelné)</td></tr>
+<tr><td><a href="zatizeni.html">10. Zatížení</a></td><td>zatěžovací stavy: síla, tlak, tíha, vzdálená síla, ložiskové zatížení, teplota, otáčení, setrvačnost z mechanismu, zatížení prutů, kombinace EN 1990</td></tr>
+<tr><td><a href="dynamika.html">11. Dynamika</a></td><td>tlumení, harmonická a přechodová odezva, náhodné kmitání (ASD), ráz, přidaná hmota (volitelné)</td></tr>
+<tr><td><a href="sit.html">12. Síť</a></td><td>velikost prvku, místní zjemnění, kvalita sítě</td></tr>
+<tr><td><a href="reseni.html">13. Řešení</a></td><td>kontrola připravenosti, řešič, vlastní frekvence, vzpěr, <a href="2d.html">2D řez</a>, <a href="shell.html">skořepiny</a>, výpočet, zastavení při zachování výsledků</td></tr>
+<tr><td><a href="vysledky.html">14. Výsledky</a></td><td>napětí, posuvy, bezpečnost, linearizace napětí (ASME VIII-2, příloha 5-A), řezy, sondy, maxima, reakce, pruty, tvary, tlak a stav kontaktu, odezva dynamiky, <a href="vysledky.html#topologie">optimalizace topologie BESO</a>, export STL</td></tr>
+<tr><td><a href="unava.html">15. Únava</a></td><td>průběh zatížení, rainflow, S-N, Miner, životnost (i z posloupnosti kroků s kontaktem)</td></tr>
+</table>
+<p>Viz také: <a href="protokol.html">Protokol Word</a> (<span class="key">Ctrl+P</span>), <a href="ovladani.html">Ovládání a klávesy</a>,
+<a href="automatizace.html">Automatizace (příkazová řádka, MCP, REST, adaptéry CAD)</a>.</p>
+
+<h2>Co program počítá a co ne</h2>
+<ul>
+<li><b>Lineárně:</b> pružnost (malé deformace, izotropní i ortotropní / tištěný materiál), superpozice stavů, únava, vedení tepla a teplotní
+napětí, šrouby jako předepnuté nosníky, svary jako tělesa, prutové soustavy (Timošenko), 2D řez, skořepiny, vlastní frekvence, lineární vzpěr,
+kombinace EN 1990 (STR/GEO, EQU, MSP).</li>
+<li><b>Nelineárně a pokročile</b> (bez superpozice; vždy CalculiX): <a href="kontakty.html">kontakt</a> (oddělení, tření, přesah, jen tlak; dokonalé vedení tepla přes uzavřené páry),
+rozhraní šroubových spojů jako kontakt (otevření, skluz), velké deformace, optimalizace topologie (BESO s filtrem citlivosti a penalizací),
+posloupnost kroků s předepsaným pohybem (křivka síla–dráha).</li>
+<li><b>Dynamika:</b> <a href="dynamika.html">harmonická a přechodová odezva, náhodné kmitání, ráz, únava sinusovým přejezdem a spektrální únava</a>
+modální superpozicí (lineární model, bez kontaktu), přidaná hmota.</li>
+<li><b>Mechanismy:</b> <a href="pohyb.html">kinematika a dynamika tuhých těles</a> (Exudyn) – reakce kloubů, pohony, tření, animace,
+přenos okamžiku nebo celého průběhu do MKP; volitelně poddajná tělesa (Craig–Bampton) a kontakt těles (modul Chrono).</li>
+<li><b>Kalkulačky bez MKP</b> (nabídka Nástroje): nosníky, tření, Hertzův kontakt, lisovaný spoj, západka, mechanismy, tlumení z měření, pád – viz <a href="ovladani.html">Ovládání</a>.</li>
+<li id="api-only"><b>Jen přes MCP server / Python API</b> (ne v tomto okně): plasticita materiálu (bilineární a vícelineární zpevnění – vlastnost
+materiálu <code>plastic</code>, např. <code>custom_props</code> nástroje <code>fea_materials_assign</code>) a její posouzení (plastické přetvoření podle EN 1993-1-5
+příloha C, lokální porušení podle ASME VIII-2 – <code>fea_plasticity_assess</code>); submodelování (<code>fea_core.submodel</code>, jen Python API); tepelná vodivost
+kontaktu (<code>ContactPair.conductance</code>) a sálání mezi plochami v dutině (<code>CavityRadiation</code>) – jen Python API / soubor studie;
+naměřené parametry ε-N (<code>FatigueSettings.en_params</code>); implicitní dynamika posloupnosti kroků s kontaktem (<code>LoadStep.dynamic</code>, jen Python API /
+soubor studie). Viz <a href="automatizace.html">Automatizace</a>.</li>
+<li><b>Ne:</b> modální dynamika (superpozicí) s kontaktem, rychlostně závislé tření v kontaktu MKP (jen Coulomb), gyroskopické jevy a změkčení vřetenem v Campbellově diagramu.</li>
+</ul>
+<p class="warn"><b>Poznámka:</b> napětí nad mezí kluzu v lineární analýze není skutečné – znamená jen začátek tečení (skutečná plastická deformace vyžaduje plastický materiál – <a href="#api-only">MCP / Python API</a>).
+Špičky v ostrých vnitřních rozích, na okrajích pevných podpor a pod bodovými silami jsou singularity (rostou se zjemněním; tabulka maxim je označuje).
+Tuhost kontaktu K a tření μ jsou odhady, tlumení má citlivost ±50 %: výsledky ověřte citlivostí.</p>
+
+<h2>Jednotky</h2>
+<p>mm, N, MPa, t (tuna), s; hustota oceli 7,85·10⁻⁹ t/mm³, g = 9810 mm/s². Teplo: °C, W, W/m², W/(m·K), J/(kg·K). Moment N·mm, frekvence Hz.</p>
+
+<h2>Soubory</h2>
+<ul>
+<li><b>.fea</b>: projekt (zip: model STEP + vstupní study.json + výsledky); <span class="key">Ctrl+S</span> uloží.</li>
+<li><b>.step / .stp</b>: geometrie z CAD (sestava s názvy dílů, barvami, vrstvami, atributy).</li>
+<li>Uživatelská knihovna materiálů, knihovna tření, předvolby tisku: <code>%APPDATA%\FEAStudio</code>.</li>
+</ul>

@@ -1,0 +1,175 @@
+<h1>4. Joints (bolts, welds)</h1>
+<p class="lead">The Joints step marks which parts are bolts and welds and sets their parameters. In the analysis a bolt is a beam with preload.
+After the analysis the bolts are checked per VDI 2230 and EN 1993-1-8, the welds per EN 1993-1-8, EN 1993-1-9 or IIW, from the FEM forces.</p>
+
+<p class="tip"><b>Tip:</b> set up joints <b>before meshing</b>. Changing bolt size, weld throat or disabling discards mesh and results; assessment-only changes (FAT, γ, μ, filler metal) keep the FEM results.</p>
+
+<h2>Joint detection</h2>
+<h3>Detect joints…</h3>
+<p>Scans the parts and offers the joints found in the <b>Detected joints – confirmation</b> dialog; accepted joints are added to the existing ones.</p>
+<ul>
+<li><b>By name</b> (confidence 1.0): “ISO 4017 - M8 x 30 - 8.8”, “ISO 4762 - M6 x 20 - 12.9”, “ISO 4032 - M8 - 8”, “ISO 7089 - 8,4 - 200 HV”, including the Fusion suffix “:1”. A name without a standard (e.g. “Sroub M4 x 17.25”) works with a keyword or M d × L; the head type then comes from the shape.</li>
+<li><b>By shape</b>: a part without a standard name with a coaxial shank and head (hex, cylindrical, countersunk), nut or washer; dimensions are compared with ISO tables. Confidence is below 1 and such proposals are pre-checked only at ≥ 0.7. Pins, magnets, bushings and parts with a middle collar are not bolts.</li>
+<li><b>Welds</b>: a name with “svar”, “weld” or “W_…”, a CAD layer or a “weld/svar” attribute, or a colour chosen in <b>Weld color in CAD</b> (tolerance 0.03 in RGB 0–1).</li>
+</ul>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Add column</td><td>Adds the checked proposals to the study.</td><td>Selecting a row highlights the parts in 3D.</td></tr>
+<tr><td>Joint / Source / Confidence / Reason</td><td>Description; source (name, shape, CAD colour, layer, attribute); confidence (green ≥ 0.85, orange ≥ 0.7, red lower); justification.</td><td>Review shape- and colour-based proposals.</td></tr>
+<tr><td><b>Select all</b> / <b>Clear selection</b> / <b>Add selected</b></td><td>Bulk checking and confirmation.</td><td></td></tr>
+<tr><td>Not accepted</td><td>Bolt-shaped parts with no clamped part found.</td><td>Often a bolt outside a hole, or a pin.</td></tr>
+</table>
+<h3>Bolt into selected hole…</h3>
+<p>For a model without bolts: select the hole's cylindrical face in 3D and press the button. The largest bolt whose ISO 273 fine-series clearance hole fits is proposed, with strength class 8.8 by default. All parts coaxial with the hole are clamped.</p>
+<h3 id="virtualni">Virtual bolts from a CAD assembly</h3>
+<p>Opening an Inventor assembly <b>.iam</b> directly (module native): fasteners recognized by name (e.g. Content Center “ISO 4762 M6 x 20”, “ISO 4032 M6”, “ISO 7089 6”)
+are <b>not loaded as bodies</b> and are replaced <b>virtually</b>: size, length, standard and class from the name, axis and bearing face from the occurrence, clamped parts from coaxial holes.
+A bolt into a thread is a hole smaller than d in the last part; a through hole without a nut → ISO 4032 nut assumed (warning). A missing class is taken as 8.8 – check it in the bolt form.</p>
+
+<h2>How a bolt is modeled</h2>
+<ul>
+<li>Bolt, nut and washers are <b>not meshed</b>. The bolt is a <b>beam</b> (Timoshenko, element U1 in CalculiX) on the hole axis between the head and nut bearing faces; its stiffness is the VDI 2230 compliance of bolt and washers.</li>
+<li>The beam ends connect by rigid coupling to the <b>annulus under the head and nut</b> (outer diameter of the bearing face), imprinted on the part face during meshing. For a bolt into a thread, the end connects to the hole's cylindrical face over the engaged length. The bearing face is rigid (VDI assumption).</li>
+<li>The mesh around bolts is refined to 0.25 × d.</li>
+<li><b>Preload</b>: the beam is cut in the middle. If the “Bolt preload” case is enabled, a load case <b>“Bolt preload”</b> closes the cut by force F_V; in the other cases the cut is closed and the bolt carries only the service load. Cases can be superposed.</li>
+<li><b>Countersunk head</b> (ISO 10642) connects to the conical countersink surface. <b>Slot</b> instead of a hole = two half-cylinders.</li>
+<li><b>Fitted bolt</b> (ISO 7379, DIN 609, 7968, 610) transfers transverse force through the shank: shank shear and bearing with the shank diameter. Slip is informative only.</li>
+<li><b>Bolt into a thread</b> (no nut) also gets a thread stripping check.</li>
+<li><b>Gap between clamped parts in CAD</b> → clamped stack: intermediate parts are connected by an imprint and the gap is taken as closed. The bolt share is Φ_n = 0.5·Φ_K, bolt bending from FEM is not assessed and the preload case is off for that bolt (otherwise a mechanism).</li>
+<li>Bolts and welds always run in CalculiX, even for large models.</li>
+</ul>
+<p class="warn"><b>Warning:</b> parts touching over a face are <b>rigidly bonded</b> after meshing (shared nodes, no contact). Forces at the interface (axial F_A, transverse F_Q) come from this bonded area around each bolt; the VDI check verifies that the interface neither opens nor slips.</p>
+
+<h3>Bolted joint interface as contact</h3>
+<p>To allow real opening or slip, check <b>bolted joint interfaces as contact</b> in <a href="kontakty.html">Contacts</a>. The clamped interface of each bolt becomes contact with friction μ = μ_T (this step), with a conformal split interface, and the analysis becomes nonlinear (always CalculiX). The preload acts in step 1; later steps lock the bolt. The bolt becomes a connector (rigid bearing faces and springs: axial E·A/L, bending and torsional stiffness of the shank).
+The result adds the <b>residual clamp force from contact</b> and the open fraction of the interface; slip shows as contact status 1. Verified by K6 (M10: clamp force from contact = F_V; at slip F_t = μ_T·F_n).</p>
+<p class="tip">Contact makes the analysis larger and cancels load-case superposition. For a usual VDI 2230 check the bonded interface is enough.</p>
+
+<h2>Bolts – controls</h2>
+<p>The list shows e.g. “<i>Bolt 1: ISO 4017 M6×30 8.8 – with nut, l_K 21.2 mm</i>” with a utilization dot. Selecting a bolt highlights its parts in 3D. Changes are saved only with <b>Save bolt changes</b>.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Size, Class</td><td>Coarse thread M3–M… and strength class 4.6 to 12.9, or stainless A2/A4-50/70/80.</td><td>8.8</td></tr>
+<tr><td>Preload</td><td><i>automatic – min(F_M,zul; pressure under head)</i>, <i>force F_M,max [N]</i> or <i>tightening torque M_A [N·m]</i>. Automatic F_M,max = min(F_M,zul; 0.9·p_G·A_p): the smaller of 90 % of yield during tightening and 90 % of the force the pressure under head or nut can bear (governs plastics and aluminium). The governing limit is shown below the form.</td><td>automatic</td></tr>
+<tr><td>Value</td><td>Force or torque for the manual modes.</td><td></td></tr>
+<tr><td>α_A</td><td>Tightening factor (preload scatter F_M,max/F_M,min).</td><td>Torque wrench 1.4–1.6; impact 2.5–4; yield- or angle-controlled 1.0–1.2</td></tr>
+<tr><td>Friction: thread μ_G, head μ_K</td><td>Friction for tightening torque and F_M,zul.</td><td>0.12 / 0.12 (light lubrication)</td></tr>
+<tr><td>Friction in joint interface μ_T</td><td>Friction between clamped parts for slip per VDI.</td><td>0.15</td></tr>
+<tr><td>Shank diameter</td><td>Fitted bolt only. “from hole (otherwise d + 1)” takes the smallest hole of the clamped parts.</td><td>DIN 609/7968: d + 1 mm</td></tr>
+<tr><td>shear plane in thread</td><td>Shear per EN 1993-1-8 with area A_s and α_v by class. Off = shear through the shank (A, α_v = 0.6).</td><td>On (conservative)</td></tr>
+<tr><td>include with bolt</td><td>Disabled bolt is not modeled; its parts are meshed as ordinary bodies.</td><td>For comparing variants</td></tr>
+<tr><td><b>Save bolt changes</b> / <b>Delete</b></td><td>Saves changes or deletes the bolt.</td><td>Size and disabling discard mesh and results; class and preload (with the Bolt preload case) discard results only; μ_T, shear plane and shank diameter only recompute the assessment.</td></tr>
+<tr><td>Info text</td><td>Clamped parts (thickness, hole), washers, l_K, F_M,zul, M_A, F_M min–max, embedding F_Z, Φ_K, hole clearance per ISO 273.</td><td>Check of the detection</td></tr>
+</table>
+<p>Head type, joint kind (with nut, into thread, fitted), embedding roughness (Rz 10–40 µm), substitute diameter D'_A and γ_M3 are not in the GUI; detection sets them, or change them in a script or via MCP (see <a href="automatizace.html">Automation</a>).</p>
+
+<h2>Welds – controls</h2>
+<p>In CAD a weld is a <b>separate body</b> (weld bead) touching the welded parts. <b>Mark the part of the selected face as a weld</b> marks the part whose face you clicked. Bolt parts cannot be welds.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Effective throat a</td><td>Weld throat. “from geometry” takes it from the weld body (fillet: a = A1·A2·sin θ/(2V)).</td><td>Enter it if the CAD body does not match the drawing.</td></tr>
+<tr><td>Segments along length</td><td>Number of segments along the root for the force evaluation.</td><td>10</td></tr>
+<tr><td>FAT σ_w</td><td>Fatigue class for σ_w = √(σ⊥² + τ⊥²).</td><td>36 – fillet weld root (EN 1993-1-9 table 8.5, IIW)</td></tr>
+<tr><td>FAT τ_w</td><td>Fatigue class for τ_w = τ∥.</td><td>80 (m = 5)</td></tr>
+<tr><td>S-N curve</td><td>EN 1993-1-9 (m = 3/5, cut-off) or IIW (m = 22 beyond the knee).</td><td></td></tr>
+<tr><td>γ_Mf</td><td>Partial factor for fatigue strength (EN 1993-1-9 table 3.1).</td><td>1.0–1.35; default 1.15</td></tr>
+<tr><td>weld toe fatigue (hot-spot IIW)</td><td>Assesses the toe of a fillet weld by structural stress (IIW type “a”): σ_hs = 1.67·σ(0.4t) − 0.67·σ(1.0t) on the plate surface. With a coarse mesh (h &gt; 0.6t) points 0.5t and 1.5t are used and a warning is shown. Not the maximum at a node.</td><td>Toe mesh ≤ 0.4t (local refinement)</td></tr>
+<tr><td>Toe FAT</td><td>90 load-carrying fillet, 100 non-load-carrying fillet / butt, 112 full-penetration butt; any number can be typed. For t &gt; 25 mm reduced by (25/t)<sup>0.3</sup> (IIW) or <sup>0.2</sup> (EN).</td><td>90</td></tr>
+<tr><td>Plate t at toe</td><td>Plate thickness for the reference points; “from mesh” = ray from the part surface.</td><td>Usually from mesh</td></tr>
+<tr><td>Filler metal</td><td>“matching the base material” or G 38/42/46, E 38/42/46, ER70S-6, 308LSi, 316LSi. Undermatching → warning and f_u = Rm of the filler. A name not in the table is shown as “unknown: …” and assessed as matching.</td><td>Matching (EN 1993-1-8, 4.2)</td></tr>
+<tr><td>separate contact of welded parts</td><td>Direct contact of welded parts is not bonded (root gap), so the whole load goes through the weld as EN 1993-1-8 assumes (conservative).</td><td>On</td></tr>
+<tr><td>check weld</td><td>Disabled weld is meshed as an ordinary part, not assessed.</td><td></td></tr>
+<tr><td><b>Save weld changes</b> / <b>Delete</b></td><td>Saves or deletes the weld.</td><td>Throat, contact separation and checking discard mesh and results; segments and plate t discard results; FAT, S-N, γ_Mf, toe settings and filler only recompute the assessment.</td></tr>
+<tr><td>Info text</td><td>Kind (fillet / butt), a, length L, angle and parts in contact.</td><td>Red “The weld does not touch any part!”</td></tr>
+<tr><td>Weld color in CAD</td><td>Parts of this colour are welds during detection; the list shows model colours with part counts.</td><td>“(do not use)”</td></tr>
+</table>
+<h3>How a weld is evaluated</h3>
+<ul>
+<li>The weld body is meshed with the parts, refined to about size a. Forces are summed from integration-point stresses by segments along the root; nominal stresses in the section a·L give σ⊥, τ⊥, τ∥.</li>
+<li><b>EN 1993-1-8 directional method</b>: √(σ⊥² + 3(τ⊥² + τ∥²)) ≤ f_u/(β_w·γ_M2) and σ⊥ ≤ 0.9·f_u/γ_M2; β_w from yield. A full-penetration <b>butt weld</b> is assessed as base material (σ_eq ≤ f_y).</li>
+<li><b>Fatigue</b> (with a load history in <a href="unava.html">Fatigue</a>): ranges σ_w and τ_w, Miner D = D_σ + D_τ ≤ 1, and the toe separately. The “D fatigue” column shows the worse of root and toe.</li>
+<li>Design warnings: a &lt; 3 mm, a &gt; 0.7·t_min, length &lt; max(30 mm; 6a).</li>
+<li><b>Intermittent weld</b>: parallel fillet welds between the same parts on one line form a group; gaps ≤ min(12t; 200 mm) (compression, shear) and ≤ min(16t; 200 mm) (tension) are checked for information (EN 1993-1-8, 4.3.2.1). Each segment is still assessed alone.</li>
+</ul>
+
+<h2>Bolt checks</h2>
+<p>For each bolt the program takes the maxima over load cases of the forces in the interface and bolt (F_A, F_SA, F_PA, F_Q, M_b). Loads entered in the study are <b>design</b> loads; include the load factors γ_F in the input.</p>
+<table class="grid">
+<tr><th>Check row</th><th>What it verifies</th></tr>
+<tr><td>VDI 2230: Assembly preload F_M,max ≤ F_M,zul</td><td>Tightening stays below 90 % of yield (automatic preload: informative only).</td></tr>
+<tr><td>VDI 2230: Working stress σ_red,B ≤ R_p0,2</td><td>Tension from preload and service force + torsion from the thread.</td></tr>
+<tr><td>VDI 2230: Residual clamp load F_KR &gt; 0</td><td>The interface does not open after embedding and service force.</td></tr>
+<tr><td>VDI 2230: Pressure under head p ≤ p_G</td><td>Bearing pressure; p_G estimated from Rm of the part.</td></tr>
+<tr><td>VDI 2230: Slip (S_G ≥ 1.2)</td><td>Friction carries the transverse force (informative for category A).</td></tr>
+<tr><td>VDI 2230: Fatigue σ_a ≤ σ_ASV/S_D</td><td>σ_ASV = 0.85·(150/d + 45) MPa, Haibach k₂ = 5; only with a load history.</td></tr>
+<tr><td>VDI 2230: thread stripping, m ≥ m_ges,min</td><td>Nut or internal thread does not strip before the bolt fractures. Informative for a thread in plastic.</td></tr>
+<tr><td>EN 1993-1-8: shear, tension, shear + tension, punching, bearing</td><td>F_v,Rd, F_t,Rd, B_p,Rd, F_b,Rd (bearing with e1, e2, p1, p2 from the geometry).</td></tr>
+<tr><td>EN 1993-1-8: slip (cat. B/C)</td><td>Friction-type joints of category B and C only.</td></tr>
+</table>
+<p>Rows starting with “(informative)” do not count in utilization. Joint utilization is the maximum of the other rows; the “Governing” column names the deciding row.</p>
+
+<h2>Check settings</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Bolt category (EN 1993-1-8)</td><td>A – shear and bearing; B – slip-resistant (SLS); C – slip-resistant (ULS).</td><td>A</td></tr>
+<tr><td>Transverse force per bolt</td><td><i>bolt group – uniform + torsion</i>: uniform share plus moment via the polar moment of the group (EN 1993-1-8). <i>per FEM (connected interface, elastic)</i>: force from the surroundings of each bolt; a connected interface concentrates shear at the ends of the lap (e.g. 2.6 and 17.4 kN instead of 10 and 10 kN).</td><td>bolt group</td></tr>
+<tr><td>μ for slip (B, C)</td><td>Friction coefficient for F_s,Rd.</td><td>Surface class A 0.5; B 0.4; C 0.3; D 0.2</td></tr>
+<tr><td>γ_M2</td><td>Partial factor for bolt and weld resistance.</td><td>1.25</td></tr>
+<tr><td>“Bolt preload” case in the FEM analysis</td><td>Adds a load case with the preload of all bolts. A change needs a new analysis.</td><td>On</td></tr>
+<tr><td><b>Re-check</b></td><td>Recomputes the assessment from existing results (e.g. after changing the fatigue history).</td><td>A fraction of a second.</td></tr>
+<tr><td>Detail window</td><td>Utilization and all check rows of the selected joint, with intermediate results and warnings.</td><td></td></tr>
+</table>
+
+<h2>“Joints – utilization” dock</h2>
+<p>Tabs <b>Bolts (n)</b> and <b>Welds (n)</b>; a count followed by “– k ✗” means failures. Clicking a row jumps to that joint.</p>
+<ul>
+<li>Bolts: Bolt, Designation, Joint, F_SA max [N], F_Q max [N], Φ, Utilization, Governing.</li>
+<li>Welds: Weld, Part, a [mm], L [mm], σ_eq max [MPa], D fatigue, Utilization, Governing.</li>
+<li>Colours (table, list, 3D): <b>green ≤ 0.9</b>, <b>orange 0.9–1.0</b>, <b>red &gt; 1.0</b>, gray = not computed.</li>
+</ul>
+
+<h2>Parts excluded from the analysis</h2>
+<p>Excluded parts are not meshed – for magnets, pins, cables or free parts. They show transparent in 3D. Use <b>Exclude the part of the selected face</b> after clicking its face; <b>Restore</b> brings it back. If the analysis reports “free bodies”, the program offers to exclude the unconnected parts.</p>
+
+<h2>Parts meshed separately (*TIE connection)</h2>
+<p>A checked part gets its own independent mesh, and after meshing it is tied to its neighbours by a <b>*TIE</b> constraint (rigid connection without shared nodes).
+Use it when Gmsh does not join the parts (tangent contact, “PLC Error”) or when a part needs a different mesh density.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Note</th></tr>
+<tr><td>Part list</td><td>checked = mesh separately</td><td>bolt parts replaced by a beam are not shown</td></tr>
+<tr><td>Contact tolerance</td><td>Largest distance of a part face from the neighbour surface that still counts as connected.</td><td><i>auto</i> = 5 % of the global element size; increase for CAD with a small gap</td></tr>
+<tr><td>Connection table</td><td>Part, contact area [mm²], tolerance used.</td><td>Filled after meshing; a part without connection = warning</td></tr>
+</table>
+<p>Contact nodes that are also in a support are left out of *TIE (warning). *TIE is solved only by CalculiX (automatic solver choice takes care of it).</p>
+
+<h2>Connected parts (shared mesh)</h2>
+<p>The table (Part A, Part B, Contact [mm²]) is filled after meshing and lists pairs rigidly bonded by shared nodes; clicking a row highlights both parts.
+Check that each connection is intended: separation and friction are computed only for pairs defined in <a href="kontakty.html">Contacts</a>. “Connection by edge or point only” means a few shared nodes – usually a geometry error.
+<b>Exclude part A</b> / <b>Exclude part B</b> remove a part of the selected row from the analysis.</p>
+
+<h2>In the examples</h2>
+<h3>Example 1 “Printed bracket”</h3>
+<p>No bolts or welds. The screws in the Ø5 holes are replaced by cylindrical supports in <a href="vazby.html">Supports</a>; the Joints step stays gray and the Connected parts table says “The model has a single part.”</p>
+<h3>Example 2 “Assembly”</h3>
+<p>Detection by name finds:</p>
+<ul>
+<li><b>Bolt 1, Bolt 2</b>: ISO 4017 M6×30 8.8 with ISO 4032 nut and two ISO 7089 washers. Clamped: arm flange (PLA, 8 mm) and base plate (S235, 10 mm), l_K = 21.2 mm, holes Ø6.6 (ISO 273 medium). Preload automatic: the head washer bears on PLA, so the plastic's allowable pressure limits the preload, not the bolt strength. The check warns that embedding and creep of plastic are not covered by VDI 2230.</li>
+<li><b>Weld 1, Weld 2</b>: “Weld a4 left/right”, fillet a = 4 mm over 70 mm, column to base plate. Separate contact of welded parts makes the lateral force on the column go entirely through the welds.</li>
+</ul>
+<p>Compare the bolts (cases “Force on arm eye”, “Heating in service”, “Bolt preload”) and welds (250 N lateral force at the column head gives bending and σ⊥ at the root) in the utilization dock. Joint fatigue uses two sine channels 90° apart in <a href="unava.html">Fatigue</a>. After changing the history, press <b>Re-check</b>.</p>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“Bolt 1: there is a 0.5 mm gap between the head and part 'X' – the head does not seat”, “the nut does not seat on part …”</b><br>
+Fix the mates in CAD and export STEP again. “no coaxial hole or slot found in part 'X'” = hole off the bolt axis or missing.</li>
+<li><b>“Bolts cannot be connected to the mesh: Bolt 1: constraint face '…' has no elements in the mesh”</b><br>
+Bearing-face imprint not created (head does not seat, or hole larger than the bearing diameter). A bolt into a thread needs a cylindrical thread face.</li>
+<li><b>“Some parts are not connected to the supports (free bodies – the problem would be singular)”</b><br>
+The part touches nothing over a face and has no bolt or weld. Exclude it, make the parts touch, or add a bolt.</li>
+<li><b>“The volume mesh was not created – the geometry probably intersects itself or the parts touch tangentially”</b><br>
+Tangent contact (pin in a slot, cylinder on a plane). Exclude the part, or remove the tangency in CAD.</li>
+<li><b>“The weld does not touch any part!”, “Length 20.0 mm &lt; max(30 mm; 6a) – the weld should not be counted”</b><br>
+The weld body must lie with a face on both welded parts. EN 1993-1-8 does not count a short weld as load-carrying.</li>
+<li><b>“The load history does not match the load cases – joint fatigue not assessed”</b><br>
+After adding or deleting a load case, update the channels in Fatigue and press Re-check.</li>
+</ul>

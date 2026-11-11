@@ -1,0 +1,18 @@
+<h1>Print detail (voxels)</h1>
+<p class="lead">The 3D printing model (shell + infill) does not see single beads. <b>Voxel detail</b> recalculates a small region around a critical place from the beads: perimeters, top / bottom layers, infill and thin regions set in the print settings. It uses hex8 C3D8I elements with solid extrusion material in the bead axes; boundary displacements come from the whole part. Open it in <a href="vysledky.html">Results</a> with <b>Print detail (voxels)…</b> (printed parts only).</p>
+<p class="warn"><b>INDICATIVE:</b> bead paths come from the print settings, not slicer G-code, and boundary conditions from the homogenized model. The minimum at an integration point falls with refinement (voxel steps and bead corners are singularities); use the element average and the 1st percentile.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Region centre: <b>Lowest safety factor</b>, <b>Click in 3D</b>, or coordinates. “automatic” = found during the analysis.</li>
+<li>Size in print axes (default 6 × 6 × 4 mm), margin (carries boundary conditions, not evaluated), resolution <b>w/2</b> (voxel = half the line width) or <b>w/4</b> (~8× more voxels), load case, element.</li>
+<li><b>Estimate size</b>: voxel count, equations, memory, time. “NOT POSSIBLE” above 1.5 million equations or 80 % of free RAM. The region box is orange in 3D.</li>
+<li><b>Run detail</b> runs in the background; Cancel interrupts.</li>
+</ol>
+
+<h2>Result</h2>
+<ul>
+<li><b>Layer section</b> (<i>Layer</i> slider from the build plate): voxel type (perimeter red, layer orange, infill blue, thin region purple), safety factor (Tsai-Wu / Hill), line angle, von Mises, displacement, bead-axis stresses σ11 (along), σ22 (across), σ33 (normal to layers), τ12, τ13, τ23. <i>Bead direction</i> = dashes along the line.</li>
+<li><b>Table by load case</b>: safety factor from average element stress (main value), 1st percentile, minimum at an integration point (*), homogenized safety factor in the same region, detail / homogenized ratio, average-stress difference over the region (boundary check, should be small), location of the minimum.</li>
+</ul>
+<p>Verified with X1–X4 (homogeneous field, C3D8I bending, P2, path generator): <code>python -m verification.voxel_cases</code>.</p>

@@ -1,0 +1,261 @@
+<h1>3. 3D tisk</h1>
+<p class="lead">Nastaví způsob tisku dílů FDM/FFF: perimetry, plné vrstvy, výplň a směr stavby. Tištěný díl se posoudí jako skořepina z plné extruze
+kolem výplňového jádra. Výsledkem je bezpečnost (Tsai-Wu nebo Tsai-Hill) a orientační odhad tečení.</p>
+
+<p class="warn"><b>Pozor:</b> vlastnosti výplně, poměry anizotropie, parametry tečení a S-N křivky tisku jsou <b>ORIENTAČNÍ</b> (řídká literatura, vlastní odhady).
+Pro kritický díl je kalibrujte vlastními tahovými zkouškami (viz <a href="#kalibrace">Kalibrace</a>) a výsledky berte jako srovnávací.</p>
+
+<h2>Jak program tištěný díl modeluje</h2>
+<p>Díl je „tištěný“, když má přiřazený <b>tištěný materiál</b>: zvlášť vlastnosti v rovině vrstvy (E, Rm) a kolmo na vrstvy (E_z, Rm_z).
+Všechny hodnoty materiálu platí pro <b>plnou extruzi</b> (100 % výplň); vliv výplně a skořepiny počítá program sám.</p>
+<ul>
+<li><b>Skořepina</b> = plný materiál u povrchu. Svislé stěny: perimetry, tloušťka <i>perimetry × šířka linie</i> (2 × 0,42 = 0,84 mm). Vodorovné plochy: horní a spodní plné vrstvy, <i>počet vrstev × výška vrstvy</i> (5 × 0,2 = 1,0 mm nahoře, 3 × 0,2 = 0,6 mm dole). Na šikmé ploše rozhoduje větší příspěvek. Plocha, kterou se díl dotýká jiného dílu sestavy, je také tištěný povrch.</li>
+<li><b>Jádro</b> = výplň s <b>homogenizovanými</b> vlastnostmi podle vzoru a hustoty (typ Gibson–Ashby: E_jádro = E · k · ρ<sup>n</sup>); jednotlivá žebra výplně se nemodelují.</li>
+<li><b>Podíl skořepiny v prvku:</b> na hranici skořepiny se v každém prvku vzorkuje 32 bodů (0 = výplň, 1 = plný materiál), zaokrouhleno na desetiny. Tuhost je směs skořepiny a jádra se stejnou deformací (isostrain); hmotnost se počítá stejně.</li>
+<li><b>Směr stavby</b> (osa Z tiskárny) určuje materiálové osy: 1 a 2 v rovině vrstvy, 3 kolmo na vrstvy (příčně izotropní).</li>
+<li><b>Anizotropie linie v perimetrech:</b> linie běží podél obrysu, takže podél linie je materiál tužší a pevnější než napříč. Směr linie je tečna stěny ve vrstvě zaokrouhlená na 5°. S r = napříč/podél je hodnota podél linie 2/(1 + r) · XY a napříč r × tato hodnota. U výchozího PLA (r = 0,55 pro pevnost): Rm = 39 MPa dá 50 MPa podél linie a 28 MPa napříč. Plné horní a spodní vrstvy jsou v rovině izotropní.</li>
+</ul>
+<p class="tip"><b>Tip:</b> při ohybu nese většinu zatížení skořepina, takže více perimetrů pomůže obvykle víc než vyšší výplň. Změňte <i>Perimetry</i> a sledujte řádek „Skořepina / Jádro“.</p>
+
+<h2>Postup v kroku</h2>
+<ol>
+<li>V seznamu dílů vyberte tištěné díly (<span class="key">Ctrl</span> / <span class="key">Shift</span>). Stav v závorce ukazuje např. <i>[materiál; 2× perimetr, výplň 15 % Mřížka; Z = +Z]</i>, <i>[Ocel S235 – netištěno]</i> nebo <i>[šroub / vynecháno]</i>.</li>
+<li>Zvolte tištěný materiál a stiskněte <b>Přiřadit</b>.</li>
+<li>Zadejte parametry ze slicéru a stiskněte <b>Použít na vybrané díly</b> (dříve se nic neukládá).</li>
+<li>Zvolte <b>Kritérium porušení</b>. Pro dlouhodobé zatížení zapněte <b>Tečení</b> a zaškrtněte dlouhodobé stavy.</li>
+<li>Po vytvoření sítě (krok <a href="sit.html">Síť</a>) zkontrolujte rozložení skořepiny tlačítkem <b>Skořepina / jádro</b>.</li>
+</ol>
+
+<h2>Ovládací prvky</h2>
+<h3>Díly a materiál</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam dílů</td><td>Výběr dílů pro materiál nebo nastavení tisku; klik načte nastavení dílu.</td><td>Díly šroubů a vynechané díly se netisknou.</td></tr>
+<tr><td>Rozbalovací seznam materiálů + <b>Přiřadit</b></td><td>Přiřadí tištěný materiál (z knihovny nebo studie). Díl bez nastavení převezme hodnoty z formuláře.</td><td>Nabízí jen materiály s E_z (tištěné).</td></tr>
+</table>
+
+<h3>Nastavení tisku vybraných dílů</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>skořepina + výplň (jinak celý díl plný)</td><td>Zapne model skořepiny a výplně. Vypnuto = plná extruze, přesto ortotropní podle směru stavby.</td><td>Vypnout u dílů tištěných se 100 % výplní.</td></tr>
+<tr><td>Směr stavby (Z tiskárny)</td><td>Osa Z tiskárny v souřadnicích modelu: +Z (běžně), −Z, ±X, ±Y nebo <i>vlastní</i> vektor. Podle toho, jak díl leží na podložce; znaménko určuje, které plochy dostanou horní a které spodní vrstvy.</td><td></td></tr>
+<tr><td>Výška vrstvy</td><td>Tloušťka jedné vrstvy.</td><td>0,2 mm (0,02–2 mm)</td></tr>
+<tr><td>Šířka linie</td><td>Šířka extrudované linie perimetru.</td><td>0,42 mm (tryska 0,4 mm)</td></tr>
+<tr><td>Perimetry</td><td>Počet obvodových stěn.</td><td>2–4</td></tr>
+<tr><td>Plné vrstvy – horní / dolní</td><td>Počet plných vrstev na horních a dolních plochách.</td><td>5 / 3</td></tr>
+<tr><td>Výplň</td><td>Hustota výplně v %. Od 99 % se jádro bere jako plné.</td><td>15–25 %</td></tr>
+<tr><td>Vzor výplně</td><td>Mění tuhost a pevnost jádra ve směru XY a Z (tabulka níže).</td><td>Mřížka (grid), Gyroid…</td></tr>
+<tr><td><b>Použít na vybrané díly</b></td><td>Uloží nastavení všem dílům vybraným v seznamu.</td><td>Bez stisknutí se nic neuloží.</td></tr>
+<tr><td><b>Předvolba</b> + <b>Do formuláře</b> / <b>Uložit jako…</b> / <b>Smazat</b></td><td>Vestavěná „3D tisk standard“ nebo vlastní předvolby. <b>Do formuláře</b> jen vyplní formulář (směr stavby zůstane); uloží se až <b>Použít na vybrané díly</b>.</td><td>3D tisk standard: 2 × 0,42 mm, 5/3 × 0,2 mm, mřížka 15 %. Vadný soubor předvoleb = oranžové varování, soubor se nepřepíše.</td></tr>
+<tr><td>plná výplň tenkých míst + mez šířky [mm]</td><td>Tenká žebra a stěny, kam se řídká výplň nevejde, se považují za plné (jako ve slicerech). Mez 0 = auto (2 × šířka linie).</td><td>Zapnuto. V řezu Skořepina / jádro jsou tenká místa purpurově.</td></tr>
+<tr><td><b>Směr stavby z plochy</b></td><td>Klikněte na tlačítko a pak ve 3D na rovinnou plochu ležící na podložce. Směr stavby se nastaví proti vnější normále této plochy pro vybrané díly; ostatní nastavení se nezmění. Dalším kliknutím se výběr zruší.</td><td>Ve 3D se ukáže oranžová šipka směru stavby a obrys podložky.</td></tr>
+<tr><td><b>Pokročilé</b> (▸)</td><td><i>Úrovně podílu skořepiny (bins)</i>: podíl zaokrouhlen na 1/bins. <i>Vzorky v prvku (samples)</i>: body pro odhad podílu. <i>Třídy směru linie (line_bins)</i>: po 180°/line_bins.</td><td>10 / 32 / 36 (5°). Změna vyžaduje nový výpočet; síť zůstane.</td></tr>
+<tr><td>Řádek „Skořepina: … / Jádro: …“</td><td>Průběžně ukazuje tloušťky skořepiny (stěny, nahoře, dole) a efektivní E_xy, E_z, Rm_xy, Rm_z jádra včetně podílu plné extruze.</td><td>Rychlá kontrola vlivu výplně.</td></tr>
+</table>
+<p><b>Tolerance (úbytek povrchu)</b> [mm] – díl se tiskne o δ menší na každé volné ploše (podměrečné stěny, zaoblené housenky, smrštění). Uzly volného povrchu se v analýze posunou dovnitř o δ; plochy s vazbou nebo zatížením zůstávají (síly působí na skutečný materiál). Síť se nemění. Obvykle 0,05–0,2 mm (na bezpečné straně).</p>
+
+<h3>Efektivní vlastnosti výplní</h3>
+<p>Orientační poměry vlastností jádra k plné extruzi při hustotě výplně 20 %; pro jinou hustotu se přepočítají mocninou hustoty.</p>
+<table class="grid">
+<tr><th>Vzor výplně</th><th>Jádro E XY / Z</th><th>Pevnost jádra XY / Z</th><th>Poznámka</th></tr>
+<tr><td>Mřížka (grid), Trojúhelníky, Trojúhelníky-šestiúhelníky</td><td>6–7 % / 20 %</td><td>6–7 % / 18 %</td><td>Svislé stěny výplně nesou ve směru Z celým průřezem.</td></tr>
+<tr><td>Přímočará (rectilinear), zarovnaná, Cikcak</td><td>7 % / 4,5 %</td><td>7 % / 4,5 %</td><td>Vrstvy výplně se v Z jen kříží.</td></tr>
+<tr><td>Gyroid</td><td>6,5 % / 6,5 %</td><td>7,2 % / 7,2 %</td><td>Téměř izotropní.</td></tr>
+<tr><td>Kubická, Adaptivní kubická</td><td>3,7 % / 3,7 %</td><td>3,7 % / 3,7 %</td><td></td></tr>
+<tr><td>Šrafovaná (crosshatch), 3D plástev</td><td>2,7 % / 2,7 %</td><td>2,7 % / 2,7 %</td><td></td></tr>
+<tr><td>Plástev (honeycomb)</td><td>1,2 % / 20 %</td><td>2 % / 18 %</td><td>V rovině ohybově poddajná.</td></tr>
+<tr><td>Soustředná (concentric)</td><td>10 % / 20 %</td><td>10 % / 18 %</td><td></td></tr>
+<tr><td>Blesk (lightning) – nenosná</td><td>0,1 %</td><td>0,1 %</td><td>Podpírá jen horní vrstvy, nic nenese.</td></tr>
+</table>
+
+<h3>Tištěný materiál – plná extruze (100 % výplň)</h3>
+<p>Úprava vytvoří nový materiál studie. Tepelné vlastnosti (λ, α, c_p) se upravují v <a href="materialy.html">Materiálech</a>.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Název</td><td>Název materiálu ve studii a v knihovně; vestavěný materiál nejde přepsat.</td><td></td></tr>
+<tr><td>E v rovině vrstvy (XY) / E kolmo na vrstvy (Z)</td><td>Moduly plné extruze.</td><td>PLA 2700–3500 / 2100–2500 MPa</td></tr>
+<tr><td>ν v rovině / ν_xz (0 = jako ν)</td><td>Poissonova čísla.</td><td>0,36</td></tr>
+<tr><td>G mezi vrstvami (0 = odhad)</td><td>Smykový modul mezi vrstvami; 0 znamená E_z/(2(1 + ν)).</td><td>Obvykle 0</td></tr>
+<tr><td>ρ</td><td>Hustota plného materiálu.</td><td>PLA 1240 kg/m³</td></tr>
+<tr><td>Rm tah XY / Rm tah Z (spoj vrstev)</td><td>Pevnost v tahu v rovině vrstvy a kolmo na vrstvy.</td><td>Z bývá 50–70 % XY.</td></tr>
+<tr><td>pevnost v tlaku XY (0 = Rm) / v tlaku Z (0 = Rc)</td><td>Pevnosti v tlaku.</td><td>PLA ~60 MPa</td></tr>
+<tr><td>smyk v rovině (0 = Rm/√3) / smyk mezi vrstvami (0 = Rm_z/√3)</td><td>Smykové pevnosti.</td><td>Obvykle 0 (odhad)</td></tr>
+<tr><td>Zdroj</td><td>Odkud hodnoty pocházejí (TDS, vlastní zkouška); uvede se v protokolu.</td><td></td></tr>
+<tr><td><b>Uložit a přiřadit vybraným</b></td><td>Uloží materiál do studie a přiřadí jej vybraným dílům (žádný vybraný → díly, které už mají materiál téhož názvu).</td><td>Vyžaduje E i E_z.</td></tr>
+<tr><td><b>Do mé knihovny</b></td><td>Uloží materiál do uživatelské knihovny (%APPDATA%/FEAStudio).</td><td>Pak je k dispozici v dalších studiích.</td></tr>
+</table>
+
+<h3>Vestavěné tištěné materiály</h3>
+<table class="grid">
+<tr><th>Materiál</th><th>E XY / Z [MPa]</th><th>Rm XY / Z [MPa]</th><th>Zdroj</th></tr>
+<tr><td>Tisk PLA Bambu Basic</td><td>2680 / 2160</td><td>39 / 35</td><td>Bambu Lab TDS PLA Basic V2.0, ISO 527, 100 % výplň, <b>žíhané 55 °C / 8 h</b>; Rc = 60 MPa, ν a smyk odhadnuty.</td></tr>
+<tr><td>Tisk PLA obecně (Z 60 %)</td><td>3000 / 2500</td><td>45 / 27</td><td>Literatura, pevnost Z 60 % XY; nutná kalibrace.</td></tr>
+<tr><td>Tisk PETG (orientačně)</td><td>2000 / 1700</td><td>45 / 30</td><td>Orientační hodnota; nutná kalibrace.</td></tr>
+</table>
+<p class="warn"><b>Pozor:</b> poměr Z/XY 90 % u „Tisk PLA Bambu Basic“ platí pro žíhané zkušební tělesa. Nežíhané díly z běžné tiskárny mívají pevnost mezi vrstvami obvykle 50–70 % pevnosti XY; bez zkušebních dat zvolte „Tisk PLA obecně (Z 60 %)“. Materiály „PLA tisk XY (orientačně)“ a „PETG tisk XY (orientačně)“ z kroku Materiály jsou izotropní a model tisku nezapnou.</p>
+
+<h3>Posouzení a kalibrace</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Kritérium porušení</td><td><b>Tsai-Wu</b> (výchozí) rozlišuje tah a tlak jedním kvadratickým kritériem. <b>Tsai-Hill</b> bere pro každou složku napětí pevnost v tahu nebo tlaku podle znaménka.</td><td>Tsai-Wu</td></tr>
+<tr><td><b>Kalibrace ze zkoušek ISO 527…</b></td><td>Otevře dialog, který vlastnosti plné extruze spočítá z tahových zkoušek.</td><td>Viz níže.</td></tr>
+<tr><td><b>Skořepina / jádro</b>, řez X / Y / Z, posuvník</td><td>Řez sítí tištěných dílů obarvený podílem skořepiny v prvku (1 = skořepina, 0 = výplň). Posuvník pohne rovinou řezu; obraz se překreslí po uvolnění.</td><td>Vyžaduje síť z kroku Síť.</td></tr>
+</table>
+<p>Upravený tištěný materiál si zachová ostatní vlastnosti (Re, tepelnou vodivost, roztažnost, měrnou tepelnou kapacitu). Materiály studie, které nejsou přiřazeny žádnému dílu (např. kalibrovaný), se při přiřazení jiného materiálu nesmažou.</p>
+
+<h3>Zjemnit síť v kritických místech a přepočítat</h3>
+<p>Po výpočtu se síť kolem míst s nejnižší bezpečností tisku (1–8 <b>míst</b>) zjemní v kouli na přibližně tloušťku skořepiny a studie se přepočítá (dvoukrokové zjemnění). Zjemnit celý povrch by bylo příliš drahé. Pod tlačítkem se ukáže nejmenší bezpečnost před a po zjemnění a počty uzlů; zjemňovací koule lze pak převzít do studie (krok Síť) a nové výsledky.</p>
+<p class="warn">Leží-li minimum po zjemnění na ostré vnitřní hraně, jde o <b>singularitu</b>: hodnota s každým zjemněním klesá a nemá konečnou mez. Rozhoduje skutečné zaoblení rohu (doplňte rádius v CADu), nebo vyhodnocení mimo hranu; program pak uvede i nejmenší bezpečnost mimo singularitu.</p>
+
+<h3>Detail tisku (voxely)</h3>
+<p>Ve Výsledcích tlačítko <b>Detail tisku (voxely)…</b> spočítá malou oblast kolem kritického místa z jednotlivých housenek (perimetry, vrstvy, výplň) – viz <a href="voxel.html">Detail tisku (voxely)</a>. Orientační.</p>
+
+<h2>Bezpečnost tisku a index porušení</h2>
+<p>Z posunutí se v 4 integračních bodech Gaussa každého prvku spočítá přetvoření a převede do materiálových os tisku (pro perimetry do os linie). Skořepina a jádro mají ve prvku stejné přetvoření, ale každé napětí σ = C·ε; posoudí se vlastní pevností a rozhoduje horší z nich.</p>
+<ul>
+<li><b>Bezpečnost λ</b> (veličina „3D tisk – bezpečnost (Tsai-Wu/Hill)“ ve <a href="vysledky.html">Výsledcích</a>): součinitel, kterým se musí vynásobit <b>všechna zatížení daného stavu</b>, aby kritérium dosáhlo 1. λ = 2 znamená porušení při dvojnásobném zatížení. U Tsai-Wu to není prostý poměr napětí a pevnosti, protože kritérium má lineární členy (tah a tlak se liší).</li>
+<li><b>Index porušení</b> = 1/λ (veličina „3D tisk – index porušení“): 1 = porušení, 0,5 = poloviční využití.</li>
+<li>V uzlu se ukazuje nejhorší okolní prvek bez průměrování přes skoky materiálu. Netištěné díly mají bezpečnost 10 a index 0.</li>
+<li>V informačním panelu výsledků a dole v kroku 3D tisk se u každého stavu a dílu uvádí <b>min. bezpečnost</b>, místo, oblast (<i>skořepina</i>, <i>perimetr (osy linie, napříč, Z)</i> nebo <i>jádro (výplň)</i>) a napětí σ11 σ22 σ33 τ12 τ13 τ23 v osách tisku. Složka σ33 ukazuje, zda rozhoduje tah mezi vrstvami.</li>
+</ul>
+<p class="warn"><b>Pozor:</b> veličina „Bezpečnost k Re“ tištěné díly neposuzuje (plasty nemají mez kluzu); pro tisk sledujte jen „3D tisk – bezpečnost“. Každý zatěžovací stav se posuzuje zvlášť; současná zatížení dejte do jednoho stavu. Protokol hodnotí tisk jako vyhovující již při λ ≥ 1; o rezervě rozhodněte sami (u nekalibrovaných dat spíše 2–3).</p>
+
+<h2><a name="kalibrace"></a>Kalibrace ze zkoušek ISO 527</h2>
+<p>Zkušební tělesa mají skořepinu a výplň jako díly. Dialog <b>Kalibrace tištěného materiálu – ISO 527</b> proto zpětně spočítá <b>plnou extruzi</b> týmž modelem, jaký používá výpočet; díly s jinými nastaveními tisku pak sedí.</p>
+<h3>Jak zkoušet</h3>
+<ul>
+<li>Tělesa ISO 527-2 typu 1A/1B (měřená délka b = 10 mm, h = 4 mm). Směr <b>xy</b> = těleso leží na podložce (tah v rovině vrstvy); směr <b>z</b> = těleso stojí (tah kolmo na vrstvy).</li>
+<li>Pokud možno tiskněte se 100 % výplní; alespoň 3 tělesa pro každý směr (dialog spočítá variační koeficient).</li>
+<li>Modul měřte extenzometrem; posuv příčníku zahrnuje poddajnost stroje a čelistí a modul vyjde výrazně nižší.</li>
+</ul>
+<h3>Ovládání dialogu</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Tabulka těles</td><td>Sloupce Těleso, Směr (xy / z), E [MPa], Rm [MPa], b [mm], h [mm], Perimetry, Linie [mm], Horní, Dolní, Vrstva [mm], Výplň [%], Vzor. E a Rm jsou naměřené hodnoty pro celý průřez b × h.</td><td>Desetinná čárka nebo tečka.</td></tr>
+<tr><td><b>Přidat XY</b> / <b>Přidat Z</b></td><td>Přidá řádek s nastavením tisku z formuláře kroku.</td><td></td></tr>
+<tr><td><b>Odebrat</b></td><td>Smaže vybraný řádek.</td><td></td></tr>
+<tr><td><b>Načíst křivku (CSV)…</b></td><td>Pro vybraný řádek načte záznam zkoušky a doplní E (sečna mezi ε = 0,05 % a 0,25 % podle ISO 527-1) a Rm (největší napětí). Zeptá se na měřenou délku extenzometru L0.</td><td>L0 = 50 mm; 0 = druhý sloupec je přetvoření v %.</td></tr>
+<tr><td>Výchozí materiál</td><td>Zdroj ν, pevností v tlaku a smyku (škálovaných jako tah) a poměru Z/XY, chybí-li zkoušky Z.</td><td></td></tr>
+<tr><td>Název výsledku</td><td>Název kalibrovaného materiálu.</td><td>„PLA – kalibrace“</td></tr>
+<tr><td>také uložit do mé knihovny materiálů</td><td>Výsledek se uloží i do uživatelské knihovny.</td><td>Zapnuto</td></tr>
+<tr><td><b>Spočítat</b></td><td>Tabulka φ_E, φ_R, plné E a R pro každé těleso a výsledná E_xy, E_z, Rm_xy, Rm_z s variačními koeficienty a poměrem pevností Z/XY.</td><td></td></tr>
+<tr><td><b>Vytvořit materiál</b></td><td>Vytvoří materiál a přiřadí jej vybraným dílům v kroku (žádný vybraný → jen přidá do seznamu). Zkoušky se uloží do studie.</td><td></td></tr>
+</table>
+<h3>Formát souboru CSV</h3>
+<p>Dva číselné sloupce: <b>síla [N]</b> a <b>protažení [mm]</b> (nebo přetvoření [%], zadáte-li L0 = 0). Oddělovačem může být čárka, středník, tabulátor nebo mezera; desetinná čárka je povolena. Řádky s textem (záhlaví) se přeskočí; musí být aspoň 5 číselných řádků. Napětí = síla / (b · h).</p>
+<pre>Síla [N];Protažení [mm]
+0;0
+120,5;0,021
+...</pre>
+<h3>Co se počítá</h3>
+<p>U každého tělesa se určí nosný podíl průřezu φ = (A_perimetry · c + A_plné vrstvy + A_jádro · k)/A, kde k je poměr vlastností výplně ve směru a c = 2/(1 + r) zohledňuje, že perimetry tělesa XY jsou namáhány podél linie (r = poměr napříč/podél linie, řádek <i>Linie</i> níže; pro tělesa Z je c = 1). Proto plné E_xy vyjde mírně nižší než naměřený průměr a výpočet s ním pak vrátí přesně naměřenou tuhost tělesa. Poměry linie výchozího materiálu (<b>Použít pro materiál</b>) přebírá kalibrovaný materiál. Plná extruze: E_plná = E_měř/φ_E a R_plná = Rm_měř/φ_R, zprůměrované pro každý směr.</p>
+
+<h2>Perimetry, tečení a únava materiálu</h2>
+<p>Box <b>Perimetry, tečení a únava materiálu (orientačně, printing.props)</b> obsahuje další vlastnosti <b>aktuálně vybraného tištěného materiálu</b>. Výchozí hodnoty se berou podle rodiny polymeru odhadnuté z názvu (PLA, PETG, ABS/ASA; neznámý materiál = PLA). Řádek <i>Rodina (výchozí)</i> ukazuje, která se použila.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Výchozí PLA / PETG / ABS</th></tr>
+<tr><td>Linie: E napříč / podél</td><td>Poměr modulů napříč a podél linie v perimetrech (1 = bez anizotropie linie).</td><td>0,8 / 0,85 / 0,85</td></tr>
+<tr><td>Linie: Rm napříč / podél</td><td>Poměr pevností v tahu napříč a podél linie.</td><td>0,55 / 0,6 / 0,6</td></tr>
+<tr><td>Tečení: a [h^-n], Tečení: n</td><td>Findleyho zákon φ(t) = a·t<sup>n</sup> (t v hodinách, 23 °C); dlouhodobý modul E_c = E/(1 + φ).</td><td>a 0,04 / 0,03 / 0,03; n 0,4 / 0,4 / 0,35</td></tr>
+<tr><td>Dlouhodobá pevnost: β</td><td>Pokles pevnosti při trvalém zatížení k_R = 1 − β·log10(1 + t), nejméně 0,3.</td><td>0,10 / 0,08 / 0,08</td></tr>
+<tr><td>S-N: SD / Rm</td><td>Amplituda únavové pevnosti při ND jako zlomek Rm (XY).</td><td>0,1</td></tr>
+<tr><td>S-N: SD (přednost)</td><td>Amplituda v MPa; je-li zadána, přebije poměr.</td><td>„z poměru“</td></tr>
+<tr><td>S-N: ND</td><td>Počet cyklů v zlomu křivky.</td><td>2·10⁶</td></tr>
+<tr><td>S-N: sklon k / sklon k2 pod zlomem</td><td>Sklony nad a pod zlomem (plasty nemají skutečnou mez únavy).</td><td>5,5 / 10</td></tr>
+<tr><td>S-N: SD_z / SD_xy</td><td>Poměr únavové pevnosti mezi vrstvami a v rovině.</td><td>„= Rm_z/Rm“</td></tr>
+<tr><td><b>Použít pro materiál</b></td><td>Uloží hodnoty do studie pro tento materiál.</td><td></td></tr>
+<tr><td><b>Výchozí (literatura)</b></td><td>Zruší úpravu a obnoví výchozí hodnoty rodiny.</td><td></td></tr>
+</table>
+<p>Pod tabulkou je teplotní tabulka tečení (teplota, k_E, k_φ) s mezí platnosti a kontrolní případ „1000 h při 23 °C“: pro PLA φ = 0,63, E_c/E = 0,61 a pevnost × 0,70.</p>
+<table class="grid">
+<tr><th>Rodina</th><th>Teplotní tabulka (T: k_E, k_φ)</th><th>Platí do</th></tr>
+<tr><td>PLA (Tg ≈ 55–60 °C)</td><td>23 °C: 1; 1 · 30 °C: 0,97; 1,5 · 40 °C: 0,92; 3 · 45 °C: 0,85; 5</td><td>45 °C</td></tr>
+<tr><td>PETG (Tg ≈ 78–80 °C)</td><td>23 °C: 1; 1 · 40 °C: 0,95; 1,6 · 50 °C: 0,9; 2,5 · 60 °C: 0,8; 4,5</td><td>60 °C</td></tr>
+<tr><td>ABS/ASA (Tg ≈ 105 °C)</td><td>23 °C: 1; 1 · 50 °C: 0,92; 2 · 70 °C: 0,8; 4</td><td>70 °C</td></tr>
+</table>
+<p><b>Zdroje (všechny hodnoty ORIENTAČNÍ):</b> anizotropie linie: Song et al., Mater. Des. 123 (2017); Khosravani et al., Sci. Rep. 12 (2022) 1016 (raster 90°/0°: Rm 0,54–0,58; poměr modulů 0,8 je odhad). Tečení PLA: odhad z tečení FDM PLA (Waseem et al., Polymers 12 (2020) 2962), tečení PETG: Polymers 2025 (PMC12349189). S-N: Ezeh &amp; Susmel, Int. J. Fatigue 126 (2019) 319–326 (FFF PLA, k = 5,5, SD(2·10⁶) ≈ 0,1 Rm, pravděpodobnost přežití 95 %). Pro PETG a ABS je S-N převzat z PLA; poměr Z u S-N není ověřen.</p>
+
+<h2>Tečení – dlouhodobé zatížení</h2>
+<p>Lineární výpočet nezachytí tečení plastu: PLA teče při trvalém zatížení už za pokojové teploty a rychleji při zahřátí. Box <b>Tečení – dlouhodobé zatížení (izochronní modul)</b> zapne orientační odhad.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>odhadnout tečení dlouhodobých stavů</td><td>Zapne odhad tečení.</td><td></td></tr>
+<tr><td>Doba zatížení</td><td>Jak dlouho zatížení působí nepřetržitě.</td><td>1000 h ≈ 6 týdnů, 8760 h = 1 rok</td></tr>
+<tr><td>Teplota dílu</td><td>Rovnoměrná teplota dílu po celou dobu.</td><td>23–30 °C; nad mezí tabulky výpočet skončí chybou.</td></tr>
+<tr><td>Dlouhodobé stavy</td><td>Zaškrtnuté zatěžovací stavy působí nepřetržitě (závěsné břemeno, předpětí pružiny). Krátkodobé rázy nezaškrtávejte.</td><td></td></tr>
+</table>
+<h3>Co odhad přidá do výsledků</h3>
+<ul>
+<li>Každý dlouhodobý stav se spočítá <b>znovu na stejné síti</b> se sníženými tuhostmi tištěných materiálů E_c = k_E·E/(1 + k_φ·φ(t)) a pevnostmi × k_R. Výsledky dostanou stav „<i>&lt;stav&gt; – tečení 1000 h, 30 °C</i>“ se všemi veličinami; jeho bezpečnost tisku se vztahuje k dlouhodobé pevnosti.</li>
+<li>Dole v kroku 3D tisk a v protokolu je souhrn: max. posun krátkodobě → dlouhodobě, jejich poměr, krátkodobé využití a nejmenší dlouhodobá bezpečnost.</li>
+<li>Kovové díly nepoteču, takže odhad ukáže přerozdělení sil mezi tuhými a tečoucími díly. U modelu z jednoho materiálu je dlouhodobý posun prostě krátkodobý dělený činitelem tuhosti a napětí se nemění.</li>
+</ul>
+<h3>Meze odhadu</h3>
+<ul>
+<li>Lineární viskoelasticita platí zhruba do 30–35 % pevnosti. Je-li krátkodobé využití tisku (1/λ) větší než 35 %, program varuje, že skutečné tečení bude větší: odhad je <b>nekonzervativní</b>.</li>
+<li>Zatížení musí být po celou dobu stálé a teplota rovnoměrná. Vlhkost a stárnutí se nezohledňují.</li>
+<li><b>Relaxace předpětí šroubů</b> v plastu se nepočítá (viz <a href="spoje.html">Spoje</a>).</li>
+</ul>
+<p class="warn"><b>Pozor:</b> každý výpočet s tištěným dílem má varování a protokol Word vždy obsahuje červené upozornění „POZOR – TEČENÍ: lineární model nezachycuje tečení plastu…“. Nebyly-li dlouhodobé stavy spočítány, protokol to uvede („dlouhodobé stavy nebyly spočítány (krok 3D tisk → Tečení)“); souhrn pak hodnotí tisk <b>bez tečení</b>. Upozornění nejde vypnout – je to záměrné omezení metody.</p>
+
+<h2>Únava tištěných dílů</h2>
+<p>Nastavuje se v kroku <a href="unava.html">Únava</a> stejně jako u kovů, s vlastním postupem pro tisk:</p>
+<ul>
+<li>Napětí se počítá v osách tisku (u perimetrů v osách linie) zvlášť pro skořepinu a jádro. Víceosé napětí se převede na znaménkový <b>Hillův ekvivalent</b>; směrové únavové pevnosti = statické pevnosti × SD/Rm.</li>
+<li>Dál jako u kovů: rainflow, oprava středního napětí (Goodman/Gerber s Rm XY), Minerovo pravidlo. Uzel dostane nejhorší okolní bod.</li>
+<li>S-N křivka z boxu Perimetry, tečení a únava materiálu (výchozí Ezeh &amp; Susmel). Marinovy faktory se nepoužívají, protože zkušební tělesa už vady tisku obsahují. S-N zadaná v kroku Únava platí pro XY.</li>
+<li>Omezení: společný sklon pro všechny směry; tlakové amplitudy se berou jako tahové (konzervativně); bez vlivu frekvence; bez citlivosti tisku na vruby.</li>
+</ul>
+
+<h2><a name="varianty"></a>Varianty, rozmítání a rada – jak díl zpevnit nebo odlehčit</h2>
+<p>Pod nastavením v kroku 3D tisk: skupina <b>Varianty vnitřní struktury</b> a dvě sbalitelné sekce, <b>▸ Rozmítání parametrů</b> a <b>▸ Rada podle místa porušení a směr stavby</b>.</p>
+<p>Nastavení tisku síť nemění: všechny varianty běží na <b>jedné síti</b> (bez přesíťování) a liší se jen přiřazením skořepiny a výplně elementům. U každé varianty se ukáže nejmenší bezpečnost tisku (a kde rozhoduje), největší posun a hmotnost tištěných dílů.</p>
+<h3>Varianty</h3>
+<p>Varianta = pojmenovaná úprava nastavení tisku po dílech (perimetry, plné vrstvy, výplň, vzor, linie, vrstva, směr stavby, tištěný materiál). <b>Spočítat varianty</b> spočítá nastavení studie i všechny varianty; doporučená je nejlehčí varianta s bezpečností aspoň požadovanou (výchozí 1,5). Vybranou variantu převezměte do studie.</p>
+<h3>Rozmítání parametrů</h3>
+<p>Zadejte perimetry, hustoty výplně, vzory a případně směry stavby; všechny kombinace se spočítají na jedné síti (nejvýše 60 variant). Hodnoty oddělte čárkami nebo mezerami („2, 3, 4“); při desetinné čárce použijte středníky („7,5; 15“). <b>Odhad</b> ukáže počet variant a dobu. Graf hmotnost × bezpečnost ukazuje <b>Paretovu frontu</b> – varianty, kterým žádná jiná nejde ani v hmotnosti, ani v bezpečnosti. Doporučená varianta je zelená, body Pareta mají ★; klik v grafu vybere řádek tabulky. <b>Převzít vybranou variantu</b> ji použije a přepočítá; <b>Přidáte do variant</b> ji ponechá mezi variantami.</p>
+<h3>Rada podle místa porušení</h3>
+<p>Z nejslabšího místa každého dílu (perimetr, plné vrstvy, výplň, tenké místo) a z složek napětí v osách tisku program navrhne změnu: napětí podél linie perimetru → přidat perimetry; rozhoduje výplň → vyšší hustota (pro vícesměrné zatížení gyroid); namáhaný spoj vrstev (σ33, τ13, τ23) → jiný směr stavby. Každou radu lze hned vyzkoušet jako variantu (<b>Vyzkoušet jako variantu</b>); u výplně <b>Rozmítat výplň</b> předvyplní rozmítání.</p>
+<p class="warn"><b>Pozor:</b> rada je ORIENTAČNÍ – přínos ověřte variantou (výpočtem) a u důležitých dílů zkouškou.</p>
+<h3>Seřadit směry stavby</h3>
+<p>Spočítá díl postavený podél všech šesti os ±X / ±Y / ±Z a seřadí je podle bezpečnosti tisku. Nejlepší směr převezmete jedním kliknutím (ostatní nastavení zůstanou).</p>
+<h3>Předvolby</h3>
+<p>Nastavení tisku (vrstva, linie, perimetry, horní a dolní vrstvy, výplň, vzor, tenká místa) lze uložit pod názvem a jedním kliknutím použít na jiné díly; směr stavby dílu zůstane. Vestavěná je jen „3D tisk standard“. Předvolby se ukládají do souboru <code>%APPDATA%\FEAStudio\print_presets.json</code>.</p>
+<h3>Plná výplň tenkých míst</h3>
+<p>Je-li vnitřek dílu po odečtení perimetrů užší než mez (výchozí 2 × šířka linie), řídká výplň se nevejde a slicer tiskne plnou výplň; program totéž. Mez lze zadat ručně, nebo funkci vypnout (volba v nastavení tisku). Orientační – slicery rozhodují podle plochy oblasti.</p>
+<h3>Rovinná anizotropie výplní</h3>
+<p>Mřížka a přímočará výplň (grid, rectilinear, zig-zag) mají linie pod ±45° k osám tisku: v osách tisku mají stejný modul, ale jsou tužší ve smyku v rovině vrstvy (orientačně podle Gibsona a Ashbyho). Gyroid, kubická, plástev a trojúhelníky jsou v rovině přibližně izotropní.</p>
+
+<h2>Doporučení</h2>
+<ul>
+<li><b>Orientace na podložce.</b> Hlavní tahové napětí má ležet v rovině vrstev. Vrstvy kolmé na hlavní tah jsou nejslabším místem (obvykle 50–70 % pevnosti XY, u nežíhaného PLA méně) a porušují se křehce. U ohýbaných ramen a háků otočte díl tak, aby rovina ohybu ležela ve vrstvách.</li>
+<li><b>Díry pro šrouby</b> s osou rovnoběžnou se směrem stavby obklopují perimetry vedené po obrysu – nejlepší pro otlačení i tah.</li>
+<li><b>Síť a skořepina.</b> Skořepina bývá 0,6–1,3 mm, prvky 2–4 mm, takže napětí ve skořepině závisí na síti. V kritických místech (oko, vrub, kořen žebra) zjemněte síť v kroku <a href="sit.html">Síť</a> lokálně, ideálně na velikost blízkou tloušťce skořepiny. Nezjemňujte celý povrch: u tenkých dílů by to znamenalo stovky tisíc uzlů a desítky GB paměti řešiče.</li>
+<li>Zkontrolujte řez <b>Skořepina / jádro</b>. Tenké stěny (≤ 2 × tloušťka perimetrů) jsou plné, což odpovídá i skutečnému tisku.</li>
+<li>U kritických dílů <b>kalibrujte</b> vlastnosti a ověřte zkouškou dílu.</li>
+<li>Tištěné díly lze počítat i řešičem pro velké modely (NGSolve); výsledky jsou shodné s CalculiXem.</li>
+</ul>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 „Tištěný držák“</h3>
+<p>Jediný díl „Drzak (tisk PLA)“ s materiálem <b>Tisk PLA Bambu Basic</b>. Nastavení tisku: směr stavby +Z, <b>3 perimetry</b> (stěna 1,26 mm), plné vrstvy 5/3 × 0,2 mm (1,0/0,6 mm), <b>výplň 20 % Gyroid</b>. Řádek „Jádro“ ukazuje E_xy ≈ 6,5 % a Rm ≈ 7 % plné extruze. Kritérium Tsai-Wu. Tečení zapnuto: <b>1000 h, 30 °C</b>, dlouhodobý stav „Zatížení oka 200 N“ (trvale visící závaží): při 30 °C činitel tuhosti 0,50 a činitel pevnosti 0,70; dlouhodobý posun bude zhruba dvojnásobek krátkodobého a dlouhodobá bezpečnost 0,70 × krátkodobá. Únava: pulzující 0–200 N, 10⁵ cyklů, S-N tisku z výchozích hodnot PLA. Síť 2,5 mm: očekávejte varování „prvky u povrchu … jsou mnohem větší než skořepina“. V řezu <b>Skořepina / jádro</b> (osa X) zkontrolujte, zda minimum leží ve stěně s otvory (σ33 kolmo na vrstvy), nebo v rameni.</p>
+<h3>Ukázka 2 „Sestava“</h3>
+<p>Tiskne se jen díl „Rameno (tisk PLA)“. Patka a sloupek jsou z oceli S235 („netištěno“ v seznamu); šrouby, matice a podložky jsou „šroub / vynecháno“. Nastavení: +Z, 3 perimetry, <b>výplň 25 % Gyroid</b>. Tečení: <b>2000 h, 30 °C</b>, dlouhodobý stav „Síla na oko ramena“; činitel tuhosti PLA 0,43 a činitel pevnosti 0,67. Ocel netče, takže poměr posunů není 1/0,43, ale ukazuje přerozdělení sil v sestavě. Síť 4 mm s místním zjemněním 1,5 mm v oku ramena, kde rozhoduje tlak čepu. Rameno svírají dva šrouby M6: automatické předpětí omezí tlak pod podložkou na hodnotu pro PLA a posudek šroubů varuje před sednutím a tečením plastu. V tepelné úloze se vodivost ramene snižuje podílem plného materiálu (viz <a href="teplo.html">Teplo</a>).</p>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„3D tisk 'díl': prvky u povrchu (~2,5 mm) jsou mnohem větší než skořepina (0,6 mm) – tuhost skořepiny je jen zprůměrovaná…“</b><br>
+Prvky jsou větší než trojnásobek nejtenčí skořepiny. Tuhost bývá v pořádku, ale napětí ve skořepině závisí na síti. V místě minima bezpečnosti zadejte místní zjemnění v kroku Síť a výpočet zopakujte; jestliže se minimum výrazně mění, zjemňujte dál.</li>
+<li><b>„Tečení 'materiál': teplota 50 °C je mimo platnost odhadu (do 45 °C, u skelného přechodu) – lineární model nelze použít“</b><br>
+U skelného přechodu PLA (55–60 °C) lineární odhad neplatí. Snižte Teplotu dílu, nebo zvolte materiál s vyšším Tg (PETG do 60 °C, ABS/ASA do 70 °C).</li>
+<li><b>„Tečení '…': krátkodobé využití tisku 48 % > 35 % – mimo lineární viskoelasticitu…“</b><br>
+Trvalé zatížení překračuje mez lineárního tečení a odhad je nekonzervativní. Zvětšete průřez, přidejte perimetry, nebo změňte orientaci, až využití klesne pod 35 %.</li>
+<li><b>„Tečení je zapnuto, ale žádný zatěžovací stav není označen jako dlouhodobý“</b><br>
+V seznamu Dlouhodobé stavy zaškrtněte stavy působící nepřetržitě. Po přejmenování se zaškrtnutí zachová, po smazání a novém vytvoření ne.</li>
+<li><b>„Díl '…' má nastavení tisku, ale jeho materiál není tištěný (chybí E_z) – počítá se jako izotropní“</b><br>
+Později jste dílu v Materiálech přiřadili obyčejný materiál. V kroku 3D tisk přiřaďte tištěný materiál, nebo nastavení tisku ignorujte.</li>
+<li><b>„Nejdřív vytvoř síť (krok Síť).“</b> po stisknutí Skořepina / jádro<br>
+Řez potřebuje síť. Spusťte vytvoření sítě v kroku Síť a vraťte se. Hláška „Žádný díl nemá tištěný materiál.“ znamená, že žádný síťovaný díl nemá materiál s E_z.</li>
+<li><b>Kalibrace: „Křivka nedosahuje přetvoření 0,25 %“ / „Soubor neobsahuje dva číselné sloupce (síla, protažení)“</b><br>
+Zkontrolujte L0 (0 jen tehdy, je-li druhý sloupec přetvoření v %) a formát souboru. Varování „výplň nese velkou část průřezu (φ_E &lt; 0,6)“ znamená, že výsledek závisí na odhadu výplně: tělesa tiskněte se 100 % výplní.</li>
+</ul>

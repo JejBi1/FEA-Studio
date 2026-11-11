@@ -1,0 +1,94 @@
+<h1>Word report</h1>
+<p class="lead">The <b>Report…</b> button (<span class="key">Ctrl+P</span>) creates a technical report in Word (.docx): setup, mesh, results with
+figures, joint checks, fatigue, 3D printing, assumptions and warnings, with a pass / fail rating.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Calculate statics (and heat). For fatigue in the report, calculate it first in <a href="unava.html">Fatigue</a> – the report uses the GUI result.</li>
+<li>Click <b>Report…</b> in the top bar or press <span class="key">Ctrl+P</span>.</li>
+<li>Fill in the details, check the path, click <b>Generate report</b>.</li>
+<li>It runs in the background (“Generating report…” in the status bar) and opens in Word when finished.</li>
+</ol>
+<p>Without results the report holds only the setup (“Results are not available – the report will contain only the setup.”).
+A heat-only study gives a full thermal report.</p>
+
+<h2>Word report dialog</h2>
+<p>The top line says what the report will contain, e.g. “Load cases: 6 · thermal cases: 2 · joint checks: will be run · fatigue: no (Fatigue step)”.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Name</td><td>Heading and footer.</td><td>Prefilled by analysis type: “FE structural analysis”, “FE thermal analysis” (heat-only) or “FE structural and thermal analysis” – &lt;study&gt;.</td></tr>
+<tr><td>Prepared by</td><td>Author (title block, document properties).</td><td>Remembered.</td></tr>
+<tr><td>Company</td><td>Company in the title block.</td><td>Remembered.</td></tr>
+<tr><td>Subject</td><td>Paragraph below the title block: subject, order, structure description.</td><td>Optional.</td></tr>
+<tr><td>Conclusion</td><td>Your conclusion – last chapter; blank line separates paragraphs.</td><td>Empty = no Conclusion chapter.</td></tr>
+<tr><td>Required safety factor to Re</td><td>Statics rating limit: PASS if min. Re/σ_vM ≥ value.</td><td>0.1–10, default 1.0, last value remembered. Usually 1.5.</td></tr>
+<tr><td>images (model, stress, displacement, safety factor)</td><td>Model images with loads (4 views) and result maps.</td><td>On; off is faster.</td></tr>
+<tr><td>Keep images (folder &lt;name&gt;_obrazky)</td><td>PNGs saved next to the report in &lt;name&gt;_obrazky (like --keep-images).</td><td>Off, remembered. A foreign existing folder is never overwritten (_2… added).</td></tr>
+<tr><td>detailed checks of each joint</td><td>Tables of all checks per bolt and weld (otherwise overview only).</td><td>On.</td></tr>
+<tr><td>open in Word when finished</td><td>Opens the file in the associated program.</td><td>Remembered.</td></tr>
+<tr><td>File, “…”</td><td>Path to the .docx.</td><td>Default: project folder, “&lt;study&gt;_protokol.docx”.</td></tr>
+<tr><td>Generate report</td><td>Starts generation.</td><td>Missing joint checks run automatically.</td></tr>
+</table>
+
+<h2>Report contents</h2>
+<ul>
+<li><b>Title block</b> – study, geometry, company, author, date, program; subject.</li>
+<li><b>Summary</b> – statics table by case: max. displacement, max. σ_vM, σ_vM away from singularities, min. safety factor to Re, imbalance, rating (k ≥ required). Thermal cases; joints (max. utilization), fatigue (max. D, min. safety factor), 3D printing (min. Tsai-Wu/Hill safety factor, without creep).</li>
+<li><b>1 Analysis setup</b> – parts (volume, mass from the mesh), materials with sources (printing: solid extrusion properties), supports with face areas, load cases and loads, bolts (designation, grade, grip length, preload), welds (a, length), thermal cases; a model figure per case.</li>
+<li><b>2 Mesh and solver</b> – element type, size, refinement, nodes, elements, DOF, min. scaled Jacobian with quality rating, solver.</li>
+<li><b>3 Results</b> – per thermal and load case: values, maxima locations with singularity classification, reactions (forces, moments), equilibrium check, safety factor to Re by part, maps of von Mises, displacement, safety factor.</li>
+<li><b>Bolted and welded joints</b> – utilization overview, optional detailed checks (VDI 2230, EN 1993-1-8, EN 1993-1-9 / IIW).</li>
+<li><b>Fatigue</b> – method (as in the Fatigue step), S-N curves with sources, worst locations, maps.</li>
+<li><b>3D printing</b> – settings, safety factor by part, creep; always a red warning about plastic creep.</li>
+<li><b>Contacts</b> (if defined) – pairs with type, μ with source and purpose, K, λ, interference, formulation, step sequence; results per step, pressure and status maps, force–travel curves; always red warnings about nonlinear analysis, μ estimate, K/λ penalty and possible partial result.</li>
+<li><b>Dynamics</b> (if enabled) – modes with effective mass, damping, excitation and test profile, FRF, envelopes, RMS and 3σ, spectral fatigue, shock and SRS, added mass; always a red warning about damping uncertainty (±50 %).</li>
+<li><b>Motion (mechanism)</b> (if computed) – bodies, joints, drivers, largest joint reactions and their instant, driver forces and power, reaction plots, equilibrium and power balance, load cases transferred to FEA; always a red warning about rigid bodies, friction estimate and redundant constraints.</li>
+<li><b>Assumptions, limitations and warnings</b> – linear elasticity, parts joined by a shared mesh (no contact pair), contact and dynamics assumptions where used, all analysis warnings.</li>
+<li><b>Conclusion</b> – text of the Conclusion field.</li>
+</ul>
+<p>Numbers follow the report language (decimal separator, ·10ⁿ, minus “−”). Reactions below 10⁻⁵ of the total load show as 0 (noise).
+The safety factor map is omitted if it is ≥ 10 everywhere.</p>
+<p class="warn"><b>Note:</b> the report is a supporting document, not an automatic assessment. “PASS” rests on the maximum at a node and cannot tell if it is the governing location. Assess singularities yourself and state it in the Conclusion.</p>
+
+<h2>Without the GUI (command line)</h2>
+<p><code>report</code> generates a report from a study (study.json) or a .fea project. A project with results is not recalculated; a study without results is calculated.
+Fatigue is calculated if the study has a load history; joints are checked.</p>
+<pre>.venv\Scripts\python.exe -m fea_core report projekt.fea -o protokol.docx --safety 1.5 --author "Name Surname" --company "Company name"</pre>
+<table class="grid">
+<tr><th>Option</th><th>What it does</th><th>Note</th></tr>
+<tr><td>-o path.docx</td><td>Output file.</td><td>Default &lt;name&gt;_protokol.docx next to the source.</td></tr>
+<tr><td>--safety 1.5</td><td>Required safety factor to Re.</td><td>Default 1.0.</td></tr>
+<tr><td>--title, --author, --company</td><td>Name, author, company.</td><td></td></tr>
+<tr><td>--keep-images</td><td>Keeps PNGs in “&lt;name&gt;_obrazky” next to the report.</td><td>A foreign existing folder is never overwritten (_2… added). GUI: Keep images.</td></tr>
+<tr><td>--no-images</td><td>No images.</td><td></td></tr>
+<tr><td>--no-solve</td><td>Do not calculate a study without results – setup only.</td><td></td></tr>
+<tr><td>--no-fatigue</td><td>Do not calculate fatigue.</td><td></td></tr>
+<tr><td>--results results.npz</td><td>Use saved results.</td><td></td></tr>
+<tr><td>--workdir folder</td><td>Working folder of the analysis.</td><td></td></tr>
+</table>
+<p>MCP tool <code>fea_report_word</code> and other automation: <a href="automatizace.html">Automation</a>.</p>
+
+<h2>In the examples</h2>
+<h3>Example 1 – printed bracket</h3>
+<ul>
+<li>Summary: three cases (eye load 200 N, self-weight, creep case) and a 3D printing row with the min. safety factor. For PLA the safety factor to Re is indicative; the print safety factor governs.</li>
+<li>3D printing chapter: 3 perimeters, gyroid 20 %, Tsai-Wu, creep 1000 h / 30 °C, red creep warning.</li>
+<li>The Fatigue chapter appears only if fatigue was calculated before generating.</li>
+</ul>
+<h3>Example 2 – assembly</h3>
+<ul>
+<li>Setup adds tables of bolts (2× M6 8.8, preload) and welds (a = 4 mm), and a Thermal cases chapter with boundary condition figures.</li>
+<li>Results start with the thermal cases (balance, temperature map), then six mechanical cases including Bolt preload and the creep case.</li>
+<li>Bolted and welded joints fills in automatically; with detailed checks the report is much longer.</li>
+</ul>
+
+<h2>Common problems</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and solution</th></tr>
+<tr><td>“The report could not be generated: PermissionError …”</td><td>A file of the same name is open in Word – close it or rename.</td></tr>
+<tr><td>“Open a model or project first.”</td><td>The report needs an open study.</td></tr>
+<tr><td>Fatigue is missing in the report</td><td>Any change of fatigue settings or the study discards the GUI fatigue result. Recalculate; the dialog must show “fatigue: yes”.</td></tr>
+<tr><td>“Report – warning: Figure … : …” in the log</td><td>A figure could not be rendered; the report is made without it. Retry, or without images.</td></tr>
+<tr><td>FAIL rating because of a singularity</td><td>The summary also gives σ_vM away from singularities. Assess the location (<a href="vysledky.html">Results</a>) and justify it in the Conclusion.</td></tr>
+<tr><td>The report did not open</td><td>Word or another .docx program is missing. The file exists – open it elsewhere (LibreOffice, Word Online).</td></tr>
+</table>

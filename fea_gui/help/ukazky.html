@@ -1,0 +1,150 @@
+<h1>Examples and guide</h1>
+<p class="lead">Ten ready-made projects showing the program's capabilities. The guide opens them and explains step by step what is set and why.</p>
+
+<h2>Starting the guide</h2>
+<ul>
+<li><a href="fea:pruvodce1"><b>Example 1 – printed bracket</b></a>: a single PLA part; 3D printing and creep (14 steps).</li>
+<li><a href="fea:pruvodce2"><b>Example 2 – steel + print assembly</b></a>: bolts, welds, heat, all kinds of supports and loads (12 steps).</li>
+<li><a href="fea:pruvodce3"><b>Example 3 – flange joint</b></a>: pipe with cover, 4× M10 bolts, internal pressure 2.5 MPa, VDI 2230 (7 steps).</li>
+<li><a href="fea:pruvodce4"><b>Example 4 – welded boom</b></a>: S355, 5 a4 fillet welds, 5000 N, weld fatigue per EN 1993-1-8 and IIW (7 steps).</li>
+<li><a href="fea:pruvodce5"><b>Example 5 – electronics heat sink</b></a>: finned aluminium + stainless module, 40 W, convection, steady and transient heat, thermal stress (6 steps).</li>
+<li><a href="fea:pruvodce6"><b>Example 6 – hall frame of beams</b></a>: beams without CAD, EN sections, snow and wind, natural frequencies, EN 1993-1-1 (5 steps).</li>
+<li><a href="fea:pruvodce7"><b>Example 7 – dynamics of a PCB fixture</b></a>: point and surface mass, natural frequencies, harmonic 1 g, random vibration (ASD), probes (9 steps).</li>
+<li><a href="fea:pruvodce8"><b>Example 8 – crank mechanism</b></a>: bodies from CAD, joints from geometry, drive, animation, reactions, transfer of the maximum instant to FEA (8 steps).</li>
+<li><a href="fea:pruvodce9"><b>Example 9 – bolted column base (contact)</b></a>: frictional contact at the bolted interface, preload, joint opening, nonlinear sequence (8 steps).</li>
+<li><a href="fea:pruvodce10"><b>Example 10 – bracket, topology optimization</b></a>: lightening with BESO, final shape and density in 3D, STL export (7 steps).</li>
+</ul>
+<p>The guide is the panel on the right: <b>Show in app</b> switches the program to the state the step describes, <b>Next</b> / <b>Back</b> page through the steps, <b>Help for the step</b> opens the detailed page. You can work freely between steps.</p>
+<p class="tip"><b>Tip:</b> the guide opens a <i>copy</i> in <code>%LOCALAPPDATA%\FEAStudio\ukazky</code>; <span class="key">Ctrl+S</span> does not overwrite the original.</p>
+<p>Without the guide: <span class="key">Ctrl+O</span> → <code>examples</code> in the installation → <code>example1_bracket.fea</code> to <code>example10_bracket_topology.fea</code>.</p>
+
+<h2>Example 1 – printed bracket</h2>
+<p>PLA bracket (Bambu Basic), build direction Z: a vertical plate 60×40×6 mm with two Ø5 screw holes, a horizontal arm 64×24×8 mm, and at its end a boss with an Ø8 eye (load pin) and a triangular rib.</p>
+<p><img src="example1_model.png" alt="Example model 1"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Print PLA Bambu Basic (E 2680 / E_z 2160 MPa, Rm 39 / Rm_z 35 MPa)</td></tr>
+<tr><td>3D printing</td><td>build Z, layer 0.2 mm, line 0.42 mm, 3 perimeters, 5/3 solid layers, gyroid 20 %; Tsai-Wu; creep 1000 h at 30 °C for the Eye load case</td></tr>
+<tr><td>Supports</td><td>cylindrical support of each screw hole (Upper screw, Lower screw), back face ux = 0</td></tr>
+<tr><td>Loads</td><td>Eye load 200 N (bearing load, downward); Self-weight</td></tr>
+<tr><td>Mesh</td><td>2.5 mm, tet10</td></tr>
+<tr><td>Fatigue</td><td>sine 0–1 × Eye load (pulsating 0–200 N), 100 000 repetitions</td></tr>
+</table>
+
+<h2>Example 2 – steel + print assembly</h2>
+<p>Steel base plate 180×70×10 mm (S235) with 4 anchor holes Ø9, column 10×70×90 mm welded by two a4 fillet welds, and a printed PLA arm bolted to the plate with 2× ISO 4017 M6 x 30 - 8.8, ISO 7089 washers and ISO 4032 nuts.</p>
+<p><img src="example2_model.png" alt="Example model 2"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Steel S235 (default), arm Print PLA Bambu Basic</td></tr>
+<tr><td>3D printing</td><td>arm: 3 perimeters, gyroid 25 %, creep 2000 h / 30 °C for Force on the arm eye</td></tr>
+<tr><td>Joints</td><td>2 M6 8.8 bolts, automatic preload (Bolt preload case); 2 a4 fillet welds (EN 1993-1-8, fatigue of root and toe)</td></tr>
+<tr><td>Supports</td><td>cylindrical support of the 4 anchor holes</td></tr>
+<tr><td>Heat</td><td>15 W into the column hole; arm convection 10 W/(m²·K) to 25 °C; base plate bottom 20 °C; steady state and 1 h transient ramp-up</td></tr>
+<tr><td>Loads</td><td>Force on the arm eye 300 N (bearing); lateral force 250 N on the column at remote point [35; 35; 150]; Self-weight; Heating in operation (thermal stress from the steady state)</td></tr>
+<tr><td>Mesh</td><td>4 mm; local refinement of the arm eye 1.5 mm</td></tr>
+<tr><td>Fatigue</td><td>two sine channels shifted by 90° (non-proportional), 200 000 repetitions</td></tr>
+</table>
+
+<h2>Example 3 – flange joint</h2>
+<p>Pressure pipe Ø50/36 with a welded flange Ø120 and a solid cover, connected by 4× ISO 4017 M10 × 45 8.8 bolts with washers and nuts. It verifies the preload computation and the <b>VDI 2230</b> assessment.</p>
+<p><img src="example3_model.png" alt="Example model 3"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Steel S355 (default for flange and cover)</td></tr>
+<tr><td>Joints</td><td>4 M10 8.8 bolts, automatic preload (tightening factor alpha_A = 1.6, friction μ = 0.12)</td></tr>
+<tr><td>Supports</td><td>fixed support on the bottom end face of the pipe</td></tr>
+<tr><td>Loads</td><td>internal pressure 2.5 MPa on the inner cylinder; axial tension 10 kN on the top end face of the cover; Self-weight; Bolt preload</td></tr>
+<tr><td>Mesh</td><td>5.0 mm, tet10</td></tr>
+<tr><td>Assessment</td><td>VDI 2230: assembly preload, tightening torque, safety against yielding and joint opening</td></tr>
+</table>
+
+<h2>Example 4 – welded boom</h2>
+<p>Welded cantilever boom: anchor plate with 4 holes Ø13, horizontal arm 50×60 × 220 mm with an eye for the 5000 N load pin, triangular rib 12 mm thick and 5 a4 fillet welds.</p>
+<p><img src="example4_model.png" alt="Example model 4"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Steel S355 (default)</td></tr>
+<tr><td>Joints</td><td>5 a4 fillet welds (arm to plate at the top, rib welds to the plate and arm)</td></tr>
+<tr><td>Supports</td><td>cylindrical support of the 4 anchor holes; back wall of the anchor plate ux = 0 (resting against a wall)</td></tr>
+<tr><td>Loads</td><td>load 5000 N in the eye (bearing load); lateral force 800 N on the arm end face; Self-weight</td></tr>
+<tr><td>Mesh</td><td>6.0 mm, tet10</td></tr>
+<tr><td>Fatigue</td><td>cyclic lift 0–5 kN (200 000 cycles) shifted against the lateral force; IIW and EN 1993-1-8</td></tr>
+</table>
+
+<h2>Example 5 – electronics heat sink</h2>
+<p>Aluminium finned heat sink 90×80×30 mm with 6 fins and a stainless power module 30×30×4 mm dissipating 40 W.</p>
+<p><img src="example5_model.png" alt="Example model 5"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Aluminium EN AW-6082 T6 (heat sink, k = 170 W/(m·K)); stainless steel 1.4301 (module, k = 15 W/(m·K))</td></tr>
+<tr><td>Supports</td><td>cylindrical support of the 4 mounting holes Ø4.5 mm</td></tr>
+<tr><td>Heat</td><td>40 W into the module; natural convection h = 15 W/(m²·K) on the fins to 25 °C; steady state and 10 min transient ramp-up</td></tr>
+<tr><td>Mechanics</td><td>Heating in operation (temperature field from the steady state → bimetallic bending and stress); Self-weight</td></tr>
+<tr><td>Mesh</td><td>4.0 mm, tet10</td></tr>
+</table>
+
+<h2>Example 6 – hall frame of beams</h2>
+<p>Steel hall made of beams only (study without STEP geometry): two frames, purlins and bracing. Results are not stored in the example; they are computed in seconds.</p>
+<p><img src="example6_model.png" alt="Example model 6"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Beams</td><td>columns HEA 260, rafters IPE 300 (span 12 m, gable roof), purlins UPE 160 pinned, bracing CHS 76.1×3.6 (axial only), fixed column bases; EN 1993-1-1 (column buckling lengths)</td></tr>
+<tr><td>Loads</td><td>Self-weight; snow 0.8 kN/m² on rafters; wind from the left on columns + 2 kN in the gable</td></tr>
+<tr><td>Solution</td><td>statics + 6 natural frequencies (1st ~4.8 Hz)</td></tr>
+</table>
+
+<h2>Example 7 – dynamics of a PCB fixture</h2>
+<p>Aluminium bracket clamped to a shaker table, 100×70×1.6 mm FR-4 board on 4 brass standoffs Ø6, an 80 g transformer and the board population.</p>
+<p><img src="example7_model.png" alt="Example model 7"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Aluminium EN AW-6082 T6; brass CuZn39Pb3; custom “DPS FR-4 (orientačně)” (E 22 GPa, ρ 1,900 kg/m³)</td></tr>
+<tr><td>Supports</td><td>fixed bottom face of the base (= excited base)</td></tr>
+<tr><td>Dynamics</td><td>80 g point mass with rotary inertia (rigid coupling to the footprint); 1.5 kg/m² surface mass on the board; 20 modes, ζ = 3 %; harmonic sine 1 g in Y 10–2,000 Hz; random ASD 20 Hz 0.008 → 50–500 Hz 0.02 → 2,000 Hz 0.005 g²/Hz (4.8 g<sub>rms</sub>, 0.5 h, Dirlik) – <b>an EXAMPLE in the structure of IEC 60068-2-64, not values from the standard</b>; probes on footprint, board and bracket</td></tr>
+<tr><td>Mesh</td><td>6 mm, 3 mm at the board (local refinement), tet10, 32 k nodes; about 1 min</td></tr>
+</table>
+
+<h2>Example 8 – crank mechanism</h2>
+<p>Frame with a bearing and a guide; crank r = 25 mm, connecting rod l = 100 mm, piston (slider); motor 3,000 rpm, gas force 3,000 N.</p>
+<p><img src="example8_model.png" alt="Example model 8"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Materials</td><td>Steel C45 +N (frame, crank, piston); connecting rod Steel 42CrMo4 +QT</td></tr>
+<tr><td>Motion</td><td>4 bodies (fixed frame); 3 revolute joints proposed from geometry – the rod pins changed to ball + universal (non-redundant set); sliding guide of the piston; drive at constant 314.16 rad/s; 3,000 N on the piston; gravity; kinematics of 1 revolution, 121 outputs</td></tr>
+<tr><td>Transfer to FEA</td><td>instant of maximum reaction in the piston pin → load case of the rod: remote load on eye B, inertia (Inertia), eye A on a distributing remote support (inertia relief); frame, crank and piston excluded</td></tr>
+<tr><td>Mesh</td><td>2 mm, connecting rod only</td></tr>
+</table>
+
+<h2>Example 9 – bolted column base (contact)</h2>
+<p>Column base plate 100×60×10 with a 24×24 column on a 120×60×15 base plate, 2× ISO 4017 M10 × 45 8.8 with washers and nuts.</p>
+<p><img src="example9_model.png" alt="Example model 9"></p>
+<table class="grid">
+<tr><th>Step</th><th>Specification</th></tr>
+<tr><td>Joints</td><td>2 bolts M10 8.8, automatic preload (VDI 2230)</td></tr>
+<tr><td>Contacts</td><td>bolted interfaces as frictional contact μ = μ_T = 0.15 (penalty K = 10·E); nonlinear, as a sequence: bolt preload → tension 20 kN</td></tr>
+<tr><td>Supports</td><td>base plate fixed at the ends x = ±60</td></tr>
+<tr><td>Loads</td><td>tension 20 kN on the top of the column (z = 70)</td></tr>
+<tr><td>Mesh</td><td>6 mm, tet10, conformal mesh with a split interface</td></tr>
+</table>
+
+<h2>Example 10 – bracket, topology optimization</h2>
+<p>Full steel plate 160×90×12 mm (S235) as the design space: two Ø11 holes for M10 bolts into a wall (x = 15 mm, z = 15 and 75 mm) and an Ø14 eye at the free end (x = 142 mm, z = 45 mm). Topology optimization removes lightly loaded material and keeps a shape that carries the load at the given volume.</p>
+<p><img src="example10_model.png" alt="Example model 10"></p>
+<table class="grid">
+<tr><th>Step</th><th>Setup</th></tr>
+<tr><td>Materials</td><td>Steel S235 (isotropic elastic – a requirement of topology optimization)</td></tr>
+<tr><td>Supports</td><td>cylindrical support of the holes Bolt 1 and Bolt 2; face Support at wall ux = 0</td></tr>
+<tr><td>Loads</td><td>case Load 4 kN – bearing load in the eye, downward</td></tr>
+<tr><td>Mesh</td><td>4 mm, tet10</td></tr>
+<tr><td>Results</td><td>statics of the full design and the result (quantities Topology – density, Topology – final shape)</td></tr>
+<tr><td>Topology (BESO)</td><td>target 40 % volume, filter R 8 mm, ER 4 %/step, at most 60 iterations, all selections protected (holes, eye, wall support); see <a href="vysledky.html#topologie">Results – Topology optimization</a>; result: 40 iterations, volume 40.0 %, compliance 2.2× the full design</td></tr>
+</table>
+
+<h2>Recreating the examples</h2>
+<p>A script creates the examples (geometry via OCCT in Python, the study via the program core):</p>
+<pre>.venv\Scripts\python.exe -m examples.create --solve
+.venv\Scripts\python.exe -m examples.create --solve --only 8      (one example only)
+.venv\Scripts\python.exe -m examples.create --solve --only 10     (example 10: topology, dozens of ccx runs)
+.venv\Scripts\python.exe -m examples.frames                     (example 6)</pre>
+<p>Without <code>--solve</code> only the input is saved. <code>examples\create.py</code> is also a template for building studies from Python – see <a href="automatizace.html">Automation</a>.</p>

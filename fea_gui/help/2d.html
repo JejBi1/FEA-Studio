@@ -1,0 +1,42 @@
+<h1>2D section analysis</h1>
+<p class="lead">Analyse a 2D section of the parts cut by a plane: <b>axisymmetric</b> (CAX6 – pipes, vessels, flanges, disks),
+<b>plane stress</b> (CPS6 – thin plates) or <b>plane strain</b> (CPE6 – long bodies). The 2D mesh can be much finer and runs in
+seconds. Set up in <a href="reseni.html">Solve</a>, group <b>2D section analysis</b>.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Supports and loads as in 3D on model faces; they are converted to section edges.</li>
+<li>Check <b>compute 2D instead of 3D</b>; choose <b>Problem type</b>, point, axis (cylindrical parts: <b>Axis from cylinder</b> with a
+cylindrical face selected) and x direction.</li>
+<li>The orange preview in 3D shows the section half-plane. Run.</li>
+<li>In Results select case <b>2D: …</b> and the quantity (σθ, σr, σz, von Mises, displacements…).</li>
+</ol>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td>compute 2D instead of 3D</td><td>2D analysis (results “2D: …”), no 3D mesh; no natural frequencies, buckling or fatigue</td></tr>
+<tr><td>Problem type</td><td>axisymmetric / plane stress / plane strain</td></tr>
+<tr><td>Point [mm]</td><td>point of the section plane; axisymmetric: on the rotation axis (“Axis from cylinder” = axis of the selected cylindrical face)</td></tr>
+<tr><td>Rotation axis / Plane normal</td><td>axisymmetric: axis direction; plane problem: plane normal</td></tr>
+<tr><td>x direction (radial)</td><td>axisymmetric: radial direction of the half-plane; plane problem: 2D x axis. For sectors <b>inside the sector</b>, off the symmetry planes – e.g. (1; 1; 0) for a quarter</td></tr>
+<tr><td>Thickness</td><td>plane problem thickness [mm] (forces and reactions per full thickness)</td></tr>
+<tr><td>Element size</td><td>2D element size [mm]; “same as 3D mesh” = Mesh step size</td></tr>
+<tr><td>Parts</td><td>checked parts are sectioned (none = all)</td></tr>
+<tr><td>section plane preview in 3D</td><td>orange half-plane / plane and axis in Solve</td></tr>
+</table>
+
+<h2>What is converted</h2>
+<ul>
+<li>Supports (fixed, displacement, symmetry), pressure, force, gravity, rotation → section edges on the selected faces.
+Bolts, welds, remote supports, heat etc. give an error; no contacts or dynamics.</li>
+<li><b>Axisymmetry:</b> x = radius r ≥ 0, y = axial. Loads and reactions are <b>for the full circumference</b>; σθ = hoop stress;
+axis nodes are restrained radially.</li>
+<li><b>Plane problems:</b> forces and reactions per full thickness; plane strain σz = ν(σx + σy).</li>
+</ul>
+
+<h2>Results</h2>
+<p>The 2D mesh appears in the section plane of the 3D window (3D parts transparent) with legend, max / min markers and a probe
+(click = value). <b>Line plot…</b> and <b>stress linearization</b> work too. The summary lists reactions in section axes and the equilibrium check.</p>
+<p>Verified with A1–A5 (Lamé pipe and sphere, plate with a hole, plane strain, rotating disk) within 0.2%; A1
+against 3D (V4) 0.1–0.9%: <code>python -m verification.run_all A1 A2 A3 A4 A5</code>.</p>

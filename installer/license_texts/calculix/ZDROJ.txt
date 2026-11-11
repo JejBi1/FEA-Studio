@@ -1,0 +1,7 @@
+CalculiX 2.23 (ccx) - GNU General Public License verze 2 (jen v2 - hlavicka zdroju: "Free Software Foundation(version 2)", overeno v ccx_2.23.c 16. 10. 2026) (text: _gnu/gpl-2.0.txt, v balicku external/calculix/gpl-2.0.txt)
+
+Zdrojovy kod pouzite verze: https://www.dhondt.de/ccx_2.23.src.tar.bz2
+Zdroj CalculiX Graphix (cgx) a prevodniku CAD: http://www.dhondt.de/cgx_2.23.all.tar.bz2, http://www.dhondt.de/cgxCadTools.tar.bz2
+Binarky pro Windows (tools/calculix): archiv calculix_2.23_4win.zip z dhondt.de (zdrojove kody jsou ve stejnych archivech jako vyse).
+Linux: ccx se sestavuje z teze zdrojove verze skriptem installer/linux/build_ccx.sh (SPOOLES 2.2, ARPACK-ng, LAPACK/BLAS staticky,
+libgomp a libquadmath v lib/).

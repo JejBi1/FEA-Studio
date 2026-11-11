@@ -1,0 +1,207 @@
+<h1>2. Materials</h1>
+<p class="lead">Assigns materials from the built-in or your own library to parts, edits their properties, and converts steel and alloy
+designations between standards (ČSN, EN, W.Nr., DIN, AISI…).</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Select parts in the parts list (<span class="key">Ctrl</span> / <span class="key">Shift</span> = several), or click parts in 3D (<span class="key">Ctrl</span>+click adds).</li>
+<li>Choose a material in the drop-down list – its properties load into <b>Properties</b>. Or type the designation from the drawing into the <b>Converter</b>, which selects the matching material.</li>
+<li>Optionally edit the properties (for a modified material also change the <b>Name</b>).</li>
+<li><b>Assign to selected</b>, or <b>Assign to all</b>.</li>
+</ol>
+<p>The parts list shows each part's material in square brackets. A part without its own assignment uses the <b>default material</b> of the study – Steel S235 in a new study; <b>Assign to all</b> sets a new default.</p>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Parts list</td><td>Selects parts for assignment; they are highlighted in 3D.</td><td>“Base plate   [Steel S235]”</td></tr>
+<tr><td>Materials list</td><td>Built-in library, your library and the study's materials; selection loads the properties.</td><td></td></tr>
+<tr><td><b>Converter</b> (field “ČSN / EN / W.Nr. / AISI / JIS… designation”)</td><td>Finds the designation, shows equivalents in other standards and an identical or similar library material.</td><td>12050, 11 373, St 52-3, 1.4301, AISI 304, SAE1045, 6061</td></tr>
+<tr><td><b>Material properties…</b></td><td>Opens the form: name, E, ν, ρ, Re, Rm, λ, α, c_p, source, orthotropic constants; a summary shows below the converter.</td><td>The window can stay open; parts can still be picked in 3D.</td></tr>
+<tr><td><b>Assign to selected</b> / <b>Assign to all</b></td><td>Selected parts (or all, as default) receive the material from the form under the entered name.</td><td></td></tr>
+<tr><td><b>Save to my material library</b></td><td>Saves the material to your library.</td><td>File path in the tooltip</td></tr>
+</table>
+
+<h2>Material properties</h2>
+<table class="grid">
+<tr><th>Field</th><th>Meaning and use</th><th>Typical value / note</th></tr>
+<tr><td><b>Name</b></td><td>Name under which the material is stored in the study.</td><td>A different name = a new material</td></tr>
+<tr><td><b>E</b> [MPa]</td><td>Young's modulus – stiffness.</td><td>steel 210 000, Al 70 000, PLA 2 700–3 500</td></tr>
+<tr><td><b>ν</b></td><td>Poisson's ratio.</td><td>steel 0.30, Al 0.33, plastics 0.36–0.38; max. 0.499</td></tr>
+<tr><td><b>ρ</b> [kg/m³]</td><td>Density – self-weight, mass, transient heat (stored internally in t/mm³).</td><td>steel 7 850</td></tr>
+<tr><td><b>Re (Rp0.2)</b> [MPa]</td><td>Yield strength – the <b>Safety factor to Re</b> result, welds, bolts.</td><td>0 = not specified (plastics)</td></tr>
+<tr><td><b>Rm</b> [MPa]</td><td>Tensile strength – S-N estimate for fatigue, weld f_u, printed parts (XY layer plane).</td><td></td></tr>
+<tr><td><b>λ (conductivity)</b> [W/(m·K)]</td><td>Required for every meshed part when the study has a thermal case.</td><td>steel 53, stainless 15, Al 170, PLA 0.13; 0 = not specified</td></tr>
+<tr><td><b>α (expansion)</b> [·10⁻⁶/K]</td><td>Required for the thermal load.</td><td>steel 12, stainless 16, Al 23.4, PLA 68</td></tr>
+<tr><td><b>c_p (heat capacity)</b> [J/(kg·K)]</td><td>Only for transient heat (with ρ).</td><td>steel 440, Al 900, PLA 1 800</td></tr>
+<tr><td><b>Source</b></td><td>Where the values come from (standard, data sheet, test); goes into the report.</td><td></td></tr>
+</table>
+<p>λ, α and c_p at 0 show “not specified”. They matter only for <a href="teplo.html">heat</a> and <a href="zatizeni.html">thermal loads</a>; the readiness check reports a missing value.</p>
+
+<h3>Printed materials</h3>
+<p>“Print …” materials are orthotropic: E and Rm apply in the layer plane (XY), the rest perpendicular to the layers. Below the form: “Printed material (E, Rm = XY layer plane): E_z … MPa, Rm_z … MPa”. E_z, ν_xz, G between layers, Rm_z and compressive and shear strengths are edited in the <a href="tisk.html">3D printing</a> step (“Printed material – solid extrusion (100 % infill)”) and kept when editing here.</p>
+
+<h3>Orthotropic material</h3>
+<p>Three mutually perpendicular symmetry axes (wood, composite, laminate). In <b>Material properties…</b> tick <b>Orthotropic material (axes 1, 2, 3)</b> and enter:</p>
+<table class="grid">
+<tr><th>Constants</th><th>Meaning</th></tr>
+<tr><td>E1, E2, E3 [MPa]</td><td>Moduli along axes 1, 2, 3 (E and ν above are then unused; E = E1, ν = ν12).</td></tr>
+<tr><td>ν12, ν13, ν23</td><td>Poisson's ratios: ε<sub>j</sub> = −ν<sub>ij</sub>·σ<sub>i</sub>/E<sub>i</sub> (CalculiX / Abaqus convention).</td></tr>
+<tr><td>G12, G13, G23 [MPa]</td><td>Shear moduli.</td></tr>
+<tr><td>α1, α2, α3 [10⁻⁶/K]</td><td>Optional thermal expansion along the axes; <i>isotropic</i> = α of the material.</td></tr>
+</table>
+<p><b>Material axes</b> come from a coordinate system (<b>Systems…</b>, as for loads): global axes (1, 2, 3 = x, y, z), a local Cartesian system, or <b>cylindrical</b> (1 = radial, 2 = tangential, 3 = axial – pipes, wound parts, trunks). <b>Fill isotropically from E, ν</b> prefills the constants. The constants must give a positive-definite matrix – checked in Solve.</p>
+<p class="warn"><b>Note:</b> the safety factor to Re and von Mises do not apply to orthotropic materials – evaluate stress components in material axes against their strengths (results are in global axes). Orthotropic materials are solved by CalculiX (automatic choice). For 3D printing use <a href="tisk.html">3D printing</a>.</p>
+
+<h2>Built-in library</h2>
+<p>An extensive catalogue with values from international standards (EN, ISO, ASTM), manufacturer data sheets (Bambu Lab, Prusament, EOS, SSAB Hardox, Renishaw, AddUp and 3D Systems for L-PBF powders) and composite literature (MIL-HDBK-17, Daniel &amp; Ishai, Wood Handbook).</p>
+
+<h3>Structural, High-Strength, Wear-Resistant &amp; Tool Steels</h3>
+<table class="grid">
+<tr><th>Material</th><th>E [MPa] / Re / Rm [MPa]</th><th>Source &amp; Highlights</th></tr>
+<tr><td>Steel S235, Steel S275, Steel S355</td><td>210 000 / 235, 275, 355 / 360, 430, 470</td><td>EN 10025-2; heat EN 1993-1-2</td></tr>
+<tr><td>Steel S690QL</td><td>210 000 / 690 / 800</td><td>EN 10025-6 (high-strength quenched &amp; tempered, e.g. Weldox 700)</td></tr>
+<tr><td>Steel S960QL</td><td>210 000 / 960 / 1 050</td><td>EN 10025-6 (ultra high strength, mobile cranes)</td></tr>
+<tr><td>Steel Hardox 450</td><td>210 000 / 1 200 / 1 450</td><td>SSAB TDS (abrasion resistant plate 450 HBW)</td></tr>
+<tr><td>Steel C45 +N</td><td>210 000 / 340 / 620</td><td>EN ISO 683-1 (unalloyed medium carbon steel)</td></tr>
+<tr><td>Steel 16MnCr5</td><td>210 000 / 600 / 850</td><td>EN 10084 (case-hardening; core properties)</td></tr>
+<tr><td>Steel 42CrMo4 +QT</td><td>210 000 / 900 / 1 100</td><td>EN ISO 683-2 (quenched and tempered Cr-Mo)</td></tr>
+<tr><td>Steel 34CrNiMo6 +QT</td><td>210 000 / 800 / 1 000</td><td>EN ISO 683-2 (heavy dynamic parts, crankshafts)</td></tr>
+<tr><td>Steel 51CrV4</td><td>210 000 / 1 100 / 1 350</td><td>EN 10089 (spring steel, quenched &amp; tempered)</td></tr>
+<tr><td>Steel 100Cr6</td><td>210 000 / 1 700 / 2 000</td><td>EN ISO 683-17 / ČSN 14 109 (bearing steel)</td></tr>
+<tr><td>Steel 1.2379</td><td>210 000 / 1 650 / 1 950</td><td>EN ISO 4957 (X153CrMoV12 / AISI D2; cutting dies, 60 HRC)</td></tr>
+<tr><td>Steel 1.2343</td><td>215 000 / 1 300 / 1 520</td><td>EN ISO 4957 (X37CrMoV5-1 / AISI H11; hot-work dies)</td></tr>
+</table>
+<p>Steel values apply to thicknesses up to 16 mm unless stated. For thicker parts or other heat treatments define custom materials.</p>
+
+<h3>Stainless Steels, Superalloys &amp; Cast Irons</h3>
+<table class="grid">
+<tr><th>Material</th><th>E [MPa] / Re / Rm [MPa]</th><th>Source &amp; Highlights</th></tr>
+<tr><td>Stainless 1.4301, Stainless 1.4404</td><td>200 000 / 210, 220 / 520, 530</td><td>EN 10088-3 (austenitic, AISI 304, 316L)</td></tr>
+<tr><td>Stainless 1.4016</td><td>220 000 / 260 / 450</td><td>EN 10088-3 (AISI 430, ferritic)</td></tr>
+<tr><td>Stainless 1.4057</td><td>215 000 / 600 / 800</td><td>EN 10088-3 (AISI 431, martensitic +QT800)</td></tr>
+<tr><td>Stainless 1.4542</td><td>196 000 / 1 000 / 1 070</td><td>EN 10088-3 (17-4 PH / AISI 630, H1025)</td></tr>
+<tr><td>Stainless 1.4462</td><td>200 000 / 460 / 700</td><td>EN 10088-3 (duplex 2205)</td></tr>
+<tr><td>Inconel 718</td><td>205 000 / 1 030 / 1 240</td><td>AMS 5662 / ASTM B637 (nickel superalloy 2.4668, to 650 °C)</td></tr>
+<tr><td>Gray cast iron EN-GJL-150</td><td>100 000 / – / 150 (comp. 600)</td><td>EN 1561 (GG-15, good vibration damping)</td></tr>
+<tr><td>Gray cast iron EN-GJL-250</td><td>115 000 / – / 250 (comp. 800)</td><td>EN 1561 (GG-25; brittle in tension)</td></tr>
+<tr><td>Ductile iron EN-GJS-400-15</td><td>165 000 / 250 / 400</td><td>EN 1563 (GGG-40, A = 15 %)</td></tr>
+<tr><td>Ductile iron EN-GJS-500-7</td><td>170 000 / 320 / 500</td><td>EN 1563 (GGG-50, high toughness)</td></tr>
+</table>
+
+<h3>Light &amp; Non-Ferrous Alloys (Aluminum, Magnesium, Titanium, Copper, Bronze, Brass)</h3>
+<table class="grid">
+<tr><th>Material</th><th>E [MPa] / Re / Rm [MPa]</th><th>Source &amp; Highlights</th></tr>
+<tr><td>Aluminum EN AW-6082 T6</td><td>70 000 / 260 / 310</td><td>EN 755-2 (structural AlSi1MgMn)</td></tr>
+<tr><td>Aluminum EN AW-6061 T6</td><td>69 000 / 240 / 290</td><td>EN 755-2 / ASTM B221 (AlMg1SiCu)</td></tr>
+<tr><td>Aluminum EN AW-6060 T6</td><td>69 000 / 150 / 190</td><td>EN 755-2 (AlMgSi0.5 extrusions)</td></tr>
+<tr><td>Aluminum EN AW-7075 T6</td><td>71 700 / 480 / 540</td><td>EN 754-2 (aircraft alloy AlZn5.5MgCu)</td></tr>
+<tr><td>Aluminum EN AW-2024 T3</td><td>73 000 / 290 / 440</td><td>EN 755-2 (duralumin AlCu4Mg1)</td></tr>
+<tr><td>Aluminum EN AW-5083 H111</td><td>70 000 / 125 / 275</td><td>EN 755-2 (marine, AlMg4.5Mn0.7)</td></tr>
+<tr><td>Aluminum EN AC-43000</td><td>75 000 / 230 / 340</td><td>EN 1706 (AlSi10Mg casting, T6)</td></tr>
+<tr><td>Magnesium AZ91D</td><td>45 000 / 150 / 230</td><td>ASTM B94 / EN-MC21120 (die casting, ρ = 1.81 g/cm³)</td></tr>
+<tr><td>Titanium Grade 5 (Ti-6Al-4V)</td><td>114 000 / 830 / 900</td><td>ASTM B348 / ISO 5832-3</td></tr>
+<tr><td>Titanium Grade 2</td><td>105 000 / 275 / 345</td><td>ASTM B348 (commercially pure)</td></tr>
+<tr><td>Copper Cu-ETP</td><td>115 000 / 200 / 260</td><td>EN 13601 (CW004A / E-Cu58, R250)</td></tr>
+<tr><td>Bronze CuSn8</td><td>115 000 / 300 / 450</td><td>EN 12163 (CW453K / ČSN 42 3123, springs and bushings)</td></tr>
+<tr><td>Aluminum bronze CuAl10Fe3Mn2</td><td>110 000 / 350 / 700</td><td>EN 12163 (CW306G / ČSN 42 3046, sliding)</td></tr>
+<tr><td>Brass CuZn40</td><td>105 000 / 250 / 440</td><td>EN 12164 (CW509L)</td></tr>
+<tr><td>Brass CuZn39Pb3</td><td>105 000 / 250 / 420</td><td>EN 12164 (CW614N / ČSN 42 3213 / Ms58)</td></tr>
+</table>
+
+<h3>3D Printing – FDM / FFF / SLS Polymers &amp; Filaments</h3>
+<p>Solid extrusion / sintering (100 % infill). Build-axis Z values in parentheses (transverse isotropy in the 3D printing step):</p>
+<table class="grid">
+<tr><th>Material</th><th>E [MPa] (XY / Z)</th><th>Rm [MPa] (XY / Z)</th><th>Source &amp; Highlights</th></tr>
+<tr><td>Print PLA Bambu Basic</td><td>2 680 / 2 160</td><td>39 / 35</td><td>Bambu Lab TDS PLA Basic V2.0 (ISO 527)</td></tr>
+<tr><td>Print PLA generic (Z 60 %)</td><td>3 000 / 2 500</td><td>45 / 27</td><td>literature (interlayer reduction 50–70 %)</td></tr>
+<tr><td>Print PETG (approximate)</td><td>2 000 / 1 700</td><td>45 / 30</td><td>approximate average (ISO 527)</td></tr>
+<tr><td>Print ASA Prusament</td><td>1 600 / 1 700</td><td>42 / 11</td><td>Prusament ASA TDS (interlayer 11 MPa)</td></tr>
+<tr><td>Print ABS Bambu</td><td>2 200 / 1 960</td><td>33 / 28</td><td>Bambu Lab TDS ABS (to 90 °C)</td></tr>
+<tr><td>Print PC Blend Prusament</td><td>1 900 / 2 000</td><td>63 / 63</td><td>Prusament PC Blend TDS (Tg 115 °C)</td></tr>
+<tr><td>Print PLA-CF Bambu</td><td>4 200 / 2 300</td><td>52 / 28</td><td>Bambu Lab TDS PLA-CF</td></tr>
+<tr><td>Print PETG-CF Bambu</td><td>2 460 / 1 340</td><td>35 / 29</td><td>Bambu Lab TDS PETG-CF</td></tr>
+<tr><td>Print PAHT-CF Bambu</td><td>3 860 / 2 180</td><td>92 / 47</td><td>Bambu Lab TDS PAHT-CF</td></tr>
+<tr><td>Print TPU 95A Bambu</td><td>80 / 65</td><td>30 / 23</td><td>Bambu Lab TDS TPU 95A (Shore 95A)</td></tr>
+<tr><td>Print PEEK</td><td>3 800 / 2 700</td><td>95 / 45</td><td>ThermaX PEEK TDS (ISO 527, Tg 143 °C, Tm 343 °C, annealed 200 °C)</td></tr>
+<tr><td>Print PEI Ultem 9085</td><td>2 400 / 2 000</td><td>68 / 40</td><td>Stratasys Ultem 9085 TDS (ASTM D638, aerospace thermoplastic FAR 25.853)</td></tr>
+<tr><td>Print SLS PA12</td><td>1 650 / 1 550</td><td>48 / 42</td><td>EOS PA 2200 MDS (quasi-isotropic)</td></tr>
+<tr><td>PLA print XY, PETG print XY (approximate)</td><td>3 500, 2 000 (isotropic)</td><td>50, 45</td><td>isotropic estimate, kept for older studies</td></tr>
+</table>
+
+<h3>Metals for 3D Printing (L-PBF)</h3>
+<p>Laser powder bed fusion (L-PBF, formerly SLM / DMLS). The program treats them as <b>isotropic</b>: the <a href="tisk.html">3D printing</a> step (perimeters, infill) is meant for FDM plastics, so a metal part is printed solid. Printed metal properties depend strongly on <b>heat treatment</b> (as-built has residual stress and, for Ti-6Al-4V, low ductility), on the <b>build direction</b> (usually lower in Z; for 17-4PH the XY plane is weaker) and on the machine. The library takes the lowest value of the cited sources for Re and Rm (usually Z); the name gives the condition: <i>as-built</i> = no heat treatment; <i>annealed / stress-relieved / aged / hardened / HIP</i> = after that treatment.</p>
+<table class="grid">
+<tr><th>Material</th><th>E [MPa] / Re / Rm [MPa]</th><th>Source &amp; Condition</th></tr>
+<tr><td>Ti-6Al-4V L-PBF as-built</td><td>111 000 / 1 100 / 1 250</td><td>AddUp MDS Ti6Al4V ELI (as-built, A 10 %)</td></tr>
+<tr><td>Ti-6Al-4V L-PBF annealed</td><td>115 000 / 900 / 1 010</td><td>Renishaw RenAM 500 MDS (800 °C/4 h); Gao et al. 2025, Materials 18:3475</td></tr>
+<tr><td>Ti-6Al-4V L-PBF HIP</td><td>115 000 / 810 / 910</td><td>Gao et al. 2025 (HIP 920 °C/150 MPa); AddUp MDS (940 °C/4 h); ASTM F2924</td></tr>
+<tr><td>AlSi10Mg L-PBF as-built, stress-relieved</td><td>70 000 / 230, 155 / 395, 260</td><td>Renishaw RenAM 500 MDS (as-built; 275 °C/2 h)</td></tr>
+<tr><td>316L L-PBF as-built, annealed</td><td>190 000, 185 000 / 495, 395 / 595, 625</td><td>Renishaw RenAM 500 MDS (as-built; 900 °C/2 h)</td></tr>
+<tr><td>17-4PH L-PBF hardened H900</td><td>165 000 / 890 / 1 115</td><td>Renishaw RenAM 500 MDS (1040 °C + 480 °C/1 h)</td></tr>
+<tr><td>Inconel 718 L-PBF as-built, aged</td><td>170 000, 190 000 / 585, 1 160 / 950, 1 385</td><td>Renishaw RenAM 500 MDS (as-built; 980 °C + 720/620 °C)</td></tr>
+<tr><td>Inconel 625 L-PBF as-built, annealed</td><td>170 000, 180 000 / 585, 505 / 860, 825</td><td>Renishaw RenAM 500 MDS (as-built; 1048 °C/1 h)</td></tr>
+<tr><td>Maraging 1.2709 L-PBF as-built, aged</td><td>160 000, 175 000 / 820, 1 850 / 975, 1 915</td><td>Renishaw RenAM 500 MDS M300 (as-built; 490 °C/6 h)</td></tr>
+<tr><td>CoCrMo L-PBF as-built, annealed</td><td>220 000, 230 000 / 685, 560 / 1 190, 1 065</td><td>Renishaw RenAM 500 MDS Co28Cr6Mo (as-built; 1050 °C/2 h)</td></tr>
+<tr><td>Steel 1.2344 (H13) L-PBF hardened</td><td>198 000 / 1 485 / 1 760</td><td>Renishaw RenAM 500 MDS (1020 °C + 560 °C)</td></tr>
+<tr><td>Scalmalloy L-PBF</td><td>70 000 / 470 / 500</td><td>3D Systems Certified Scalmalloy (A) (325 °C/4 h)</td></tr>
+<tr><td>CuCrZr L-PBF aged</td><td>120 000 / 470 / 495</td><td>Xie et al. 2023, J. Mater. Res. Technol. 23:3322 (λ 255 W/(m·K) in Z)</td></tr>
+</table>
+<p class="warn"><b>Caution:</b> values are indicative. For load-bearing parts print test specimens on the same machine with the same parameters, build direction and heat treatment (ISO 6892-1 / ASTM E8) and enter the measured values as a custom material. As-built roughness (Ra 5–15 µm) and pores greatly reduce fatigue strength; for fatigue use an S-N curve for the actual surface condition (HIP and machining improve it).</p>
+
+<h3>Orthotropic Continuous Fiber Composites &amp; Wood</h3>
+<p>9 independent elastic constants in material axes (axis 1 = fibre or grain direction):</p>
+<table class="grid">
+<tr><th>Material</th><th>E1 / E2 / E3 [MPa]</th><th>G12 / G13 / G23 [MPa]</th><th>ν12 / ν13 / ν23</th><th>Strength Rm / Rc [MPa]</th><th>Source &amp; Architecture</th></tr>
+<tr><td>Composite CFRP UD</td><td>140 000 / 10 000 / 10 000</td><td>5 000 / 5 000 / 3 500</td><td>0.30 / 0.30 / 0.40</td><td>1 500 / 1 200</td><td>MIL-HDBK-17-2F / Tsai-Hahn (AS4/3501-6)</td></tr>
+<tr><td>Composite CFRP HM</td><td>210 000 / 7 000 / 7 000</td><td>4 500 / 4 500 / 3 000</td><td>0.30 / 0.30 / 0.40</td><td>1 800 / 1 000</td><td>Toray M40J / epoxy (high modulus)</td></tr>
+<tr><td>Composite CFRP fabric 2D</td><td>65 000 / 65 000 / 10 000</td><td>5 000 / 3 800 / 3 800</td><td>0.05 / 0.30 / 0.30</td><td>600 / 550</td><td>Daniel &amp; Ishai (2D twill fabric)</td></tr>
+<tr><td>Composite GFRP UD</td><td>43 000 / 11 000 / 11 000</td><td>4 500 / 4 500 / 3 500</td><td>0.28 / 0.28 / 0.42</td><td>1 000 / 700</td><td>MIL-HDBK-17-2F (E-glass/epoxy UD)</td></tr>
+<tr><td>Composite GFRP fabric 2D</td><td>24 000 / 24 000 / 10 000</td><td>4 200 / 3 500 / 3 500</td><td>0.13 / 0.30 / 0.30</td><td>380 / 320</td><td>Barbero: FEA of Composites (balanced glass fabric)</td></tr>
+<tr><td>Composite AFRP UD (Kevlar 49)</td><td>76 000 / 5 500 / 5 500</td><td>2 300 / 2 300 / 1 800</td><td>0.34 / 0.34 / 0.40</td><td>1 400 / 280</td><td>MIL-HDBK-17-2F (aramid/epoxy)</td></tr>
+<tr><td>Spruce wood</td><td>11 000 / 750 / 450</td><td>700 / 600 / 50</td><td>0.38 / 0.45 / 0.55</td><td>80 / 40</td><td>DIN 68364 / Wood Handbook (L, R, T at 12 % moisture)</td></tr>
+<tr><td>Beech wood</td><td>14 000 / 1 600 / 900</td><td>1 200 / 850 / 250</td><td>0.45 / 0.50 / 0.70</td><td>120 / 60</td><td>DIN 68364 / Wood Handbook (hardwood, 12 % moisture)</td></tr>
+</table>
+
+<h2>Friction between materials</h2>
+<p>The friction coefficient belongs to a pair of surfaces, not to one material, so the form does not have it. For <a href="kontakty.html">contacts</a> (μ = 0 in the pair form = from the library) and joint friction in <a href="pohyb.html">mechanisms</a> the program takes μ from the <b>friction library</b> by material pair and purpose: for force transmitted by friction (joint slip, press fit) the lower bound μ_min; for mechanism resistance the upper bound μ_max. Values and indicative damping: <a href="treni.html">Friction and damping</a>; your own measured values go to <b>Tools → Calculators… → Friction library</b>.</p>
+
+<h2>Your material library</h2>
+<p>File <code>%APPDATA%\FEAStudio\materials.json</code>. <b>Save to my material library</b> adds the form's material; a material with the same name is replaced. Built-in materials cannot be overwritten. Your materials are offered in all studies; a study keeps its own copy of the materials it uses, so it opens on a computer without your library.</p>
+
+<h2>Grade converter</h2>
+<p>Enter the designation in any system – ČSN (11 373, 12 050.1, 17 240), EN (S235JR, C45E), W.Nr. (1.0503), DIN (St 52-3, Ck45), AISI/SAE, UNS, ASTM, JIS, KS, GB, GOST, PN, AFNOR, BS. It also knows the new library materials (1.4542 / 17-4 PH, 100Cr6 / AISI 52100, 1.2379 / AISI D2, CuZn39Pb3 / CW614N) and the metals for 3D printing (2.4856 / Inconel 625, 1.2344 / H13, Co28Cr6Mo, CuCrZr / CW106C, Scalmalloy). It shows:</p>
+<ul>
+<li>the material group and family (“approximate match only” = not exact, marked “≈”);</li>
+<li>designations in other standards, and possibly other groups (“Also:”);</li>
+<li><b>In library:</b> an identical library material (selected at once), or <b>similar</b> ones with the difference (composition, Rm) – a click selects it;</li>
+<li>the number of S-N records in the PragTic database (for the <a href="unava.html">Fatigue</a> step).</li>
+</ul>
+<p class="warn"><b>Note:</b> the converter maps designations, not properties of a particular heat. What counts are the standard values for your condition and thickness (yield strength falls with thickness; +N / +QT / +C differ).</p>
+
+<h2>Editing and a new material</h2>
+<ul>
+<li>Select the closest material, edit the values, <b>change the Name</b> (e.g. “S355 t = 40 mm”) and assign.</li>
+<li>Assigning under an existing name overwrites the study material for all parts that use it.</li>
+<li>Materials no part uses after the assignment (and that are not the default) are removed from the study.</li>
+<li>To keep it for other studies, use <b>Save to my material library</b>.</li>
+</ul>
+<p class="tip"><b>Tip:</b> assigning a material does not delete the other study materials (a calibrated printed material, materials of print variants); unused materials are not listed in the report.</p>
+
+<h2>In the examples</h2>
+<ul>
+<li><b>Example 1 – printed bracket:</b> the only part has <b>Print PLA Bambu Basic</b> (the study default). The form shows E_z 2 160 MPa and Rm_z 35 MPa; shell, infill and build direction are in the 3D printing step. Re is not specified, so the safety factor is taken from “3D printing – safety factor”, not “Safety factor to Re”.</li>
+<li><b>Example 2 – assembly:</b> base plate, post and welds have the default <b>Steel S235</b>; the arm has <b>Print PLA Bambu Basic</b>. Both have λ, α and c_p, so steady and transient thermal cases and thermal stress all run. Bolts take their strength class (8.8) from the part name, not from the material.</li>
+</ul>
+<p class="tip"><b>Tip:</b> type “11 375” into the Converter – Steel S235 is selected; “12050” shows the group C45 (1.0503, AISI 1045, S45C…) and selects Steel C45 +N.</p>
+
+<h2>Troubleshooting</h2>
+<ul>
+<li><b>“Part '…' has no material assigned”</b> – no own and no default material (script-built study or hand-edited study.json). Select the part and <b>Assign to selected</b>, or <b>Assign to all</b>.</li>
+<li><b>“Material '…' (part '…') has no thermal conductivity k [W/(m·K)]”</b> / <b>“… has no density or specific heat c_p (required for a transient case)”</b> – the study has a thermal case. Fill in λ (and for transient ρ and c_p) and assign again.</li>
+<li><b>“Material '…' (part '…') has no coefficient of thermal expansion α [1/K] (thermal load)”</b> – fill in α (in 10⁻⁶/K) and assign.</li>
+<li><b>“A built-in material cannot be overwritten – choose a different name.”</b> – save to your library under your own name.</li>
+<li><b>“The user material library … cannot be read …”</b> – materials.json is corrupted (manual editing). The program does not overwrite it, so no data is lost; fix or rename it.</li>
+<li><b>Safety factor to Re of a plastic part is 10 everywhere</b> – the material has no Re. For printed parts use “3D printing – safety factor”; for other plastics enter Re (yield or allowable stress) in your own material.</li>
+<li><b>“Spectral fatigue: material without Rm and without S-N (…) – fatigue is not computed”</b> – fill in Rm (S-N estimate) or enter an S-N curve in Fatigue; see <a href="dynamika.html">Dynamics</a>.</li>
+</ul>

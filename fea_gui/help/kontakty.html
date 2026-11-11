@@ -1,0 +1,63 @@
+<h1>Contacts</h1>
+<p class="lead">Real contact between assembly parts: separation, sliding with or without friction, press fit (interference), compression only.
+Without contact pairs touching parts are rigidly joined by a shared mesh (linear). Every contact makes the analysis <b>nonlinear</b>.</p>
+
+<p class="warn"><b>Nonlinear analysis:</b> load cases are solved incrementally, superposition does not hold, so no fatigue by superposition.
+The safety factor is a “stress reserve”, not a load multiplier. Always CalculiX (no NGSolve). Contact stiffness K and stick slope λ are
+penalty values and μ is an estimate: check sensitivity (two values of μ, another K).</p>
+
+<h2>Contact types</h2>
+<table class="grid">
+<tr><th>Type</th><th>Behaviour</th><th>Equivalent (Ansys / Fusion)</th><th>CalculiX</th></tr>
+<tr><td>Bonded</td><td>shared mesh, nothing separates (linear)</td><td>Bonded</td><td>shared mesh / *TIE</td></tr>
+<tr><td>No separation (sliding)</td><td>slides without friction, no separation</td><td>No Separation</td><td>TIED + small λ</td></tr>
+<tr><td>Frictionless contact</td><td>can separate; compression gives only a normal force</td><td>Frictionless</td><td>*CONTACT PAIR (penalty K)</td></tr>
+<tr><td>Frictional contact</td><td>Coulomb μ; elastic slip τ/λ while sticking; slides above μ·p</td><td>Frictional</td><td>*FRICTION μ, λ</td></tr>
+<tr><td>Rough contact</td><td>can separate, does not slide</td><td>Rough</td><td>*FRICTION with large μ</td></tr>
+<tr><td>Interference (press fit)</td><td>radial interference δ_r = Δd/2 as negative clearance, or overlap from CAD</td><td>Interference</td><td>*CLEARANCE = −δ_r</td></tr>
+<tr><td>Compression only (support)</td><td>compression only; empty side B = support to ground</td><td>Compression Only</td><td>GAPUNI / contact</td></tr>
+<tr><td>No interaction</td><td>parts ignore each other (may penetrate)</td><td>Free</td><td>separate mesh</td></tr>
+</table>
+
+<h2>Procedure</h2>
+<ol>
+<li><b>Find touching parts</b>: pairs within a distance are classified as <i>contact</i>, <i>gap</i> or <i>penetration</i>.
+Penetration with a type other than interference is an assembly error (modelled thread, nominal interference): fix the CAD or choose Interference.</li>
+<li>Choose the type, <b>Add selected</b> (no selection = all new pairs). A pair not added stays bonded.</li>
+<li>Click a pair in the table: faces highlight in 3D (colour = type), values load into the form. Edit type, μ (0 = from the friction library by purpose), K, λ, interference, <b>Save changes</b>.</li>
+<li>Pair between selected faces only: side A faces → <b>A from selection</b>, side B faces → <b>B from selection</b>, <b>Add new pair</b>. Smaller faces = faster, more accurate.</li>
+<li>In Solve check readiness (e.g. initial penetration, friction without support against sliding), then run.</li>
+</ol>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Search distance</td><td>Closer pairs are offered as contact pairs.</td><td>0.05 mm; larger also finds clearances</td></tr>
+<tr><td>Friction μ</td><td>0 = from the <a href="treni.html">friction library</a> by pair and purpose.</td><td>joint slip → μ_min; mechanism resistance → μ_max</td></tr>
+<tr><td>Purpose</td><td>Force transfer by friction (bolted joint, press fit, brake) takes the lower μ; drive / assembly force the upper.</td><td>compute both bounds</td></tr>
+<tr><td>Stiffness K</td><td>Normal penalty stiffness [N/mm³]; penetration = p/K.</td><td>auto = 50 × smaller E of the pair</td></tr>
+<tr><td>Stick slope λ</td><td>Tangential stiffness while sticking [N/mm³]; elastic slip = τ/λ.</td><td>auto = K/100</td></tr>
+<tr><td>Interference / clearance</td><td>One radial value per pair (overrides geometric gap); negative = interference.</td><td>press fit Ø20 H7/s6: −0.01 to −0.02 mm</td></tr>
+<tr><td>Adjust nodes into contact</td><td>Moves slave nodes onto the master (small CAD gaps). Never with interference.</td><td></td></tr>
+<tr><td>Formulation</td><td>Surface-to-surface (default, pressure ±0.1 %), mortar (hard contact, interference), node-to-surface (friction convergence only).</td><td>one per study</td></tr>
+<tr><td>Interface meshing</td><td>Separate meshes (non-conforming; required for interference) or conforming with split interface (bolted joints).</td><td></td></tr>
+<tr><td>Large deformations (NLGEOM)</td><td>Geometric nonlinearity – snap fit, cam. Not with bolts, cylindrical or distributing supports.</td><td></td></tr>
+<tr><td>bolted joint interfaces as contact</td><td>Clamped interface of each bolt as contact with μ = μ_T of the bolt: opening, residual clamp force, slip. Preload in step 1, then locked; conformal mesh with split.</td><td>see <a href="spoje.html">Joints</a></td></tr>
+</table>
+
+<h2>Nonlinear steps</h2>
+<ul>
+<li><b>Cases separately (branches)</b> – default: each load case solved separately (after bolt preload), in parallel; no history.</li>
+<li><b>Step sequence</b> – steps in one job; contact and friction state is kept (path-dependent). A step has: load case × scale, bolts (preload / locked / free), deactivated pairs, friction change, prescribed motion of a rigid remote support (history in step time), increment control, cycles (fatigue with friction ≥ 2).</li>
+<li><b>Prescribed motion</b> (displacement / rotation of a rigid remote support): converges better than force control; gives the <b>force–travel curve</b> (Contacts tab).</li>
+</ul>
+
+<h2>Results</h2>
+<ul>
+<li><b>Contact – pressure</b>, <b>contact status</b> (−1 not a contact node, 0 open, 1 sliding, 2 sticking), <b>opening</b>, <b>slip</b>, <b>frictional stress</b> – best in a section.</li>
+<li><b>Contacts</b> tab: normal and frictional force of the pair, contact area, max and mean pressure, opening, slip, numbers of sticking / sliding / open nodes, force–travel curve.</li>
+<li><b>Which pressure to trust:</b> the <b>mean pressure from the contact force</b> (<code>p_force</code> = exact pair force from ccx ÷ active area) and the resultant. The <b>peak nodal pressure</b> depends on formulation and mesh: with quadratic elements it scatters even under uniform pressure (press fit: nodes 48–110 MPa for a true 79 MPa), at a free surface edge it grows with refinement, and another program or contact formulation can give a peak several times different for the same joint. So <code>p_max inside the surface</code> (without faces at a free edge) is reported too, and a peak at the edge gives a <b>warning</b>. Mortar as default was tried: smoother press-fit pressure, but zero pressures at surface edges (patch test −6 % of force) and 4–10× slower; surface-to-surface stays.</li>
+<li><b>Partial result</b>: without convergence the last converged increment is kept with a red label; advice in the Messages dock. <b>Stop and keep results</b> (Solve) ends the analysis the same way.</li>
+</ul>
+<p class="tip"><b>Rigid remote load with rotation:</b> without NLGEOM, ccx treats rigid-body rotation as finite, the rest as small. Imbalance grows with θ² (0.06–0.4 % at 0.05 rad; above 0.1 % the analysis ends with an error); the program warns from 0.03 rad. Reduce the rotation, switch NLGEOM on, or use the distributing coupling.</p>
+<p class="tip"><b>No convergence:</b> use displacement instead of force control (a part held only by friction slides away); reduce the first increment dt₀; switch friction on in a later step (start with μ ≈ 1e-4); check initial gaps and penetrations; add weak springs (Stabilization).</p>

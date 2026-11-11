@@ -1,0 +1,80 @@
+<h1>FEA Studio – Help</h1>
+<p class="lead">Strength analysis of parts and assemblies: linear statics, contacts and nonlinear analysis, natural frequencies, buckling,
+dynamics (vibration, random vibration, shock), topology optimization (BESO), load combinations (EN 1990), mechanisms, bolted and welded
+joints, 3D-printed parts, beam structures (Timoshenko), heat conduction and thermal stress, fatigue (S-N and ε-N). Solver CalculiX, mesher Gmsh,
+Exudyn for mechanisms. A few functions are available only through the <a href="automatizace.html">MCP server or the Python API</a>, not in this
+window – see <a href="#api-only">below</a>.</p>
+
+<h2>Getting started</h2>
+<ol>
+<li><b>Examples with a guided tour</b> (fastest): <a href="fea:pruvodce1">Example 1 – printed bracket</a>,
+<a href="fea:pruvodce2">Example 2 – steel + print assembly</a>, <a href="fea:pruvodce3">Example 3 – flange joint (VDI 2230)</a>,
+<a href="fea:pruvodce4">Example 4 – welded boom</a>, <a href="fea:pruvodce5">Example 5 – electronics heat sink</a>.
+The tour opens the example and explains each step – <a href="ukazky.html">Examples and tour</a>.</li>
+<li><b>Testing</b>: seven problems with known results – <a href="testovani.html">Testing the program</a>.</li>
+<li><b>Your own model</b>: <span class="key">Ctrl+O</span>, a STEP file from CAD (Fusion, Onshape, SolidWorks…), then the phase tabs left to right.
+Optional analyses (3D printing, Contacts, Beams, Motion, Heat, Dynamics, Fatigue) are added with <b>+</b> after the step tabs (or View → Optional workflow steps).</li>
+</ol>
+<p class="tip"><b>Tip:</b> <span class="key">F1</span> = help for the element under the cursor or the current step; <span class="key">Shift+F1</span>
+= interactive “What's this?” mode. Language (🇨🇿 Čeština / 🇬🇧 English) and appearance: View menu.</p>
+
+<h2>Workflow (phases and steps)</h2>
+<p>Five <b>phases</b> group the steps: <b>Model</b> (Model, Materials, 3D printing), <b>Assembly</b> (Joints, Contacts, Beams),
+<b>Conditions</b> (Supports, Motion, Heat, Loads, Dynamics), <b>Calculation</b> (Mesh, Solve), <b>Results</b> (Results, Fatigue). Steps of a phase
+are tabs above the right-hand panel. A new study shows eight core steps; others activate by study content or with <b>+</b>.
+Panels have collapsible sections. Step dot: <b>green</b> = done, <b>orange</b> = warning or in progress, <b>red</b> = required input missing,
+<b>gray</b> = not used. The study tree (top right) shows the same; click an item to open its step.</p>
+<table class="grid">
+<tr><th>Step</th><th>What you specify</th></tr>
+<tr><td><a href="model.html">1. Model</a></td><td>loading STEP, geometry check, parts</td></tr>
+<tr><td><a href="materialy.html">2. Materials</a></td><td>library material per part (metals, plastics, printing), grade converter</td></tr>
+<tr><td><a href="tisk.html">3. 3D printing</a></td><td>printed parts: build direction, perimeters, infill, failure criterion, calibration, creep</td></tr>
+<tr><td><a href="spoje.html">4. Joints</a></td><td>bolts (VDI 2230, EN 1993-1-8) and welds (EN 1993-1-8/-1-9, IIW)</td></tr>
+<tr><td><a href="kontakty.html">5. Contacts</a></td><td>frictionless, frictional (μ from the <a href="treni.html">friction library</a>), interference, compression only, perfect heat conduction across closed pairs; nonlinear steps (optional)</td></tr>
+<tr><td><a href="pruty.html">6. Beams</a></td><td>nodes, members (Timoshenko), EN cross-sections, supports, EN 1993-1-1 check (optional; also without CAD)</td></tr>
+<tr><td><a href="vazby.html">7. Supports</a></td><td>fixed, displacement, symmetry, cylindrical, remote, elastic (compression-only support is in Contacts)</td></tr>
+<tr><td><a href="pohyb.html">8. Motion</a></td><td>bodies, joints (also from geometry), drivers, animation, joint reactions, transfer to FEA (optional)</td></tr>
+<tr><td><a href="teplo.html">9. Heat</a></td><td>steady-state / transient heat conduction, radiation to the surroundings (optional)</td></tr>
+<tr><td><a href="zatizeni.html">10. Loads</a></td><td>load cases: force, pressure, gravity, remote force, bearing load, temperature, rotation, inertia from a mechanism, member loads, EN 1990 combinations</td></tr>
+<tr><td><a href="dynamika.html">11. Dynamics</a></td><td>damping, harmonic and transient response, random vibration (ASD), shock, added mass (optional)</td></tr>
+<tr><td><a href="sit.html">12. Mesh</a></td><td>element size, local refinement, mesh quality</td></tr>
+<tr><td><a href="reseni.html">13. Solve</a></td><td>readiness check, solver, natural frequencies, buckling, <a href="2d.html">2D section</a>, <a href="shell.html">shells</a>, analysis, stopping while keeping results</td></tr>
+<tr><td><a href="vysledky.html">14. Results</a></td><td>stress, displacements, safety factor, stress linearization (ASME VIII-2 Annex 5-A), sections, probes, maxima, reactions, members, modes, contact pressure and status, dynamic response, <a href="vysledky.html#topologie">BESO topology optimization</a>, STL export</td></tr>
+<tr><td><a href="unava.html">15. Fatigue</a></td><td>load history, rainflow, S-N, Miner, life (also from a step sequence with contact)</td></tr>
+</table>
+<p>See also: <a href="protokol.html">Word report</a> (<span class="key">Ctrl+P</span>), <a href="ovladani.html">Controls and keys</a>,
+<a href="automatizace.html">Automation (command line, MCP, REST, CAD adapters)</a>.</p>
+
+<h2>What the program computes and what it does not</h2>
+<ul>
+<li><b>Linear:</b> elasticity (small deformations, isotropic and orthotropic / printed), superposition of load cases, fatigue, heat conduction
+and thermal stress, bolts as preloaded beams, welds as solids, beams (Timoshenko), 2D section, shells, natural frequencies, linear buckling,
+EN 1990 combinations (STR/GEO, EQU, SLS).</li>
+<li><b>Nonlinear and advanced</b> (no superposition; always CalculiX): <a href="kontakty.html">contact</a> (separation, friction, interference, compression only; perfect heat conduction across closed pairs),
+bolted-joint interfaces as contact (opening, slip), large deformations, topology optimization (BESO with sensitivity filtering and penalization),
+step sequence with prescribed motion (force–travel curve).</li>
+<li><b>Dynamics:</b> <a href="dynamika.html">harmonic and transient response, random vibration, shock, sine sweep and spectral fatigue</a>
+by modal superposition (linear model, no contact), added mass.</li>
+<li><b>Mechanisms:</b> <a href="pohyb.html">rigid-body kinematics and dynamics</a> (Exudyn) – joint reactions, drivers, friction, animation,
+transfer of an instant or the whole history to FEA; optionally flexible bodies (Craig–Bampton) and body contact (Chrono module).</li>
+<li><b>Calculators without FEA</b> (Tools menu): beams, friction, Hertzian contact, press fit, snap-fit, mechanisms, damping from measurement, drop – see <a href="ovladani.html">Controls</a>.</li>
+<li id="api-only"><b>Only via the MCP server / Python API</b> (not in this window): material plasticity (bilinear and multilinear hardening – material
+property <code>plastic</code>, e.g. <code>custom_props</code> of <code>fea_materials_assign</code>) and its assessment (EN 1993-1-5 Annex C plastic strain,
+ASME VIII-2 local failure – <code>fea_plasticity_assess</code>); submodeling (<code>fea_core.submodel</code>, Python API only); thermal contact conductance
+(<code>ContactPair.conductance</code>) and radiation between faces in a cavity (<code>CavityRadiation</code>) – Python API / study file only;
+measured ε-N parameters (<code>FatigueSettings.en_params</code>); implicit dynamics of a step sequence with contact (<code>LoadStep.dynamic</code>, Python API / study file only). See <a href="automatizace.html">Automation</a>.</li>
+<li><b>Not included:</b> modal (superposition) dynamics with contact, velocity-dependent friction in FEA contact (Coulomb only), gyroscopic effects and spin softening in the Campbell diagram.</li>
+</ul>
+<p class="warn"><b>Note:</b> stress above yield in a linear analysis is not real – it only means yielding starts (real plastic deformation needs a plastic material – <a href="#api-only">MCP / Python API</a>).
+Peaks in sharp inner corners, at edges of fixed supports and under point forces are singularities (they grow with refinement; the maxima table marks them).
+Contact stiffness K and friction μ are estimates, damping has sensitivity ±50 %: check results by sensitivity.</p>
+
+<h2>Units</h2>
+<p>mm, N, MPa, t (tonne), s; steel density 7.85·10⁻⁹ t/mm³, g = 9810 mm/s². Heat: °C, W, W/m², W/(m·K), J/(kg·K). Moment N·mm, frequency Hz.</p>
+
+<h2>Files</h2>
+<ul>
+<li><b>.fea</b>: project (zip: STEP model + input study.json + results); <span class="key">Ctrl+S</span> saves.</li>
+<li><b>.step / .stp</b>: CAD geometry (assembly with part names, colours, layers, attributes).</li>
+<li>User material library, friction library, print presets: <code>%APPDATA%\FEAStudio</code>.</li>
+</ul>

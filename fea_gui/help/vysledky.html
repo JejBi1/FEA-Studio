@@ -1,0 +1,298 @@
+<h1>Results</h1>
+<p class="lead">Shows stress, displacement, safety factor, 3D printing results, temperatures, contact pressure and dynamic response
+as a colour map on the model. Also a section, a probe, a table of the highest locations, reactions and plots. For every maximum
+the program judges whether it is a real stress concentration or a singularity of the model.</p>
+
+<h2>Assessment card</h2>
+<p>The verdict for the whole study: the smallest <b>safety factor to yield strength Re</b> (Re / σ von Mises) at the most stressed
+location <b>outside singularities</b>, over all mechanical load cases, against the <b>required safety factor</b> (“required ≥”, default 1.5).
+It shows <b>Passes</b> / <b>Fails</b>, the governing case and part, and a bar (half = exactly the requirement).
+The requirement is saved in the study; results are not recomputed, and the Word report uses it.
+Below: max. stress outside singularities and overall (the difference is a singularity – sharp edge, fixed support), max. displacement
+and the resultant of reactions. Parts without yield strength (plastics, 3D printing) are not assessed here; printing has its own
+Tsai-Wu / Hill safety factor. The <b>Table</b> at the bottom has the numbers for all cases (safety factor coloured by the requirement); click a row to show its case.</p>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Load case</td><td>Selects the displayed result: mechanical cases in study order, then thermal cases with prefix “Heat:”.</td><td>Also “Bolt preload” (with bolts) and “&lt;case&gt; – creep … h, … °C” (printed part creep).</td></tr>
+<tr><td>Time</td><td>Snapshot of a transient thermal case (“t = 600 s”…).</td><td>Transient only. The first snapshot t = 0 = initial temperature.</td></tr>
+<tr><td>Quantity</td><td>The displayed field (list below).</td><td>von Mises [MPa].</td></tr>
+<tr><td>Deformation</td><td>Magnification: none, automatic, 1×, 10×, 100×, 1000×.</td><td><i>Automatic</i> = largest displacement shown as 5 % of the model diagonal. Off for thermal cases.</td></tr>
+<tr><td>Number of bands</td><td>Number of colour bands.</td><td>4–16, default 12.</td></tr>
+<tr><td>element edges</td><td>Shows the mesh on the surface.</td><td>Check how many elements sit at the maximum.</td></tr>
+<tr><td>undeformed model outline</td><td>Original shape, transparent.</td><td>With deformation, shows the direction of motion.</td></tr>
+<tr><td>Legend</td><td>Band limits and colours; a note if the maximum is a singularity.</td><td>For safety factor, colours are reversed: red = low.</td></tr>
+<tr><td>Text summary</td><td>Max. displacement, max. von Mises and location, max. outside singularities, min. safety factor to Re, printing by part, deformation scale, reactions, equilibrium check, warnings.</td><td></td></tr>
+<tr><td>Highest stresses table</td><td>8 separate locations with their classification. Click a row to mark it in 3D and show the reasons.</td><td>See Maxima locations and singularities.</td></tr>
+<tr><td>Section (bar at the top)</td><td>off / X / Y / Z / face, position slider, flip.</td><td>A colour section through the mesh interior is also shown.</td></tr>
+<tr><td>Frequency / Time, phase φ, absolute</td><td>Only for “Dynamics: …” items: frequency slider (harmonic) or time slider (transient), phase φ, and “absolute” = displacement + base motion.</td><td>See <a href="#dynamika">Dynamics</a> below.</td></tr>
+<tr><td>Dynamics and Contacts tabs</td><td>Plots and tables of dynamics (FRF, time history, PSD, SRS, modes) and contact pairs (forces, areas, force–travel curve).</td><td>Shown only with these results.</td></tr>
+</table>
+
+<h2>Quantities</h2>
+<h3>Mechanical cases</h3>
+<table class="grid">
+<tr><th>Quantity</th><th>Meaning</th><th>Note</th></tr>
+<tr><td>von Mises [MPa]</td><td>Equivalent stress (distortion energy, HMH).</td><td>Main quantity for ductile metals; compared with Re.</td></tr>
+<tr><td>Total displacement, Displacement X / Y / Z [mm]</td><td>Magnitude and components, global axes.</td><td>Stiffness and direction check.</td></tr>
+<tr><td>1st principal stress S1, 3rd principal stress S3 [MPa]</td><td>Largest (tension) and smallest (compression) principal stress.</td><td>S1 for brittle materials (cast iron) and tension; S3 for compression and buckling.</td></tr>
+<tr><td>Stress σx, σy, σz, τxy, τyz, τzx [MPa]</td><td>Stress tensor components, global axes.</td><td>E.g. bending stress of a beam, check by hand.</td></tr>
+<tr><td>Safety factor to Re [–]</td><td>Re / σ_vM at the node, shown up to 10.</td><td>A node at an interface of parts takes the lower Re. A part without Re has 10.</td></tr>
+<tr><td>3D printing – safety factor (Tsai-Wu/Hill) [–]</td><td>Load multiple to failure by the printing criterion; the worse of shell and core.</td><td>Printed parts only; others 10. See <a href="tisk.html">3D printing</a>.</td></tr>
+<tr><td>3D printing – failure index [–]</td><td>Criterion index (1 = failure).</td><td>Non-printed parts 0.</td></tr>
+<tr><td>Temperature [°C]</td><td>Temperature field used as the load of the case.</td><td>Otherwise “The case has no thermal load.”</td></tr>
+</table>
+<h3>Thermal cases (Heat: …)</h3>
+<table class="grid">
+<tr><th>Quantity</th><th>Meaning</th><th>Note</th></tr>
+<tr><td>Temperature [°C]</td><td>Temperature field.</td><td>Transient: at the selected Time.</td></tr>
+<tr><td>Heat flux |q|, qx, qy, qz [W/m²]</td><td>Magnitude and components of heat flux density.</td><td>Transient: only at the end of the case (last time).</td></tr>
+</table>
+<p>The thermal summary gives max. and min. temperature with locations, heat of each boundary condition [W] (+ = into the body)
+and the <b>heat balance</b> (inflow, outflow, residual in %). Details: <a href="teplo.html">Heat</a>.</p>
+
+<h3>Stress error estimate</h3>
+<p><b>Stress error estimate [%]</b> (CalculiX only) = difference in principal stress between adjacent elements at a node, relative to the stress
+(ccx gradient estimate). Below ~5 % the mesh is good there; above ~10 % refine (local refinement of a face or sphere in <a href="sit.html">Mesh</a>).
+At singularities (sharp inner corner, fixed support edge) it stays high even after refinement.</p>
+
+<h3><a name="tvary"></a>Natural mode shapes and buckling mode shapes</h3>
+<p>With natural frequencies or buckling enabled in <a href="reseni.html">Solve</a>, the <b>Load case</b> menu adds <b>Mode shape n: f = … Hz</b> and
+<b>Buckling mode n (case): λ = …</b>. The shape is shown with a map of the normalized displacement (max |u| = 1); colours show the shape, not real displacements.
+The summary gives frequency, ω, period and effective mass fraction.</p>
+<p>The <b>Mode shapes</b> tab lists the shapes with frequency [Hz] (λ for buckling), effective mass fractions m_x, m_y, m_z [%] and their sums Σ from mode 1.
+For base excitation and seismic analysis, a sum ≥ 90 % in every direction is required; otherwise add modes. Click a row to show the shape.</p>
+
+<h3><a name="pruty"></a>Members</h3>
+<p>With members, the Quantity menu has <b>Members – stress σ_eq, displacement |u|, N, Vy, Vz, T, My, Mz, utilization EN 1993</b>
+(after the solid quantities for a model with solids). σ_eq, displacement and utilization are coloured on the deformed axis (undeformed in grey).
+Internal forces are <b>diagrams</b> perpendicular to the member in its plane (My and N, Vz, T in the z direction of the section; Mz and Vy in y);
+max red, min blue. Click a member = probe (member and position s from the start).</p>
+<p>The <b>Members</b> tab: extremes of |N|, |Vz|, |My|, |Mz|, σ_eq and displacement per member, utilization to EN 1993-1-1 (max over all cases)
+and the governing check. Click a row to see all check rows of the member (section class, 6.2, buckling, lateral-torsional buckling, interaction) and mark it in 3D.
+The summary gives support reactions (Fx…Mz) and the equilibrium check. Mode shapes of members alone are drawn on the member axis.</p>
+
+<h3><a name="kontakty"></a>Contacts and nonlinear analysis</h3>
+<p>With <a href="kontakty.html">contacts</a>, the Quantity menu also has:</p>
+<table class="grid">
+<tr><th>Quantity</th><th>Meaning</th><th>Note</th></tr>
+<tr><td>Contact – pressure [MPa]</td><td>Contact pressure on the pair faces.</td><td>Indicative only on line contact and with node-to-surface.</td></tr>
+<tr><td>Contact – status [–]</td><td>−1 not a contact node, 0 not in contact, 1 sliding, 2 sticking.</td><td>Discrete colours; shows where the interface opens or slips.</td></tr>
+<tr><td>Contact – opening [mm]</td><td>Gap of the deformed mesh between the pair sides.</td><td></td></tr>
+<tr><td>Contact – slip [mm], frictional stress [MPa]</td><td>Tangential displacement and frictional (shear) stress.</td><td>Only with friction.</td></tr>
+</table>
+<p>Contact quantities are on the surface; best seen in a section or with the counterpart hidden. The <b>Contacts</b> tab lists the pairs of the case
+(normal and friction force, contact area and fraction, max and mean pressure, opening, slip, nodes sticking / sliding / not in contact)
+and the <b>force–travel curve</b> of the prescribed motion over all sequence steps. The pair force is the exact CalculiX force (integrating nodal pressure overestimates it).
+In a nonlinear analysis the safety factor is a <b>stress margin</b>, not a load multiplier. A <b>partial result</b> (non-converged or stopped) has a red label in the summary and the Contacts tab.</p>
+
+<h3><a name="dynamika"></a>Dynamics</h3>
+<p>After a dynamics analysis (<a href="dynamika.html">Dynamics</a> step), the Load case menu has the items <b>Dynamics: …</b>:</p>
+<table class="grid">
+<tr><th>Item</th><th>Quantities</th><th>Controls</th></tr>
+<tr><td>harmonic – at frequency</td><td>von Mises and displacement – amplitude over phase; von Mises and displacements at phase φ</td>
+<td><b>Frequency</b> slider, <b>phase φ</b> (0–360°), <b>absolute</b> (displacement + base motion)</td></tr>
+<tr><td>harmonic – envelope</td><td>maximum over frequencies (stress, displacement) and the frequency where it occurred</td><td></td></tr>
+<tr><td>sweep – damage</td><td>damage D from a sine sweep</td><td>fatigue from sweep rate and number of passes</td></tr>
+<tr><td>transient – in time / envelope</td><td>von Mises and displacements in time; maximum over time and its time</td><td><b>Time</b> slider</td></tr>
+<tr><td>random vibration – RMS, 3σ, damage</td><td>von Mises RMS (Segalman) and 3σ (informative), displacement RMS, spectral damage D, life [h]</td><td></td></tr>
+<tr><td>shock – mode combination / transient envelope</td><td>von Mises and displacements by mode combination (CQC / SRSS); optionally the transient envelope of the pulse</td><td></td></tr>
+<tr><td>mode n – f Hz</td><td>shapes of the modal basis (normalized, max 1)</td><td></td></tr>
+</table>
+<p>The <b>Dynamics</b> tab: a plot at a probe (FRF – amplitude and phase, time history, response PSD, input ASD, pulse SRS, reactions;
+the probe “max σ” = node with the largest stress envelope, added automatically) and a mode table with frequency, damping and effective mass (click = shape in 3D).
+Dynamics results carry a note on damping uncertainty (±50 %).</p>
+
+<h3>Shells and voxel detail</h3>
+<p>Shell results are in the menu as <b>Shells: …</b> (top / middle / bottom layer, membrane and bending stress) – see <a href="shell.html">Shell model</a>.
+Printed parts have the <b>Print detail (voxels)…</b> button – see <a href="voxel.html">Print detail (voxels)</a>.</p>
+<h3>2D section</h3>
+<p>2D results are <b>2D: …</b> – see <a href="2d.html">2D analysis by section</a>.</p>
+
+<h2>Probe and markers</h2>
+<ul>
+<li><b>A click in the model</b> shows the value of the displayed quantity: a 3D marker and the status bar “Probe: von Mises =
+… MPa at node N (x, y, z) mm”. Mechanical cases use the nearest surface node (or section point); thermal cases interpolate inside the element.</li>
+<li>The <b>max</b> marker (suffix “(singularity)” for a singularity) and the <b>min</b> marker are drawn only on the visible part (in a section also in the section).
+von Mises, total displacement, failure index and |q| have no minimum marker; the safety factor has only a minimum.</li>
+</ul>
+
+<h2>Mesh section</h2>
+<p>In the top bar choose <b>Section: X / Y / Z</b> (plane ⟂ axis) or <b>face</b> (plane of the selected face; select it first, e.g. in the Supports step).
+The slider moves the plane; <b>flip</b> shows the other half. The results show a <b>colour section through the mesh interior</b>:
+stress across the wall, the neutral axis of bending, or temperature inside. The plane is in the undeformed position and deforms with the model. The probe also works on the section.</p>
+<p class="tip"><b>Tip:</b> A section ⟂ to a wall shows how many elements are across the thickness and whether a coarse mesh affects the stress.</p>
+
+<h2>Maxima locations and singularities</h2>
+<p>The <b>Highest stresses</b> table has separate locations (clusters of about 3 elements) with the highest value of the displayed stress quantity.
+For displacement, safety factor and printing, locations come from von Mises; for heat, the hottest places or highest flux. The <b>classification</b>:</p>
+<table class="grid">
+<tr><th>Classification</th><th>When</th><th>How to evaluate</th></tr>
+<tr><td><b>singularity</b> – fixed support edge, support edge, sharp inner edge, point load, bolt connection (orange)</td><td>Within 1 element of a support edge or bolt connection, at a sharp inner corner without a fillet, or on a small loaded face (smaller than (3 × element)²).</td><td>Theoretically infinite stress – grows with refinement. Do not evaluate the node value. Evaluate 2–3 elements away, in a section, or by nominal stress. Add a fillet in CAD, or model the real support.</td></tr>
+<tr><td><b>boundary condition</b> – support face, near a support, edge of a loaded face (grey)</td><td>On a support face (the support prevents transverse contraction), within 1.5 elements of a support, on the edge of a loaded face.</td><td>Check the support against reality (compliance, contact area). Evaluate outside its neighbourhood.</td></tr>
+<tr><td><b>real location</b> (green)</td><td>Fillet, hole, smooth surface.</td><td>A real stress concentration. Verify by convergence (refine locally 2× – change below 5 %) and evaluate against Re or fatigue.</td></tr>
+</table>
+<p>An outer (convex) edge is not a singularity. A symmetry plane (displacement only normal to the face) does not create one.
+If the highest location is a singularity, the summary also gives <b>Max. von Mises outside singularities</b>, and the legend warns
+“… is a singularity … – do not evaluate by the nodal value”. The reasons are in the row tooltip.</p>
+<p class="warn"><b>Warning:</b> the classification is a heuristic over the mesh – a guide, not an assessment. The designer decides what governs.</p>
+
+<h2><a name="prubeh"></a>Line plot and stress linearization</h2>
+<p>The <b>Line plot…</b> button opens a modeless dialog (the 3D window stays usable):</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td>Point A, Point B + <b>Click in 3D</b></td><td>Ends of the segment in the undeformed position [mm]; enter numbers or click the model (surface or section; the point is converted from the deformed display).</td></tr>
+<tr><td>Swap A ↔ B, A = location of maximum</td><td>Reverses the segment; A = node with the highest value of the displayed quantity.</td></tr>
+<tr><td>Case, Quantity, Number of points</td><td>Load (or thermal) case, quantity (von Mises, principal, components, displacements, temperature, error estimate, print safety factor), number of points.</td></tr>
+<tr><td><b>Plot profile</b></td><td>Value vs. distance s from A; blue line and markers A, B in 3D (also inside the body). Points outside the body are omitted.</td></tr>
+<tr><td><b>Stress linearization</b></td><td>Stress on the segment across the wall (SCL) split into membrane P_m, bending P_b and peak F (ASME BPVC VIII-2, Annex 5-A). Table of von Mises and Tresca: P_m, P_m + P_b, peak at both ends, total stress.</td></tr>
+<tr><td><b>Export CSV…</b></td><td>Profile (point, s, x, y, z, value, inside 1 / 0) and linearization to CSV (format as in <a href="#export">export of results</a>; English uses comma and decimal point).</td></tr>
+</table>
+<p>The linearization segment runs through the whole wall, perpendicular to it, both ends on the surface. Use at least 3–4 elements across the thickness (otherwise a warning).
+Assessment per ASME VIII-2 / EN 13445-3: P_m ≤ S, P_m + P_b ≤ 1.5·S (S = allowable stress). On a curved surface an end may lie slightly outside the mesh; move it inward.</p>
+
+<h2><a name="konvergence"></a>Mesh convergence</h2>
+<p>The <b>Mesh convergence…</b> button runs a COPY of the study on successively finer meshes (element size ÷ r per level) and tracks a quantity; the main window results do not change.
+Options: quantity (max. von Mises, max. displacement, value at a point, natural frequency of a mode, min. print safety factor); point (click in 3D or location of the maximum);
+<b>Sphere radius</b> (refinement only in a sphere around the point; “globally” = whole mesh); levels (2–6); ratio r (1.5); change limit (2 %).
+The table fills after each level (element size, nodes, elements, value, change, ccx error estimate); the graph shows value vs. element size.</p>
+<p>Result: a verdict (converged = last refinement changed the value less than the limit). From 3 levels: convergence order p, Richardson extrapolation and GCI (Roache, ASME V&amp;V 20).
+A value that keeps growing with refinement, with differences that do not shrink, is a <b>singularity</b> (sharp inner corner, fixed support edge, point force) – no finite value there.
+Each level with r = 1.5 has about 3.4× more elements; 3 levels take ~15× a single analysis.</p>
+
+<h2><a name="topologie"></a>Topology optimization (BESO)</h2>
+<p>The <b>Topology (BESO)…</b> button in the Results panel removes lightly loaded material from a full “design space” and keeps what carries the load.
+Use it to <b>lightweight a part</b> or to <b>propose a shape</b> for 3D printing or milling: it shows where the load path should run, as a basis for remodelling in CAD.</p>
+
+<h3>Principle</h3>
+<ul>
+<li><b>BESO</b> (Bi-directional Evolutionary Structural Optimization) removes elements with the lowest <b>sensitivity</b>. Sensitivity of an element = its <b>strain energy</b> summed over <b>all load cases</b> (sum of compliances, so one result carries all cases).</li>
+<li>Sensitivities are smoothed by a <b>filter</b> of radius R (no checkerboard patterns, no too-thin ribs) and averaged with the previous iteration (stability).</li>
+<li>Each <b>iteration</b> runs one CalculiX analysis <b>on the same mesh</b>; only element stiffness changes. Removed elements stay; they get stiffness <b>E · 10⁻⁶</b> (keeps the system regular).</li>
+<li>Volume drops by ER percent per step until the target; then fine-tuning while compliance still changes.</li>
+</ul>
+
+<h3>Procedure in the GUI</h3>
+<ol>
+<li>Prepare a complete study of the <b>design space</b> (full block): material, supports, loads (one or more cases), <b>mesh</b>. Put supports and loads on faces that must stay (holes, eyes, mating faces).</li>
+<li>Run the analysis (statics of the full design); results are needed for the <b>Results</b> step.</li>
+<li>In Results press <b>Topology (BESO)…</b>.</li>
+<li>Set target and parameters (table below), check <b>protected regions</b>, press <b>Run optimization</b>. Progress (volume and compliance per iteration) prints in the window; <b>Stop</b> also ends CalculiX.</li>
+<li>When done, the result is stored in the study results. Close the dialog and choose <b>Topology – density</b> or <b>Topology – final shape</b>.</li>
+<li>To use it elsewhere, press <b>Export lightweight STL…</b>.</li>
+</ol>
+
+<h3>Dialog parameters</h3>
+<table class="grid">
+<tr><th>Parameter</th><th>Meaning</th><th>Recommendation</th></tr>
+<tr><td>Target volume</td><td>Percentage of the original volume to remain.</td><td>Default 40 %. Reasonable 30–60 %; below ~25 % the shape breaks into thin struts and compliance grows fast.</td></tr>
+<tr><td>Min. thickness (filter R)</td><td>Sensitivity filter radius [mm]; sets the smallest strut and pattern fineness.</td><td>Default 6 mm, about <b>2× the element size</b> (4 mm mesh → R ≈ 8 mm). R below element size makes no sense (checkerboard); too large coarsens the shape.</td></tr>
+<tr><td>Removal rate (ER)</td><td>Share of volume removed per step [%/step].</td><td>Default 4 %. Reasonable 2–5 %; smaller ER = slower, more stable, usually better.</td></tr>
+<tr><td>Max. iterations</td><td>Upper limit of steps (and CalculiX runs).</td><td>Default 60. Needed steps ≈ ln(target) / ln(1 − ER) plus fine-tuning, e.g. target 40 % at ER 4 % ≈ 23 steps + 10–20 fine-tuning. May end earlier on convergence.</td></tr>
+<tr><td>Protected regions</td><td>Selections where material <b>must not</b> be removed.</td><td>By default all study selections (supports, loads, imprints). Click to deselect; unprotected faces may be hollowed out.</td></tr>
+</table>
+<p class="tip"><b>Tip:</b> time = iterations × time of one analysis on the mesh. For a quick idea use a coarser mesh (5–6 mm); a finer mesh gives a finer shape but takes proportionally longer.</p>
+
+<h3>Showing the result</h3>
+<ul>
+<li><b>Topology – density</b>: nodal density 0–1 (1 = material, 0 = removed), colour map.</li>
+<li><b>Topology – final shape</b>: model shown with remaining material only.</li>
+<li>Both are available for every load case; the <b>section</b> (top bar) shows the inside.</li>
+<li>The result is <b>stored in the .fea project</b> with the other results; visible again after opening, no recalculation.</li>
+</ul>
+
+<h3>STL export</h3>
+<p><b>Export lightweight STL…</b> saves a <b>closed solid</b>: the isosurface of density ρ = 0.5 (Marching Tetrahedra) joined with the trimmed mesh surface, normals outward.
+Load it into a slicer or CAD as a remodelling guide.</p>
+
+<h3>Limitations</h3>
+<ul>
+<li>Only <b>linear statics</b> and <b>isotropic elastic material</b>. Printed parts (infill model), orthotropic material, contacts, plasticity, large deformations and dynamics are not optimized – the program reports an error before starting.</li>
+<li>Goal = only <b>minimum compliance</b> (maximum stiffness) at a given volume. Stress, natural frequencies and buckling are not constrained; verify stress of the lightened shape separately.</li>
+<li>The shape is built from mesh elements and ignores manufacturing: <b>it is not a finished design</b>. Remodel it in CAD (smooth ribs, fillets, thicknesses) and <b>verify with a normal analysis</b> (stress, displacements, fatigue if needed).</li>
+<li>Each load case is static; cases are summed as compliances. Very different cases give a compromise shape.</li>
+</ul>
+
+<h3>Automation</h3>
+<p>MCP tool <code>fea_topo_opt_run</code> (parameters <code>target_volume_fraction</code>, <code>filter_radius</code>,
+<code>evolution_rate</code>, <code>max_iterations</code>, <code>non_design_selections</code>, <code>output_stl</code>) runs the same optimization without the GUI and returns
+the history, compliance of the full and resulting design, and the STL path. See <a href="automatizace.html">Automation</a>.</p>
+
+<h3>In example 10</h3>
+<p><a href="fea:pruvodce10">Example 10 – bracket, topology optimization</a> opens a steel plate 160×90×12 mm (the design space), fixed to a wall by two M10 bolts,
+with an eye at the free end and a 4 kN load. It opens with the statics results of the full design and the optimization result (target 40 % volume, filter R 8 mm, ER 4 %).
+<b>Topology – density</b> and <b>Topology – final shape</b> are in the results. The 40 % target is reached in iteration 23; the design settles after 40 iterations (about
+3 min). Compliance rises from 104.6 to 230.6 N·mm (2.2× at 40 % volume). The remaining material forms a truss bracket with two tension members to the bolts and a compression strut.</p>
+<p><img src="example10_density.png" alt="BESO density in example 10"></p>
+
+<h2>Reactions and equilibrium</h2>
+<ul>
+<li><b>Reactions [N]</b> per support (under the selection name): Fx, Fy, Fz – the force the support exerts on the model. For a cylindrical support only the constrained components (radial / tangential / axial).</li>
+<li>The sum of reactions must match the load – an input check (sense of force, gravity, correct face).</li>
+<li><b>Equilibrium check: imbalance … %</b> = residual of forces and moments relative to the load. Normally 10⁻⁴ % or less; above 0.1 % the analysis ends with an error.</li>
+</ul>
+
+<h2><a name="export"></a>Export of results (CSV, VTU)</h2>
+<p>The <b>Export (VTU, CSV)...</b> button writes results to a folder (MCP: <code>fea_results_export</code> – same files and columns).
+All numbers <b>start at 1 and match the solver input</b> (CalculiX .inp), like “Node Number” in ANSYS or “Node / Element Label” in Abaqus:
+node number = <code>*NODE</code>, element number = <code>*ELEMENT</code>, part number = ELSET <code>P&lt;n&gt;</code>, case number = order of the load case (linear statics: the <code>*STEP</code> number).</p>
+<table class="grid">
+<tr><th>File</th><th>Content</th></tr>
+<tr><td><code>&lt;study&gt;_&lt;NN&gt;_&lt;state&gt;.csv</code></td><td>nodal values of state NN (01, 02 …): node_id, part_id, part, n_parts, x/y/z_mm, ux/uy/uz/umag_mm, sxx…szx_MPa, von_mises_MPa, s1–s3_MPa and other fields of the case (temperature_C, contact_pressure_MPa, contact_penetration_mm, contact_slip_mm, contact_shear_MPa, contact_status, contact_opening_mm, print_safety, print_index, stress_error_pct, peeq, topo_density)</td></tr>
+<tr><td><code>&lt;study&gt;_K&lt;NN&gt;_&lt;name&gt;.csv</code></td><td>combination NN (study order) – columns as for a case; envelope: node_id, part, coordinates, governing_combination_number (position in the envelope list from 1), envelope value, governing_combination</td></tr>
+<tr><td><code>&lt;study&gt;_nodal_all.csv</code></td><td>option <b>All cases in one file</b>: row = node × case, step_index and step_name first (combinations stay separate)</td></tr>
+<tr><td><code>&lt;study&gt;_elements.csv</code></td><td>option <b>Element table</b>: element_id, part_id, part, element_type (C3D10), nodes n1–n10 in CalculiX order, centroid xc/yc/zc_mm, volume_mm3; for one selected case also nodal values averaged over the element (…_nodal_avg)</td></tr>
+<tr><td><code>&lt;study&gt;_reactions.csv</code></td><td>reactions: step_index, step_name, selection, constraint_kind (fixed, displacement, cylindrical, remote_support, elastic), Fx–Fz and F_mag [N], Mx–Mz and M_mag [N·mm], mref_x/y/z_mm, result_kind, combination_index; a <b>TOTAL</b> row after each case</td></tr>
+<tr><td><code>&lt;study&gt;_&lt;NN&gt;_&lt;state&gt;.vtu</code>, <code>.pvd</code></td><td>tet10 mesh with fields for ParaView; the .pvd collection has the cases as time steps 1, 2 … (combinations after them)</td></tr>
+</table>
+<ul>
+<li><b>Part of a node</b>: a node on an interface of parts with a shared mesh belongs to the part with the lowest number; <i>n_parts</i> = number of parts sharing it (&gt; 1 = interface). Duplicated nodes of an opened contact have <i>alias_of_node_id</i> (original node number).</li>
+<li><b>Reaction moments</b> are about <i>mref</i> = centre of the mesh bounding box (same point as in the text summary). TOTAL = total reaction about this point from the equilibrium check. A node on an edge shared by two supports is in both selection rows but once in TOTAL, so TOTAL need not equal the sum of rows.</li>
+<li><b>Stresses</b> are nodal (averaged by the solver); integration-point stresses are not exported. A missing value (case without stresses, point outside the body) = empty cell, not zero.</li>
+<li><b>CSV format</b>: <i>Excel</i> = semicolon, decimal comma, UTF-8 with BOM (Czech Excel opens it in columns); <i>Standard</i> = comma, decimal point, UTF-8 (pandas, scripts, English Excel). Standard is the English default; the choice is remembered also for σ-vector and line plot exports. MCP defaults to standard (<code>dialect="excel"</code> switches).</li>
+<li><b>VTU</b>: arrays <i>NodeId</i> (nodes), <i>ElementId</i> and <i>PartNumber</i> (elements) carry solver numbers from 1; ParaView’s “Point ID” / “Cell ID” start at 0. <i>PartId</i> = part number from 0; part names are in the <i>PartNames</i> array (FieldData).</li>
+<li><b>σ vectors</b> (CSV): node_id, part, x/y/z_mm, principal (1–3), sigma_MPa, unit direction nx/ny/nz, type (tension / compression), step_name. <b>Line plot</b> (CSV): point, s, x, y, z, value, inside (1 = point in the material).</li>
+<li>Result tables (highest stresses, worst fatigue locations, mode shapes, section force, contacts, joints…) copy whole, with header, using <b>Ctrl+C</b> or right click → <b>Copy table</b> (paste into Excel cell by cell). Reactions are in the text summary; the reactions CSV is their table.</li>
+</ul>
+
+<h2>How to read the results</h2>
+<ul>
+<li><b>Linear elasticity:</b> stress above Re is fictitious (the material would yield). A local exceedance of Re in a singularity or small notch of ductile steel usually does not mean failure; exceedance over an area of the nominal cross-section does.</li>
+<li><b>Nominal vs. peak stress:</b> for static loading of ductile metals, the stress in the cross-section away from notches and singularities governs. For fatigue and brittle materials, the peak in the notch (a real location, verified by convergence).</li>
+<li><b>Convergence:</b> refine the governing location 2× and compare. If the value settles, it is correct; if it keeps growing, it is a singularity.</li>
+<li><b>Displacements</b> are not very mesh-sensitive; a coarser mesh is enough for a stiffness check.</li>
+<li><b>Connections of parts</b> without a contact pair are rigid (shared nodes); stress at a part interface is only indicative. Where contact pressure, opening or slip governs, define a <a href="kontakty.html">contact</a> and check with two μ values and a different stiffness K.</li>
+<li><b>Dynamics:</b> resonance response is inversely proportional to damping (±50 %); where it governs, measure the damping.</li>
+<li><b>Printed parts</b>: evaluate with 3D printing – safety factor, not von Mises against Re; for sustained loading also the creep case.</li>
+<li><b>Bolts and welds</b> are evaluated in the Joints utilization dock, not by stress around the connection – see <a href="spoje.html">Joints</a>.</li>
+</ul>
+
+<h2>In the examples</h2>
+<h3>Example 1 – printed bracket</h3>
+<ul>
+<li>Cases: <b>Eye load 200 N</b>, <b>Self-weight</b> and <b>Eye load 200 N – creep 1000 h, 30 °C</b>. Compare displacement and 3D printing – safety factor in the instant case and the creep case.</li>
+<li>The corner between plate and arm and at the rib has no fillet in the model: the highest von Mises there will probably be marked as a singularity “sharp inner edge”. The real concentration is in the eye under the bearing load.</li>
+<li>Edges of the screw holes (cylindrical support) give “support edge” or “near support” locations – the screws are rigid in the model.</li>
+<li>3D printing – safety factor: the summary by part gives the min. safety factor, whether shell or core governs, and stress in the print axes. A section by the Y plane through the middle of the arm shows bending stress across the thickness.</li>
+<li>Reactions: Upper screw and Lower screw together carry 200 N vertically; Rear face transmits only the x-direction force. The ux = 0 support is two-sided – it also transmits tension, which a real support against a wall would not. Check the sign of the reaction in the upper part of the plate.</li>
+</ul>
+<h3>Example 2 – assembly</h3>
+<ul>
+<li>Mechanical cases: Force on arm eye, Side force on post, Self-weight, Heating in operation, Bolt preload, Force on arm eye – creep 2000 h, 30 °C. Thermal: <b>Heat: Operation – steady state</b> and <b>Heat: Ramp-up – 1 hour</b> (Time field, snapshots every 600 s).</li>
+<li>In Heating in operation switch the quantity to <b>Temperature</b> – the field from which thermal stress is computed. Stress arises where expansion is restrained: at anchor holes (cylindrical support) and between parts with different temperature and expansion (steel × PLA).</li>
+<li>Bolt preload shows the bearing under heads and nuts; “bolt connection” locations are connection singularities – evaluate bolts in the Joints utilization dock.</li>
+<li>Roots and toes of fillet welds are sharp inner edges (singularities); welds are assessed in the Joints utilization dock.</li>
+<li>Side force on post: the sum of the Fx reactions of the anchor holes must be 250 N against the force direction (reaction = force of the support on the model).</li>
+</ul>
+
+<h2>Common problems</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and solution</th></tr>
+<tr><td>“The quantity is not available in the result (no printed part).”</td><td>3D printing quantities exist only for studies with a printed part (a material with print properties).</td></tr>
+<tr><td>“The case has no thermal load.”</td><td>Temperature quantity for a mechanical case without a Temperature load. Thermal analysis temperatures are in the “Heat: …” cases.</td></tr>
+<tr><td>“Heat flux is stored only for the end of a transient case – choose the last time.”</td><td>For a transient case the flux is shown only at the last time.</td></tr>
+<tr><td>The stress maximum grows with every refinement</td><td>A singularity (sharp corner, fixed support edge, point force). Evaluate away from it, add a fillet or a more realistic support.</td></tr>
+<tr><td>Results disappeared (“Study changed – results discarded, recomputation needed.”)</td><td>Every study change discards results. Undo (<span class="key">Ctrl+Z</span>) or run again. A saved .fea project contains the results.</td></tr>
+<tr><td>Deformation looks absurdly large</td><td>Automatic scale magnifies deformation. For true shape choose 1×; read displacements from the legend.</td></tr>
+</table>

@@ -1,0 +1,306 @@
+<h1>Výsledky</h1>
+<p class="lead">Krok Výsledky zobrazuje napětí, posuvy, bezpečnost, výsledky 3D tisku, teploty, kontaktní tlak a dynamickou odezvu
+jako barevné pole na modelu. Dále řez, sondu, tabulku nejvyšších míst, reakce a grafy. U každého maxima program posoudí, zda jde
+o skutečné napěťové soustředění, nebo o singularitu modelu.</p>
+
+<h2>Karta hodnocení</h2>
+<p>Nahoře panelu je verdikt celé studie: nejmenší <b>bezpečnost k mezi kluzu Re</b> (Re / σ von Mises) v nejvíce namáhaném místě
+<b>mimo singularity</b> přes všechny mechanické zatěžovací stavy, porovnaná s <b>požadovanou bezpečností</b> (pole „požadováno ≥“, výchozí 1,5).
+Zobrazí <b>Vyhovuje</b> / <b>Nevyhovuje</b>, rozhodující případ a díl a pruh (polovina = přesně požadavek).
+Požadavek se uloží do studie; výsledky se kvůli němu nepřepočítávají a protokol Word jej převezme.
+Pod verdiktem jsou čísla zobrazeného případu: max. napětí mimo singularity a celkově (rozdíl je singularita – ostrá hrana, pevná podpora),
+max. posuv a výslednice reakcí. Díly bez meze kluzu (plasty, 3D tisk) se tu nehodnotí – tisk má vlastní bezpečnost Tsai-Wu / Hill.
+Stejná čísla pro všechny stavy jsou v dolní <b>Tabulce</b> (bezpečnost obarvená podle požadavku); klik na řádek ukáže jeho případ.</p>
+
+<h2>Ovládání</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Zatěžovací stav</td><td>Vybere zobrazený výsledek: mechanické stavy v pořadí studie, pak tepelné stavy s předponou „Teplo:“.</td><td>Zahrnuje i „Předpětí šroubů“ (se šrouby) a „&lt;stav&gt; – tečení … h, … °C“ (tečení tištěného dílu).</td></tr>
+<tr><td>Čas</td><td>Okamžik přechodového tepelného stavu („t = 600 s“…).</td><td>Jen přechodový stav. První okamžik t = 0 = počáteční teplota.</td></tr>
+<tr><td>Veličina</td><td>Zobrazené pole (seznam níže).</td><td>von Mises [MPa].</td></tr>
+<tr><td>Deformace</td><td>Zvětšení deformovaného tvaru: žádná, automaticky, 1×, 10×, 100×, 1000×.</td><td><i>Automaticky</i> = největší posuv se zobrazí jako 5 % úhlopříčky modelu. U tepelných stavů vypnuto.</td></tr>
+<tr><td>Počet pásem</td><td>Počet barevných pásem mapy.</td><td>4–16, výchozí 12.</td></tr>
+<tr><td>hrany prvků</td><td>Zobrazí síť na povrchu.</td><td>Kontrola, kolik prvků je v místě maxima.</td></tr>
+<tr><td>obrys nedeformovaného modelu</td><td>Původní tvar průhledně.</td><td>S deformací ukazuje směr pohybu.</td></tr>
+<tr><td>Legenda</td><td>Meze pásem a barvy; pod ní poznámka, je-li maximum singularita.</td><td>U bezpečnosti jsou barvy obrácené: červená = nízká bezpečnost.</td></tr>
+<tr><td>Textový souhrn</td><td>Max. posuv, max. von Mises a jeho místo, max. mimo singularity, min. bezpečnost k Re, 3D tisk po dílech, měřítko deformace, reakce, kontrola rovnováhy, varování.</td><td></td></tr>
+<tr><td>Tabulka nejvyšších napětí</td><td>8 samostatných míst s nejvyšší hodnotou a jejich klasifikací. Klik na řádek označí místo ve 3D a ukáže důvody.</td><td>Viz Místa maxim a singularity.</td></tr>
+<tr><td>Řez (lišta nahoře)</td><td>vypnuto / X / Y / Z / plocha, posuvník polohy, otočení.</td><td>Ve výsledcích se zobrazuje i barevný řez vnitřkem sítě.</td></tr>
+<tr><td>Frekvence / Čas, fáze φ, absolutně</td><td>Jen u položek „Dynamika: …“: posuvník frekvence harmonické odezvy nebo času přechodové odezvy, fáze φ (okamžik periody) a „absolutně“ = posuv + pohyb základu.</td><td>Viz <a href="#dynamika">Dynamika</a> níže.</td></tr>
+<tr><td>Záložky Dynamika a Kontakty</td><td>Grafy a tabulky dynamiky (FRF, průběh v čase, PSD, SRS, tvary) a kontaktních dvojic (síly, plochy, křivka síla–dráha).</td><td>Zobrazí se jen u těchto výsledků.</td></tr>
+</table>
+
+<h2>Veličiny</h2>
+<h3>Mechanické stavy</h3>
+<table class="grid">
+<tr><th>Veličina</th><th>Význam</th><th>Poznámka</th></tr>
+<tr><td>von Mises [MPa]</td><td>Ekvivalentní napětí (energie tvarové změny, HMH).</td><td>Hlavní veličina pro tvárné kovy; porovnává se s Re.</td></tr>
+<tr><td>Celkový posuv, Posuv X / Y / Z [mm]</td><td>Velikost a složky posuvu v globálních osách.</td><td>Kontrola tuhosti a smyslu deformace.</td></tr>
+<tr><td>1. hlavní napětí S1, 3. hlavní napětí S3 [MPa]</td><td>Největší (tah) a nejmenší (tlak) hlavní napětí.</td><td>Pro křehké materiály (litina) a místa v tahu; S3 pro tlak a vzpěr.</td></tr>
+<tr><td>Napětí σx, σy, σz, τxy, τyz, τzx [MPa]</td><td>Složky tenzoru napětí v globálních osách.</td><td>Ohybové napětí nosníku, porovnání s ručním výpočtem.</td></tr>
+<tr><td>Bezpečnost k Re [–]</td><td>Re / σ_vM v uzlu, zobrazeno do 10.</td><td>Uzel na rozhraní dílů bere menší Re. Díl bez Re má 10.</td></tr>
+<tr><td>3D tisk – bezpečnost (Tsai-Wu/Hill) [–]</td><td>Násobek zatížení do porušení podle kritéria tisku, horší z skořepiny a jádra.</td><td>Jen tištěné díly; netištěné mají 10. Viz <a href="tisk.html">3D tisk</a>.</td></tr>
+<tr><td>3D tisk – index porušení [–]</td><td>Index kritéria (1 = porušení).</td><td>Netištěné díly 0.</td></tr>
+<tr><td>Teplota [°C]</td><td>Pole teploty použité jako zatížení stavu.</td><td>Jen u stavu s tepelným zatížením; jinak „Stav nemá tepelné zatížení.“</td></tr>
+</table>
+<h3>Tepelné stavy (Teplo: …)</h3>
+<table class="grid">
+<tr><th>Veličina</th><th>Význam</th><th>Poznámka</th></tr>
+<tr><td>Teplota [°C]</td><td>Pole teploty.</td><td>U přechodového stavu v zvoleném Čase.</td></tr>
+<tr><td>Tepelný tok |q|, qx, qy, qz [W/m²]</td><td>Velikost a složky hustoty tepelného toku.</td><td>U přechodového stavu jen na konci stavu (poslední čas).</td></tr>
+</table>
+<p>Souhrn tepelného stavu uvádí max. a min. teplotu s místy, teplo každé okrajové podmínky [W] (+ = do tělesa)
+a <b>tepelnou bilanci</b> (přítok, odtok, zbytek v %). Podrobnosti: <a href="teplo.html">Teplo</a>.</p>
+
+<h3>Odhad chyby napětí</h3>
+<p>Veličina <b>Odhad chyby napětí [%]</b> (jen výpočet CalculiXem) = rozdíl hlavního napětí mezi sousedními prvky v uzlu,
+vztažený k napětí (gradientní odhad ccx). Pod ~5 % je síť v místě dobrá, nad ~10 % zjemněte (místní zjemnění plochy nebo koule v kroku <a href="sit.html">Síť</a>).
+U singularit (ostrý vnitřní roh, hrana pevné podpory) zůstává hodnota vysoká i po zjemnění.</p>
+
+<h3><a name="tvary"></a>Vlastní tvary kmitů a tvary vzpěru</h3>
+<p>Jsou-li v kroku <a href="reseni.html">Řešení</a> zapnuty vlastní frekvence nebo vzpěr, nabídka <b>Zatěžovací stav</b>
+obsahuje také položky <b>Tvar kmitu n: f = … Hz</b> a <b>Tvar vzpěru n (stav): λ = …</b>. Zobrazí se deformovaný tvar (měřítko podle
+nastavení Deformace) s mapou normovaného posuvu – tvar je normován na max |u| = 1, barvy ukazují tvar, ne skutečné posuvy.
+Souhrn uvádí frekvenci, ω, periodu a podíl efektivní hmotnosti.</p>
+<p>Záložka <b>Tvary kmitů</b>: tabulka tvarů s frekvencí [Hz] (pro vzpěr λ), podíly efektivní hmotnosti m_x, m_y, m_z
+[%] (jaká část hmoty se kmitání účastní ve směru) a jejich součty Σ od 1. tvaru. Pro harmonické buzení a seizmickou analýzu se
+vyžaduje součet ≥ 90 % v každém směru – jinak přidejte tvary. Klik na řádek zobrazí tvar.</p>
+
+<h3><a name="pruty"></a>Pruty</h3>
+<p>U prutové soustavy nabídka Veličina obsahuje <b>Pruty – napětí σ_eq, posuv |u|, N, Vy, Vz, T, My, Mz, využití EN 1993</b>
+(u modelu s tělesy až za veličinami těles). σ_eq, posuv a využití se barevně kreslí na deformované ose prutů (nedeformované šedě),
+vnitřní síly jako <b>diagramy</b> kolmé na prut v jeho rovině (My a N, Vz, T ve směru osy z průřezu, Mz a Vy ve směru y) – maximum červeně, minimum modře.
+Klik na prut = sonda (prut a poloha s od začátku).</p>
+<p>Záložka <b>Pruty</b>: extrémy |N|, |Vz|, |My|, |Mz|, σ_eq a posuvu zobrazeného stavu po prutech, využití podle EN 1993-1-1
+(maximum přes všechny stavy) a rozhodující kontrola; klik na řádek ukáže všechny kontrolní řádky prutu (třída průřezu,
+6.2, vzpěr, klopení, interakce) a označí prut ve 3D. Souhrn uvádí podporové reakce (Fx…Mz) a kontrolu rovnováhy.
+Vlastní tvary kmitů a vzpěru samotných prutů se kreslí na ose prutu.</p>
+
+<h3><a name="kontakty"></a>Kontakty a nelineární analýza</h3>
+<p>Jsou-li definovány <a href="kontakty.html">kontakty</a>, nabídka Veličina navíc obsahuje:</p>
+<table class="grid">
+<tr><th>Veličina</th><th>Význam</th><th>Poznámka</th></tr>
+<tr><td>Kontakt – tlak [MPa]</td><td>Kontaktní tlak na plochách dvojic.</td><td>U čárového kontaktu a formulace uzel-plocha jen orientačně.</td></tr>
+<tr><td>Kontakt – stav [–]</td><td>−1 není kontaktní uzel, 0 bez kontaktu, 1 klouže, 2 lpí.</td><td>Diskrétní barvy. Ukazuje, kde se rozhraní otevřelo nebo klouže.</td></tr>
+<tr><td>Kontakt – rozevření [mm]</td><td>Mezera deformované sítě mezi stranami dvojice.</td><td></td></tr>
+<tr><td>Kontakt – skluz [mm], třecí napětí [MPa]</td><td>Tečný posuv a třecí (smykové) napětí v kontaktu.</td><td>Jen s třením.</td></tr>
+</table>
+<p>Kontaktní veličiny jsou na povrchu – nejlépe se vidí v řezu nebo se skrytým protějškem. Záložka <b>Kontakty</b>:
+tabulka dvojic zobrazeného stavu (normálová a třecí síla dvojice, plocha v kontaktu a její podíl, max. a střední tlak,
+rozevření, skluz, počty uzlů lpících / klouzajících / bez kontaktu) a <b>křivka síla–dráha</b> předepsaného pohybu přes všechny kroky posloupnosti.
+Síla dvojice je přesná síla z CalculiXu (integrál uzlového tlaku by ji nadhodnotil). V nelineární analýze je bezpečnost
+<b>rezervou napětí</b>, ne násobkem zatížení. <b>Částečný výsledek</b> (nezkonvergovaná nebo zastavená analýza) má v souhrnu i v záložce Kontakty červený štítek.</p>
+
+<h3><a name="dynamika"></a>Dynamika</h3>
+<p>Po dynamické analýze (krok <a href="dynamika.html">Dynamika</a>) nabídka Zatěžovací stav obsahuje položky <b>Dynamika: …</b>:</p>
+<table class="grid">
+<tr><th>Položka</th><th>Veličiny</th><th>Ovládání</th></tr>
+<tr><td>harmonická – na frekvenci</td><td>von Mises a posuv – amplituda přes fázi; von Mises a posuvy na fázi φ</td>
+<td><b>Frekvence</b> posuvník, <b>fáze φ</b> (0–360°), <b>absolutně</b> (posuv + pohyb základu)</td></tr>
+<tr><td>harmonická – obálka</td><td>maximum přes frekvence (napětí, posuv) a frekvence, kde nastalo</td><td></td></tr>
+<tr><td>přejezd – poškození</td><td>poškození D ze sinusového přejezdu</td><td>únava z rychlosti přejezdu a počtu přejezdů</td></tr>
+<tr><td>přechodová – v čase / obálka</td><td>von Mises a posuvy v čase; maximum přes čas a jeho čas</td><td>posuvník <b>Čas</b></td></tr>
+<tr><td>náhodné kmitání – RMS, 3σ, poškození</td><td>RMS von Mises (Segalman) a 3σ (informativně), RMS posuvu, poškození D spektrální únavou, životnost [h]</td><td></td></tr>
+<tr><td>ráz – kombinace tvarů / obálka přechodové</td><td>von Mises a posuvy skládáním tvarů (CQC / SRSS), volitelně obálka přechodové odezvy na puls</td><td></td></tr>
+<tr><td>tvar n – f Hz</td><td>tvary modální báze (normované, max 1)</td><td></td></tr>
+</table>
+<p>Záložka <b>Dynamika</b>: graf v sondě (FRF – amplituda a fáze, průběh v čase, PSD odezvy, ASD vstupu, SRS pulsu,
+reakce; sonda „max σ“ = uzel s největší obálkou napětí se přidá automaticky) a tabulka tvarů s frekvencí,
+tlumením a efektivní hmotností (klik = tvar ve 3D). Výsledky dynamiky nesou poznámku o nejistotě tlumení (±50 %).</p>
+
+<h3>Skořepiny a voxelový detail</h3>
+<p>Výsledky skořepinového modelu jsou v nabídce jako <b>Skořepiny: …</b> (vrstva horní / střední / dolní plochy, membránové a ohybové napětí) – viz <a href="shell.html">Skořepinový model</a>.
+U tištěných dílů je tlačítko <b>Detail tisku (voxely)…</b> – viz <a href="voxel.html">Detail tisku (voxely)</a>.</p>
+
+<h3>2D řez</h3>
+<p>Výsledky 2D analýzy jsou v nabídce jako <b>2D: …</b> – viz <a href="2d.html">2D analýza řezem</a>.</p>
+
+<h2>Sonda a značky</h2>
+<ul>
+<li><b>Klik do modelu</b> ukáže hodnotu zobrazené veličiny: značku ve 3D a ve stavovém řádku „Sonda: von Mises =
+… MPa v uzlu N (x, y, z) mm“. U mechanických stavů se použije nejbližší uzel povrchu (nebo bod řezu), u tepelných stavů se hodnota interpoluje uvnitř prvku.</li>
+<li><b>Značka max</b> (u singularity přípona „(singularita)“) a <b>značka min</b> se kreslí jen na viditelné části (při řezu i v řezu).
+U von Mises, celkového posuvu, indexu porušení a |q| se nekreslí minimum; u bezpečnosti je jen minimum.</li>
+</ul>
+
+<h2>Řez sítí</h2>
+<p>V liště nahoře zvolte <b>Řez: X / Y / Z</b> (rovina kolmo na osu), nebo <b>plocha</b> (rovina vybrané plochy – plochu nejdřív vyberte, např. v kroku Podpory).
+Posuvník posouvá rovinu celým modelem, <b>otočení</b> ukáže druhou polovinu. Ve výsledcích se kreslí <b>barevný řez vnitřkem sítě</b>:
+vidíte rozložení napětí přes tloušťku stěny, neutrálnou osu ohybu nebo teplotu uvnitř. Rovina je v nedeformované poloze a deformuje se s modelem.
+Sonda funguje i na ploše řezu.</p>
+<p class="tip"><b>Tip:</b> Řez kolmo ke stěně ukáže, kolik prvků je přes tloušťku, a zda hrubá síť neovlivňuje napětí.</p>
+
+<h2>Místa maxim a singularity</h2>
+<p>Tabulka <b>Nejvyšší napětí</b> obsahuje samostatná místa (shluky asi 3 prvků) s nejvyšší hodnotou zobrazené veličiny napětí.
+U posuvu, bezpečnosti a tisku se místa určují podle von Mises, u tepla jsou to nejteplejší místa nebo největší tok. Sloupec <b>klasifikace</b>:</p>
+<table class="grid">
+<tr><th>Klasifikace</th><th>Kdy</th><th>Jak hodnotit</th></tr>
+<tr><td><b>singularita</b> – hrana pevné podpory, hrana podpory, ostrá vnitřní hrana, bodová síla, šroubový spoj (oranžově)</td><td>Do 1 prvku od hrany podpory nebo šroubového spoje, v ostrém vnitřním rohu bez zaoblení, na malé zatížené ploše (menší než (3 × prvek)²).</td><td>Teoreticky nekonečné napětí – roste se zjemněním. Nehodnoťte hodnotu v uzlu. Hodnoťte 2–3 prvky dál, v řezu, nebo z nominálního napětí. Přidejte zaoblení v CAD, nebo modelujte skutečnou podporu.</td></tr>
+<tr><td><b>okrajová podmínka</b> – na ploše podpory, u podpory, hrana zatížené plochy (šedě)</td><td>Na ploše podpory (podpora brání příčné kontrakci), do 1,5 prvku od podpory, na hraně zatížené plochy.</td><td>Ověřte, zda podpora odpovídá skutečnosti (poddajnost podpory, kontaktní plocha). Hodnoťte mimo okolí podpory.</td></tr>
+<tr><td><b>skutečné místo</b> (zeleně)</td><td>Zaoblení, díra, hladký povrch.</td><td>Skutečné napěťové soustředění. Ověřte konvergencí sítě (lokálně zjemnit 2× – změna pod 5 %) a hodnoťte vůči Re nebo únavě.</td></tr>
+</table>
+<p>Vnější (konvexní) hrana sama singularitou není. Rovina symetrie (posuv jen kolmo na plochu) singularitu nevytváří.
+Je-li nejvyšší místo singularita, souhrn uvádí navíc <b>Max. von Mises mimo singularity</b> a legenda varuje
+„… je singularita … – nehodnoťte podle uzlové hodnoty“. Důvody klasifikace jsou v nápovědě k řádku (tooltip).</p>
+<p class="warn"><b>Upozornění:</b> klasifikace je heuristika nad sítí – je to vodítko, ne posouzení. Rozhodnutí, které napětí je rozhodující, zůstává na konstruktérovi.</p>
+
+<h2><a name="prubeh"></a>Graf po čáře a linearizace napětí</h2>
+<p>Tlačítko <b>Graf po čáře…</b> otevře nemodální dialog (3D okno zůstává ovladatelné):</p>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th></tr>
+<tr><td>Bod A, Bod B + <b>Klik ve 3D</b></td><td>Konce úsečky v nedeformované poloze [mm]; zadejte čísla, nebo klikněte na model (povrch nebo řez – bod se převede z deformovaného zobrazení).</td></tr>
+<tr><td>Prohodit A ↔ B, A = místo maxima</td><td>Obrátí úsečku; A = uzel s nejvyšší hodnotou zobrazené veličiny.</td></tr>
+<tr><td>Stav, Veličina, Počet bodů</td><td>zatěžovací (nebo tepelný) stav, veličina (von Mises, hlavní napětí, složky, posuvy, teplota, odhad chyby, bezpečnost tisku) a počet bodů na úsečce.</td></tr>
+<tr><td><b>Vykreslit průběh</b></td><td>graf hodnoty proti vzdálenosti s od A; modrá čára a značky A, B ve 3D (i uvnitř tělesa); body mimo těleso se vynechají.</td></tr>
+<tr><td><b>Linearizace napětí</b></td><td>rozklad napětí na úsečce přes stěnu (SCL) na membránové P_m, ohybové P_b a špičkové F (ASME BPVC VIII-2, příloha 5-A); tabulka von Mises a Tresca: P_m, P_m + P_b a špička na obou koncích, celkové napětí.</td></tr>
+<tr><td><b>Export CSV…</b></td><td>průběh (bod, s, x, y, z, hodnota, v materiálu 1 / 0) a linearizace do CSV (formát jako u <a href="#export">exportu výsledků</a> – česky s desetinnou čárkou a středníkem).</td></tr>
+</table>
+<p>Úsečka linearizace prochází celou stěnou kolmo na ni, oba konce leží na povrchu. Přes tloušťku má být aspoň 3–4 prvky (jinak varování).
+Posouzení podle ASME VIII-2 / EN 13445-3: P_m ≤ S, P_m + P_b ≤ 1,5·S (S = dovolené napětí). Na zakřiveném povrchu může konec ležet mírně mimo síť – posuňte jej dovnitř.</p>
+
+<h2><a name="konvergence"></a>Konvergence sítě</h2>
+<p>Tlačítko <b>Konvergence sítě…</b> spočte KOPII studie na postupně jemnějších sítích (velikost prvku ÷ r v každé úrovni) a sleduje veličinu – výsledky hlavního okna se nemění.
+Volby: veličina (max. von Mises, max. posuv, hodnota v bodě, vlastní frekvence tvaru, min. bezpečnost tisku); bod (klik ve 3D nebo místo maxima);
+<b>Poloměr koule</b> (zjemnění jen v kouli kolem bodu a maximum jen v ní; „globálně“ = celá síť); počet úrovní (2–6); poměr
+r (1,5) a limit změny (2 %). Tabulka se plní po každé úrovni (velikost prvku, uzly, prvky, hodnota, změna, odhad chyby ccx); graf ukazuje hodnotu proti velikosti prvku.</p>
+<p>Výsledek: verdikt (zkonvergováno = poslední zjemnění změnilo hodnotu méně než limit), od 3 úrovní řád konvergence p,
+Richardsonova extrapolace a GCI (Roache, ASME V&amp;V 20). Hodnota, která se se zjemněním stále zvětšuje a jejíž rozdíly neklesají,
+je <b>singularita</b> (ostrý vnitřní roh, hrana pevné podpory, bodová síla) – napětí v tom místě nemá konečnou hodnotu.
+Úroveň s r = 1,5 má asi 3,4× víc prvků – 3 úrovně trvají ~15× déle než jediná analýza.</p>
+
+<h2><a name="topologie"></a>Optimalizace topologie (BESO)</h2>
+<p>Tlačítko <b>Topologie (BESO)…</b> v panelu Výsledků otevře dialog, který odebírá málo zatížený materiál z plné
+„oblasti návrhu“ a ponechá jen to, co nese zatížení. Hodí se k <b>odlehčení dílu</b> a k <b>návrhu tvaru</b> pro 3D tisk nebo frézování:
+ukáže, kudy má jít silový tok, a dá podklad pro přemodelování v CAD.</p>
+
+<h3>Princip</h3>
+<ul>
+<li><b>BESO</b> (Bi-directional Evolutionary Structural Optimization) postupně odebírá prvky s nejnižší <b>citlivostí</b>. Citlivost prvku = jeho <b>deformační energie</b> sečtená přes <b>všechny zatěžovací stavy</b> (součet poddajností, takže jeden výsledek nese všechny stavy najednou).</li>
+<li>Citlivosti vyhlazuje <b>filtr</b> o poloměru R (brání šachovnicovým vzorům a příliš tenkým žebrům) a průměruje se s předchozí iterací (stabilita).</li>
+<li>Každá <b>iterace</b> spustí jednu analýzu CalculiXem <b>na stejné síti</b> – síť se nemění, mění se jen tuhost prvků. Odebrané prvky se nemažou; dostanou tuhost <b>E · 10⁻⁶</b> (udrží soustavu regulární).</li>
+<li>Objem klesá o ER procent na krok, dokud se nedosáhne cíle; pak se návrh dolaďuje, dokud se poddajnost mění.</li>
+</ul>
+
+<h3>Postup v GUI</h3>
+<ol>
+<li>Připravte úplnou studii <b>oblasti návrhu</b> (plný blok materiálu): materiál, podpory, zatížení (jeden nebo více stavů) a <b>síť</b>. Podpory a zatížení dejte na plochy, které mají v hotovém dílu zůstat (díry, oka, dosedací plochy).</li>
+<li>Spusťte analýzu (statiku plného návrhu) – výsledky jsou potřeba pro krok <b>Výsledky</b>.</li>
+<li>V kroku Výsledky stiskněte <b>Topologie (BESO)…</b>.</li>
+<li>Nastavte cíl a parametry (tabulka níže), zkontrolujte <b>chráněné oblasti</b> a stiskněte <b>Spustit optimalizaci</b>. Průběh (objem a poddajnost každé iterace) se vypisuje v okně; <b>Zastavit</b> ukončí i běžící CalculiX.</li>
+<li>Po dokončení se výsledek uloží do výsledků studie. Zavřete dialog a v panelu Výsledků zvolte veličinu <b>Topologie – hustota</b> nebo <b>Topologie – výsledný tvar</b>.</li>
+<li>Pro použití jinde stiskněte v dialogu <b>Exportovat odlehčený STL…</b>.</li>
+</ol>
+
+<h3>Parametry dialogu</h3>
+<table class="grid">
+<tr><th>Parametr</th><th>Význam</th><th>Doporučení</th></tr>
+<tr><td>Cílový objem</td><td>Procento původního objemu, které má zůstat.</td><td>Výchozí 40 %. Rozumný rozsah 30–60 %; pod ~25 % se tvar rozpadne na tenké vzpěry a poddajnost rychle roste.</td></tr>
+<tr><td>Min. tloušťka (filtr R)</td><td>Poloměr filtru citlivosti [mm]; řídí nejmenší tloušťku vzpěry a jemnost vzoru.</td><td>Výchozí 6 mm. Asi <b>2× velikost prvku</b> (síť 4 mm → R ≈ 8 mm). R menší než velikost prvku nemá smysl (šachovnice); příliš velké R tvar zhrubí.</td></tr>
+<tr><td>Rychlost odebírání (ER)</td><td>Podíl objemu odebraný v jednom kroku [%/krok].</td><td>Výchozí 4 %. Rozumných 2–5 %; menší ER = pomalejší, ale stabilnější a obvykle lepší výsledek.</td></tr>
+<tr><td>Max. počet iterací</td><td>Horní limit kroků (a tedy běhů CalculiXu).</td><td>Výchozí 60. Potřebný počet kroků ≈ ln(cíl) / ln(1 − ER) plus dolaďování, např. cíl 40 % při ER 4 % ≈ 23 kroků + 10–20 dolaďovacích. Optimalizace může skončit dříve, když konverguje.</td></tr>
+<tr><td>Chráněné oblasti</td><td>Výběry, odkud materiál <b>nesmí</b> být odebrán.</td><td>Ve výchozím stavu jsou zvoleny všechny výběry studie (podpory, zatížení, vložky). Klikem odznačíte; nechráněné plochy se mohou vydlabat.</td></tr>
+</table>
+<p class="tip"><b>Tip:</b> čas = počet iterací × čas jedné analýzy na dané síti. Pro rychlou představu použijte hrubší síť (např. 5–6 mm); jemnější síť dá jemnější tvar, ale desítky analýz trvají úměrně déle.</p>
+
+<h3>Zobrazení výsledku</h3>
+<ul>
+<li><b>Topologie – hustota</b>: uzlová hustota 0–1 (1 = materiál, 0 = odebráno), barevné pole na modelu.</li>
+<li><b>Topologie – výsledný tvar</b>: model jen se zbylým materiálem.</li>
+<li>Obě veličiny jsou k dispozici u každého zatěžovacího stavu; <b>řez</b> (horní lišta) ukáže vnitřek odlehčeného dílu.</li>
+<li>Výsledek optimalizace se <b>uloží do projektu .fea</b> spolu s ostatními výsledky – po otevření projektu je znovu vidět bez přepočtu.</li>
+</ul>
+
+<h3>Export STL</h3>
+<p><b>Exportovat odlehčený STL…</b> uloží <b>uzavřené těleso</b> – izoplochu hustoty ρ = 0,5 (Marching Tetrahedra) spojenou s oříznutým povrchem sítě, normály ven.
+Soubor lze načíst do slicera nebo CAD jako vodítko pro přemodelování.</p>
+
+<h3>Omezení</h3>
+<ul>
+<li>Jen <b>lineární statika</b> a <b>izotropní pružný materiál</b>. Tištěné díly (model výplně), ortotropní materiál, kontakty, plasticita, velké deformace a dynamika se neoptimalizují – program před spuštěním hlásí chybu.</li>
+<li>Cílem je jen <b>minimální poddajnost</b> (maximální tuhost) při daném objemu. Napětí, vlastní frekvence a vzpěr se neomezují – napětí odlehčeného tvaru je nutné ověřit samostatnou analýzou.</li>
+<li>Tvar je složen z prvků sítě (kroků) a s výrobou nepočítá: <b>výsledek není hotový návrh</b>. Je to podklad – přemodelujte jej v CAD (hladká žebra, zaoblení, tloušťky pro technologii) a <b>ověřte běžnou analýzou</b> (napětí, posuvy, případně únava).</li>
+<li>Každý zatěžovací stav je statický; stavy se sčítají jako poddajnosti. Jsou-li stavy velmi různé, je tvar kompromisem.</li>
+</ul>
+
+<h3>Automatizace</h3>
+<p>Nástroj MCP <code>fea_topo_opt_run</code> (parametry <code>target_volume_fraction</code>, <code>filter_radius</code>,
+<code>evolution_rate</code>, <code>max_iterations</code>, <code>non_design_selections</code>, <code>output_stl</code>) spustí stejnou optimalizaci bez GUI a vrátí
+historii, poddajnost plného a výsledného návrhu a cestu k STL. Viz <a href="automatizace.html">Automatizace</a>.</p>
+
+<h3>V ukázce 10</h3>
+<p><a href="fea:pruvodce10">Ukázka 10 – držák, optimalizace topologie</a> otevře ocelovou desku 160×90×12 mm (oblast návrhu), upevněnou ke zdi dvěma šrouby M10,
+s okem na volném konci a zatížením 4 kN. Projekt se otevře s výsledky statiky plného návrhu a s výsledkem optimalizace (cíl 40 % objemu, filtr R 8 mm, ER 4 %).
+Veličiny <b>Topologie – hustota</b> a <b>Topologie – výsledný tvar</b> jsou ve výsledcích. Cíl 40 % je dosažen v iteraci 23, návrh se ustálí po 40 iteracích (asi
+3 min). Poddajnost vzroste ze 104,6 na 230,6 N·mm (2,2× při 40 % objemu). Zbylý materiál tvoří příhradový držák se dvěma tažnými pruty k šroubům a tlačenou vzpěrou.</p>
+<p><img src="example10_density.png" alt="Hustota BESO v ukázce 10"></p>
+
+<h2>Reakce a rovnováha</h2>
+<ul>
+<li><b>Reakce [N]</b> po podporách (pod názvem výběru): Fx, Fy, Fz. Reakce = síla, kterou podpora působí na model. U válcové podpory jen složky v zadržených směrech (radiální / tečná / osová).</li>
+<li>Součet reakcí musí odpovídat zatížení – kontrola vstupu (smysl síly, tíha, zatížení na správné ploše).</li>
+<li><b>Kontrola rovnováhy: nerovnováha … %</b> – zbytek sil a momentů vztažený k zatížení. Obvykle 10⁻⁴ % nebo méně; nad 0,1 % analýza skončí chybou.</li>
+</ul>
+
+<h2><a name="export"></a>Export výsledků (CSV, VTU)</h2>
+<p>Tlačítko <b>Exportovat (VTU, CSV)...</b> zapíše výsledky do zvolené složky (MCP: <code>fea_results_export</code> –
+stejné soubory a sloupce). Všechna čísla <b>začínají od 1 a odpovídají vstupu řešiče</b> (CalculiX .inp) – jako „Node Number“ v ANSYS
+nebo „Node / Element Label“ v Abaqusu: číslo uzlu = <code>*NODE</code>, číslo prvku = <code>*ELEMENT</code>, číslo dílu = ELSET <code>P&lt;n&gt;</code>, číslo stavu = pořadí zatěžovacího stavu (u lineární statiky číslo <code>*STEP</code>).</p>
+<table class="grid">
+<tr><th>Soubor</th><th>Obsah</th></tr>
+<tr><td><code>&lt;studie&gt;_&lt;NN&gt;_&lt;stav&gt;.csv</code></td><td>uzlové hodnoty stavu NN (01, 02 …): node_id, part_id, part, n_parts, x/y/z_mm, ux/uy/uz/umag_mm, sxx…szx_MPa, von_mises_MPa, s1–s3_MPa a další pole stavu (temperature_C, contact_pressure_MPa, contact_penetration_mm, contact_slip_mm, contact_shear_MPa, contact_status, contact_opening_mm, print_safety, print_index, stress_error_pct, peeq, topo_density)</td></tr>
+<tr><td><code>&lt;studie&gt;_K&lt;NN&gt;_&lt;název&gt;.csv</code></td><td>kombinace NN (pořadí ve studii) – sloupce jako u stavu; obálka: node_id, part, souřadnice, governing_combination_number (pořadí v seznamu obálky od 1), hodnota obálky, governing_combination</td></tr>
+<tr><td><code>&lt;studie&gt;_nodal_all.csv</code></td><td>volba <b>Všechny stavy v jednom souboru</b>: řádek = uzel × stav, nejdřív step_index a step_name (kombinace zůstávají zvlášť)</td></tr>
+<tr><td><code>&lt;studie&gt;_elements.csv</code></td><td>volba <b>Tabulka prvků</b>: element_id, part_id, part, element_type (C3D10), uzly n1–n10 v pořadí CalculiXu, těžiště xc/yc/zc_mm, volume_mm3; pro jeden vybraný stav také uzlové hodnoty zprůměrované přes prvek (…_nodal_avg)</td></tr>
+<tr><td><code>&lt;studie&gt;_reactions.csv</code></td><td>reakce: step_index, step_name, selection, constraint_kind (fixed, displacement, cylindrical, remote_support, elastic), Fx–Fz a velikost F_mag [N], Mx–Mz a M_mag [N·mm], mref_x/y/z_mm, result_kind, combination_index; řádek <b>TOTAL</b> (celková reakce) za každým stavem</td></tr>
+<tr><td><code>&lt;studie&gt;_&lt;NN&gt;_&lt;stav&gt;.vtu</code>, <code>.pvd</code></td><td>síť tet10 s poli pro ParaView; kolekce .pvd má stavy jako časové kroky 1, 2 … (kombinace za nimi)</td></tr>
+</table>
+<ul>
+<li><b>Díl uzlu</b>: uzel na rozhraní dílů se sdílenou sítí patří dílu s nejnižším číslem; <i>n_parts</i> = počet dílů, které ho sdílejí (&gt; 1 = rozhraní). Zdvojené uzly otevřeného kontaktu mají sloupec <i>alias_of_node_id</i> (číslo původního uzlu).</li>
+<li><b>Momenty reakcí</b> jsou k bodu <i>mref</i> = střed ohraničujícího kvádru sítě (tentýž bod jako v textovém souhrnu). TOTAL je celková reakce k tomuto bodu z kontroly rovnováhy – uzel na hraně sdílené dvěma podporami je v řádcích obou výběrů, ale v TOTAL jen jednou (TOTAL tedy nemusí být součtem řádků).</li>
+<li><b>Napětí</b> jsou uzlová (zprůměrovaná řešičem); napětí v integračních bodech se neexportují. Chybějící hodnota (stav bez napětí, bod mimo těleso) = prázdná buňka, ne nula.</li>
+<li><b>Formát CSV</b>: <i>Excel</i> – středník, desetinná čárka, UTF-8 s BOM (český Excel otevře soubor rovnou ve sloupcích); <i>Standardní</i> – čárka, desetinná tečka, UTF-8 (pandas, skripty, anglický Excel). Výchozí v češtině je Excel; volba se pamatuje i pro exporty vektorů napětí a grafu po čáře. MCP defaultuje na standardní formát (<code>dialect="excel"</code> přepne).</li>
+<li><b>VTU</b>: pole <i>NodeId</i> (uzly) a <i>ElementId</i>, <i>PartNumber</i> (prvky) nesou čísla řešiče od 1; vlastní „Point ID“ / „Cell ID“ v ParaView začínají od 0. <i>PartId</i> = číslo dílu od 0, názvy dílů jsou v poli <i>PartNames</i> (FieldData).</li>
+<li><b>Vektory napětí</b> (CSV): node_id, part, x/y/z_mm, principal (1–3), sigma_MPa, jednotkový směr nx/ny/nz, typ (tah / tlak), step_name. <b>Graf po čáře</b> (CSV): point (číslo bodu), s, x, y, z, value a inside (1 = bod v materiálu).</li>
+<li>Tabulky výsledků (nejvyšší napětí, nejhorší místa únavy, tvary kmitů, řezová síla, kontakty, spoje…) lze zkopírovat celé včetně záhlaví klávesami <b>Ctrl+C</b> nebo pravým klikem → <b>Kopírovat tabulku</b> (vložení do Excelu buňku po buňce). Reakce jsou v textovém souhrnu – export reakcí do CSV je jejich tabulka.</li>
+</ul>
+
+<h2>Jak číst výsledky</h2>
+<ul>
+<li><b>Lineární pružnost:</b> napětí nad Re je fiktivní (materiál by tekl). Lokální překročení Re v singularitě nebo malém vrubu u tvárné oceli obvykle neznamená porušení; překročení přes plochu v nominálním průřezu ano.</li>
+<li><b>Nominální a špičkové napětí:</b> u statického zatížení tvárných kovů rozhoduje napětí v průřezu mimo vruby a singularity; u únavy a křehkých materiálů špička ve vrubu (skutečné místo, ověřené konvergencí).</li>
+<li><b>Konvergence:</b> rozhodující místo zjemněte 2× a porovnejte. Ustálí-li se hodnota, je správná; roste-li stále, je to singularita.</li>
+<li><b>Posuvy</b> nejsou příliš citlivé na síť – pro kontrolu tuhosti stačí hrubší síť.</li>
+<li><b>Spojení dílů</b> bez dvojice kontaktu je tuhé (sdílené uzly) – napětí na rozhraní dílů je jen orientační. Kde rozhoduje kontaktní tlak, otevření nebo skluz, definujte <a href="kontakty.html">kontakt</a> a ověřte výsledky se dvěma hodnotami μ a jinou tuhostí K.</li>
+<li><b>Dynamika:</b> odezva v rezonanci je nepřímo úměrná tlumení (citlivost ±50 %) – kde rozhoduje, změřte tlumení.</li>
+<li><b>Tištěné díly</b> hodnoťte veličinou 3D tisk – bezpečnost, ne von Mises proti Re; u dlouhodobého zatížení i případem s tečením.</li>
+<li><b>Šrouby a svary</b> se hodnotí v tabulkách Spojů – docku využití, ne napětím kolem spoje – viz <a href="spoje.html">Spoje</a>.</li>
+</ul>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 – tištěný držák</h3>
+<ul>
+<li>Případy: <b>Síla na oko 200 N</b>, <b>Vlastní tíha</b> a <b>Síla na oko 200 N – tečení 1000 h, 30 °C</b>. Porovnejte posuv a 3D tisk – bezpečnost v okamžitém případu a v případu s tečením.</li>
+<li>Roh mezi deskou a ramenem a u žebra nemá v modelu zaoblení – program tam pravděpodobně označí nejvyšší von Mises jako singularitu „ostrá vnitřní hrana“. Skutečná koncentrace je v oku pod ložiskovým zatížením.</li>
+<li>Hrany šroubových děr (válcová podpora) dávají místa „hrana podpory“ nebo „u podpory“ – šrouby jsou v modelu tuhé.</li>
+<li>Veličina 3D tisk – bezpečnost: v souhrnu po dílech uvidíte min. bezpečnost, zda rozhoduje skořepina nebo jádro, a napětí v osách tisku. Řez rovinou Y uprostřed ramene ukáže ohybové napětí přes tloušťku.</li>
+<li>Reakce: Horní šroub a Dolní šroub dohromady nesou 200 N svisle; Zadní plocha přenáší jen sílu ve směru x. Podpora ux = 0 je oboustranná – přenáší i tah, který by skutečná podpora proti stěně nepřenesla. Zkontrolujte znaménko reakce v horní části desky.</li>
+</ul>
+<h3>Ukázka 2 – sestava</h3>
+<ul>
+<li>Mechanické případy: Síla na oko ramene, Boční síla na sloupek, Vlastní tíha, Ohřev v provozu, Předpětí šroubů, Síla na oko ramene – tečení 2000 h, 30 °C. Tepelné: <b>Teplo: Provoz – ustálený stav</b> a <b>Teplo: Náběh – 1 hodina</b> (pole Čas, snímky každých 600 s).</li>
+<li>U případu Ohřev v provozu přepněte veličinu na <b>Teplota</b> – uvidíte pole, z něhož se počítá tepelné napětí. Napětí vzniká tam, kde je dilatace zabráněna: u kotevních děr (válcová podpora) a mezi díly s různou teplotou a roztažností (ocel × PLA).</li>
+<li>Případ Předpětí šroubů ukáže dosednutí pod hlavami a maticemi – místa označená „šroubový spoj“ jsou singularity spoje; šrouby hodnoťte v docku využití v Spojích.</li>
+<li>Kořeny a paty koutových svarů jsou ostré vnitřní hrany – singularity; svary se posuzují v docku využití v Spojích.</li>
+<li>Boční síla na sloupek: součet reakcí Fx v kotevních dírách musí být 250 N proti směru síly (reakce = síla podpory na model).</li>
+</ul>
+
+<h2>Časté problémy</h2>
+<table class="grid">
+<tr><th>Hlášení / příznak</th><th>Příčina a řešení</th></tr>
+<tr><td>„Veličina není ve výsledku k dispozici (žádný tištěný díl).“</td><td>Veličiny 3D tisku existují jen u studií s tištěným dílem (materiál s vlastnostmi tisku).</td></tr>
+<tr><td>„Stav nemá tepelné zatížení.“</td><td>Veličina Teplota u mechanického stavu bez zatížení Teplota. Teploty tepelné analýzy jsou u stavů „Teplo: …“.</td></tr>
+<tr><td>„Tepelný tok se ukládá jen pro konec přechodového stavu – zvolte poslední čas.“</td><td>U přechodového stavu lze tok zobrazit jen v posledním čase.</td></tr>
+<tr><td>Maximum napětí roste s každým zjemněním sítě</td><td>Singularita (ostrý roh, hrana pevné podpory, bodová síla). Hodnoťte mimo ni, přidejte zaoblení nebo realističtější podporu.</td></tr>
+<tr><td>Výsledky zmizely („Studie změněna – výsledky zrušeny, je nutný nový výpočet.“)</td><td>Každá změna studie výsledky zruší. Vraťte změnu (<span class="key">Ctrl+Z</span>) nebo spusťte výpočet znovu. Uložený projekt .fea výsledky obsahuje.</td></tr>
+<tr><td>Deformace vypadá nesmyslně velká</td><td>Automatické měřítko deformaci zvětšuje. Pro skutečný tvar zvolte 1×; posuvy čtěte z legendy.</td></tr>
+</table>

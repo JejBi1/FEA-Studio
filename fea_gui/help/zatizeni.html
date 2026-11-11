@@ -1,0 +1,146 @@
+<h1>Loads</h1>
+<p class="lead">Load cases and the loads in them: force on faces, edges or points (also in local or cylindrical systems), force normal to a face,
+pressure (constant, linear, hydrostatic), moment and force at a remote point, bearing load, gravity, rotation (centrifugal force) and temperature.
+Each load case is a separate analysis with the same supports.</p>
+
+<h2>Load cases</h2>
+<ul>
+<li>One case = one analysis step (one *STEP in CalculiX). Loads within a case add up; cases are not combined – each has its own results.</li>
+<li>Cases are also <b>unit cases</b> for <a href="unava.html">fatigue</a>: the load history scales and superposes them (the analysis is linear). For 3D-print creep the “long-term cases” are chosen in <a href="tisk.html">3D printing</a>.</li>
+<li>For a combination (e.g. force + gravity) put both loads in one case.</li>
+<li>An empty case gives a warning; with thermal cases an empty load case is skipped. With bolt preload the program adds the <b>Bolt preload</b> case itself – this name is reserved.</li>
+</ul>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Case list</td><td>Selects the case whose loads are shown and edited (only its loads are visible in 3D).</td><td></td></tr>
+<tr><td><b>+</b></td><td>New case (asks for a name).</td><td>“Load case 2”</td></tr>
+<tr><td><b>Rename</b></td><td>Changes the name; references in fatigue channels and long-term creep cases follow.</td><td></td></tr>
+<tr><td><b>−</b></td><td>Deletes the case with its loads; fatigue and creep channels referring to it are removed (logged).</td><td>Asks for confirmation; <span class="key">Ctrl+Z</span> restores it</td></tr>
+</table>
+
+<h2>New load</h2>
+<p>Select faces in 3D, choose the <b>Type</b> in the <b>New load</b> group, enter the values and press <b>Add from selection</b>. Gravity, rotation and temperature need no faces. <b>Force (components)</b> also works on edges (filter <b>Edge</b> <span class="key">E</span>) and points (filter <b>Point</b> <span class="key">V</span>); the <b>Acts on</b> row shows what will be used.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td><b>Type</b></td><td>Load type (below).</td><td></td></tr>
+<tr><td><b>Acts on</b></td><td>For a force: faces / edges / points, by the selection filter and the selection.</td><td>Edge filter + edges → edges; Point filter + points → points; otherwise faces</td></tr>
+<tr><td><b>Coord. system</b> + <b>Systems…</b></td><td>Components in global axes, or in a local Cartesian or cylindrical system (<b>Systems…</b> dialog).</td><td>Cylindrical only for a force; remote load, bearing load and gravity are Cartesian</td></tr>
+<tr><td><b>F [N]</b> / <b>M [N·mm]</b> / <b>g [mm/s²]</b></td><td>Vector components X, Y, Z.</td><td>1 N·m = 1 000 N·mm</td></tr>
+<tr><td><b>F [N]</b> / <b>p [MPa]</b> / <b>T [°C]</b></td><td>Single value (force normal to face, pressure, uniform temperature).</td><td>1 MPa = 1 N/mm² = 10 bar</td></tr>
+<tr><td><b>Point [mm]</b> + <b>face center</b></td><td>Remote point; checked = area-weighted centroid of the selected faces.</td><td>Hole centre: Edge filter + <b>Use circle center</b></td></tr>
+<tr><td><b>Support</b></td><td><b>distributing (adds no stiffness)</b> or <b>rigid</b> connection of the face to the point.</td><td>Default distributing</td></tr>
+<tr><td><b>Pressure profile</b></td><td>constant / linear / hydrostatic (liquid).</td><td>see below</td></tr>
+<tr><td><b>Gradient [MPa/mm]</b>, <b>Origin</b> / <b>Liquid level – point</b>, <b>Liquid ρ</b>, <b>Gravity direction</b></td><td>Parameters of a variable pressure.</td><td>Water 1000 kg/m³, gravity (0; 0; −1)</td></tr>
+<tr><td><b>Axis point</b>, <b>Axis direction</b>, <b>Speed</b>, <b>α</b>, <b>Rotates</b></td><td>Rotation: axis, speed [rpm], angular acceleration [rad/s²], rotating parts. <b>Axis from selection</b> = axis of the selected cylindrical face or circle.</td><td>Nothing checked = all parts</td></tr>
+<tr><td><b>Temperature from</b></td><td>“thermal case: …” or “uniform part temperature”.</td><td></td></tr>
+<tr><td><b>Time</b> + <b>end of case</b></td><td>Snapshot of a transient thermal case [s].</td><td>Transient cases only</td></tr>
+<tr><td><b>Parts</b></td><td>Parts with a uniform temperature.</td><td>Nothing checked = all parts</td></tr>
+<tr><td><b>Add from selection</b></td><td>Adds the load to the selected case.</td><td></td></tr>
+<tr><td><b>Save changes to selected</b></td><td>Overwrites the values of the listed load; faces kept.</td><td></td></tr>
+<tr><td><b>Faces from selection</b></td><td>Replaces the faces of the listed load (edges / points for edge and point forces).</td><td></td></tr>
+<tr><td><b>Delete</b></td><td>Deletes the listed load.</td><td></td></tr>
+</table>
+
+<h2>Load types</h2>
+<table class="grid">
+<tr><th>Type</th><th>What you enter</th><th>How it acts / note</th></tr>
+<tr><td><b>Force (components)</b></td><td>F = (Fx; Fy; Fz) [N], or (F_r; F_θ; F_z) in a cylindrical system.</td><td>The <b>total</b> force is spread uniformly over the area of all selected faces (not per face); on edges uniformly along the length (F/L); on points F/n each.</td></tr>
+<tr><td><b>Force normal to face</b></td><td>F [N]</td><td>Only planar faces with one normal; positive pushes into the face. Stored as components.</td></tr>
+<tr><td><b>Pressure</b></td><td>p [MPa], profile</td><td><b>Positive pressure acts into the material</b> (against the outward normal); on curved faces it follows the normal (internal pressure in a pipe = positive on the inner face).</td></tr>
+<tr><td><b>Moment (remote point)</b></td><td>M [N·mm], point, support</td><td>Moment at a point transferred to the face.</td></tr>
+<tr><td><b>Force at remote point</b></td><td>F [N], point, support</td><td>Force at a point outside the model; the face receives F and the moment r × F.</td></tr>
+<tr><td><b>Bearing load (hole / pin)</b></td><td>F [N]</td><td>Pin in an eye – see below.</td></tr>
+<tr><td><b>Gravity</b></td><td>g [mm/s²]</td><td>Self-weight of all parts by density; Earth (0; 0; −9810).</td></tr>
+<tr><td><b>Rotation (centrifugal force)</b></td><td>axis, speed, α, parts</td><td>Centrifugal ρ·ω²·r and inertial −ρ·α × r – see below.</td></tr>
+<tr><td><b>Temperature (thermal stress)</b></td><td>thermal case or T [°C]</td><td>See below.</td></tr>
+<tr><td><b>Inertia</b> (only by transfer from Motion)</td><td>point acceleration a₀, ω, α of the body, parts</td><td>Inertial forces of a mechanism body – see below.</td></tr>
+</table>
+
+<h3>Force on an edge and at a point</h3>
+<ul>
+<li><b>Edge:</b> filter <span class="key">E</span>; a click adds an edge (another click removes it; click on empty space clears). The force spreads uniformly along the length of all selected edges.</li>
+<li><b>Point:</b> filter <span class="key">V</span>; a click on a vertex selects it exactly, a click on a face selects a point projected onto the CAD face. Meshing inserts the point as a node; each point gets F/n.</li>
+<li><p class="warn"><b>Caution:</b> a force on an edge or at a point is <b>singular</b> in a solid model – stress and displacement grow without bound under refinement. Evaluate away from the application point (maxima table marks it). For a real contact (washer, blade) load a small face or use a remote force.</p></li>
+</ul>
+
+<h3>Local and cylindrical coordinate system</h3>
+<ul>
+<li><b>Systems…</b>: name, type, origin, z axis and x axis (θ = 0). <b>From selection</b> takes the axis of a selected cylindrical face or circle (Edge filter), or the normal of a planar face.</li>
+<li><b>Cartesian</b> only rotates the components – same direction everywhere.</li>
+<li><b>Cylindrical</b>: (F_r; F_θ; F_z) = radially away from the axis, tangentially (counter-clockwise about z), along the axis. The direction changes over the face; the entered value is the <b>sum of magnitudes</b> (density F/A, F/L), so the resultant is generally not F. A tangential force around a whole shaft circumference gives torque F_θ·R; over a shaft end face ⅔·F_θ·R; a radial inward force over a shell acts like pressure F_r / A.</li>
+<li>A point on the axis has no radial or tangential direction – such a force ends with an error.</li>
+</ul>
+
+<h3>Variable pressure</h3>
+<ul>
+<li><b>linear:</b> p = p₀ + gradient · (x − origin); gradient [MPa/mm] is a vector (e.g. (0; 0; −0.001) = 1 kPa drop per mm of height). Values may become negative (tension).</li>
+<li><b>hydrostatic (liquid):</b> p = p₀ + ρ·g·depth below the level; p₀ = gauge pressure of the gas above the level. <b>Liquid level – point</b> = any point on the level; <b>Gravity direction</b> (0; 0; −1) for Z up, g = 9.81 m/s². Water, 1 m column = 9.81 kPa = 0.00981 MPa.</li>
+<li>Enters the analysis as consistent nodal forces (exact integration on curved faces; elements cut by the level integrated more finely).</li>
+</ul>
+
+<h3>Rotation</h3>
+<ul>
+<li>Static analysis in the rotating frame (d'Alembert): <b>centrifugal force</b> ρ·ω²·r from the speed, and with an <b>angular acceleration</b> α the inertial force −ρ·α × r (positive α = spin-up counter-clockwise about the axis; the drive supplies J·α as a reaction).</li>
+<li><b>Rotates</b>: checked parts (e.g. the rotor in an assembly); nothing = all parts. Materials need ρ.</li>
+<li>No Coriolis force and no centrifugal softening (linear) – valid for ordinary speeds and small deformations. At most one rotation per case.</li>
+</ul>
+
+<h3>Inertia from a mechanism</h3>
+<ul>
+<li>Created by <b>Transfer to FEA…</b> in <a href="pohyb.html">Motion</a>: for the selected instant (or a maximum) the body gets a case with the joint reactions (remote forces, distributing coupling to the joint faces) and an <b>Inertia</b> load – body force −ρ·(a₀ + α × r + ω × (ω × r)) from the body's acceleration, angular velocity and acceleration (d'Alembert); gravity is included. One joint is the support (remote support); its reaction should equal the MBD one.</li>
+<li>Transferring the whole history creates unit cases (joint reaction and inertia components) and history channels for <a href="unava.html">fatigue</a>.</li>
+<li>The list shows the description (a₀, ω, α, point, parts); it is not edited in the form – repeat the transfer after changing the mechanism. Added mass (<a href="dynamika.html">Dynamics</a>) is included.</li>
+</ul>
+
+<h3>Remote point: distributing or rigid coupling</h3>
+<ul>
+<li><b>distributing (adds no stiffness)</b>: force and moment are distributed to the face nodes (like RBE3 / Distributed in Ansys); the face deforms freely. Resultant and moment are exact. <b>Recommended.</b></li>
+<li><b>rigid</b>: the face moves as a rigid body (RBE2 / Rigid). It stiffens the model and causes stress peaks at the face edge. Always solved by CalculiX.</li>
+</ul>
+
+<h3>Bearing load</h3>
+<p>A pin in a hole (Bearing Load): the component perpendicular to the axis acts as pressure p ~ cos θ only on the <b>half of the cylinder facing the force</b>; the resultant is exactly F and the moment about the axis zero. The axial component is a uniform shear over the face. F is the force the pin exerts on the part (for a hole, it pushes the wall in the direction of F; for a pin, on the side facing away from F). The selection must be one cylinder – the <b>Hole</b> filter <span class="key">H</span> selects the whole hole. In 3D, 7 arrows show the cosine distribution.</p>
+
+<h3>Temperature (thermal stress)</h3>
+<ul>
+<li><b>thermal case: …</b> – temperature field from <a href="teplo.html">Heat</a> (transient: the snapshot at the given time, or <b>end of case</b>). The thermal case is computed first, automatically.</li>
+<li><b>uniform part temperature</b> – T [°C] on checked parts (nothing = all); it takes precedence over the thermal field.</li>
+<li>Stress from ΔT = T − <b>Reference (assembly)</b> temperature (Heat, default 20 °C). Materials need α.</li>
+<li>At most one thermal field per load case. The load is linear in ΔT, so superposition and fatigue apply.</li>
+</ul>
+
+<h3>Member loads</h3>
+<p>For frame structures (<a href="pruty.html">Members</a>) the Type menu adds:</p>
+<ul>
+<li><b>Member – nodal force / moment</b>: node (menu or click in 3D), F [N] and M [N·mm] in global axes.</li>
+<li><b>Member – distributed load</b>: member (menu or click), q [N/mm] along the length, optionally <b>linearly to</b> a value at the end; in global axes (snow, wind) or local member axes (x along the axis, z = “up” of the section). On an arc, along arc length.</li>
+<li><b>Gravity</b> also acts on members (density × section area).</li>
+</ul>
+<p>In 3D, member loads are red arrows (size by value).</p>
+
+<h2>Display and editing</h2>
+<ul>
+<li>Load faces are red (pressure purple) with a label; a tensile force arrow starts on the face, a compressive one ends on it. A remote force has its arrow at the remote point, a moment a double arrow. Loaded edges are magenta with arrows; points carry a cross; a cylindrical force has arrows at points far from the axis. The rotation axis is a magenta segment.</li>
+<li>Clicking a list row selects its faces and loads its values; press <b>Save changes to selected</b> after editing.</li>
+<li>Every load change discards the results; run the analysis again.</li>
+</ul>
+<p class="tip"><b>Tip:</b> choosing <b>Gravity</b> fills (0; 0; −9810) mm/s²; switching from gravity to another type zeroes the vector. Editing an existing gravity load keeps its value.</p>
+
+<h2>In the examples</h2>
+<ul>
+<li><b>Example 1 – printed bracket:</b> case “Eye load 200 N” = bearing load (0; 0; −200) N on hole “Eye” Ø8 in the boss. The eye axis is horizontal (Y) and the force is perpendicular → cosine pressure on the lower half. Case “Self-weight” = gravity (0; 0; −9810) mm/s². Fatigue scales “Eye load” as pulsating 0–1; creep takes it as long-term.</li>
+<li><b>Example 2 – assembly:</b> “Force on the arm eye” – bearing load (0; 0; −300) N on the Ø10 eye, horizontal X axis: cosine pressure on the lower half. “Side force on the post” – force at a remote point (250; 0; 0) N at (35; 35; 150) mm, distributing coupling to the post top face (z = 90 mm): the face carries 250 N and moment 250 N × 60 mm = 15 000 N·mm about Y. “Self-weight” and “Heating in operation” – temperature from thermal case “Operation – steady state” (ΔT relative to 20 °C). The results also contain the case “Bolt preload”.</li>
+</ul>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“First select one or more faces in the 3D view.”</b> / <b>“Create a load case first.”</b> – select faces, or create a case with <b>+</b>.</li>
+<li><b>“A force normal to the face can only be applied to planar faces with the same normal.”</b> – on a curved face use <b>Pressure</b> (p = F / A), or a force in components.</li>
+<li><b>“A cylindrical coordinate system is only available for a force …”</b> – for remote load, bearing load and gravity use a Cartesian system or global axes.</li>
+<li><b>“Selection '…': point is not on the surface”</b> (meshing) – the point is too far from the surface; select it again with the Point filter on a face or vertex.</li>
+<li><b>“… the point lies on the axis of the cylindrical system …”</b> – radial / tangential components on the axis are undefined; move the point or the axis, or use only the axial component.</li>
+<li><b>“Selection '…': the bearing load cannot be distributed – the face does not cover the side of the cylinder facing the force”</b> – only part of the hole is selected. Select the whole hole with the Hole filter.</li>
+<li><b>“Case '…': at most one temperature field from a thermal case”</b> / <b>“Time … s is past the end of the transient case (… s).”</b> – one field per case; the snapshot time must lie within the transient duration.</li>
+<li><b>“Load case '…' already exists – choose a different name.”</b> – case names must be unique; “Bolt preload” is reserved.</li>
+<li><b>“Case '…': reactions are not in equilibrium with the loads … The result is invalid – try a different solver.”</b> – the solver returned an inaccurate solution. In Solve choose another system solver (SPOOLES / PASTIX) or analysis.</li>
+</ul>

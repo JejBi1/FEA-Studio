@@ -1,0 +1,46 @@
+<h1>Skořepinový model</h1>
+<p class="lead">Tenkostěnné díly (desky, ohýbaný plech, povrchové díly z STEP) jako <b>skořepiny</b>: střednice s tloušťkou
+(prvky S6 v CalculiXu). Řádově méně prvků než ve 3D; dává horní / dolní, membránové a ohybové napětí. Nastavuje se v
+<a href="reseni.html">Řešení</a>, skupina <b>Skořepinový model</b>.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Vazby a zatížení jako ve 3D na plochy dílů. Povrchové díly berou i <b>hrany</b> (filtr hran <span class="key">E</span>);
+<b>Pevná vazba z výběru</b> vezme vybrané hrany, když nejsou vybrány plochy.</li>
+<li>Zaškrtněte <b>analyzovat skořepinový model místo 3D</b>. Tabulka ukazuje rozpoznaný typ a tloušťku; nerozpoznaný díl je červeně s důvodem.</li>
+<li>Povrchový díl z STEP: vyberte řádek, zadejte <b>Tloušťka dílu</b>, stiskněte <b>Nastavit tloušťku</b> (desky z těles ji berou
+z geometrie; zadaná hodnota ji přepíše).</li>
+<li>Spusťte; ve Výsledcích vyberte případ <b>Skořepiny: …</b> a veličinu.</li>
+</ol>
+
+<h2>Ovládání</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th></tr>
+<tr><td>analyzovat skořepinový model místo 3D</td><td>analýza skořepin bez 3D sítě; vylučuje se s 2D analýzou řezem (zapnutí jedné vypne druhou)</td></tr>
+<tr><td>Tabulka dílů</td><td>díl (zaškrtnutý = ve skořepinovém modelu; nic = všechny), typ (deska, plech, povrchový díl), tloušťka z modelu, zadaná tloušťka, důvod vyřazení</td></tr>
+<tr><td>Tloušťka dílu + Nastavit tloušťku</td><td>tloušťka vybraného dílu [mm]; „z geometrie“ = tloušťka nalezené desky</td></tr>
+<tr><td>Poloha plochy</td><td>povrchový díl z STEP: plocha CAD je střední, horní nebo dolní (desky z těles vždy střednice)</td></tr>
+<tr><td>Velikost prvku</td><td>velikost prvku skořepiny [mm]; „stejně jako 3D síť“ = krok Síť</td></tr>
+<tr><td>Najít desky</td><td>znovu najde desky a plech v tělesech</td></tr>
+<tr><td>Načíst povrchové díly z STEP</td><td>přidá plochy a skořepiny bez objemu (běžné načtení je přeskočí), vybíratelné ve 3D; STEP jen s plochami se tak načte a skořepinový model se zapne</td></tr>
+</table>
+
+<h2>Rozpoznání desek a plechů</h2>
+<ul>
+<li><b>Deska</b>: dvě rovnoběžné rovinné plochy opačných normál (největší plochy) ve vzdálenosti t, konstantní tloušťka
+(objem = t·(A₁ + A₂)/2 do 2 %). Štíhlost √A / t ≥ 5; pod 10 varování (silná deska).</li>
+<li><b>Plech</b> s válcovými ohyby: střednice odsazením. Desky spojené do T nebo L: střednice prodloužena o t/2.</li>
+</ul>
+
+<h2>Výsledky</h2>
+<p>Barevné pole na střednici (tvar podle volby Deformace). Veličiny: von Mises max povrchů, horní, střední, dolní;
+<b>membránové</b> (střednice) a <b>ohybové</b> ((horní − dolní)/2) napětí; hlavní napětí; σx, σy horního a dolního povrchu; posuvy;
+tloušťka. Sonda ukáže zobrazenou vrstvu. Souhrn: reakce (síly, momenty k referenčnímu bodu) a kontrola rovnováhy.</p>
+
+<h2>Omezení</h2>
+<ul>
+<li>Podpory: pevná vazba a předepsaný posuv. Zatížení: síla, tlak, tíha, otáčení (bez lokálních souřadnicových systémů).</li>
+<li>Žádné šrouby, svary, teplo, 3D tisk, ortotropie, kontakty ani dynamika; bez kombinace s tělesy.</li>
+<li>Ověřeno úlohami Sh1–Sh7 (konzola proti 3D 0,06 %, deska T&amp;W-K 1 %, Lamého trubka, deska s otvorem, T-nosník,
+ohnutý plech): <code>python -m verification.run_all Sh1 … Sh7</code>.</li>
+</ul>

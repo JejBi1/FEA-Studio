@@ -1,0 +1,47 @@
+<h1>Dynamika</h1>
+<p class="lead">Tvary vlastních kmitů, harmonická, přechodová odezva, náhodné kmitání (ASD) a ráz (spektrum odezvy): tvary z CalculiXu +
+modální superpozice. Přidaná hmota se zadává zde.</p>
+
+<p class="warn"><b>Tlumení je nejisté (±50 %)</b>; dvojnásobné ζ dá poloviční špičku v rezonanci. Změřte je (úderová zkouška, doznívání)
+kalkulačkou <b>Z měření…</b>; orientační ζ: <a href="treni.html">Tření a tlumení</a>.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Zaškrtněte <b>počítat dynamiku</b>; tvary pokryjí 1,5–2× nejvyšší budicí frekvenci, efektivní hmotnost ve směru buzení ≥ 90 % (kontroluje se).</li>
+<li><b>Tlumení</b>: modální ζ (výchozí 2 %), Rayleigh (ζ ve dvou frekvencích), konstrukční η (jen harmonická, η = 2ζ), nebo podle materiálu.</li>
+<li>Zapněte odezvu a zadejte <b>buzení</b>: síla = zatěžovací stav × průběh, nebo pohyb základu (g / mm/s², nebo mm) podél osy
+(všechny podpory se pohybují se základem).</li>
+<li>Přidejte <b>sondy</b> (bod nebo plochy) pro FRF, průběh v čase, PSD.</li>
+<li>Spusťte v Řešení: položky „Dynamika: …“, záložka grafů Dynamika.</li>
+</ol>
+
+<h2>Typy odezvy</h2>
+<table class="grid">
+<tr><th>Odezva</th><th>Vstup</th><th>Výstup</th></tr>
+<tr><td>Harmonická (sinus)</td><td>rozsah frekvencí, body (hustěji v rezonancích), průběh vs. frekvence, fáze; rychlost přejezdu [okt/min], přejezdy</td><td>pole na frekvenci a fázi, amplituda přes fázi, obálka, FRF v sondách, únava přejezdem (dn/df = 60/(R·ln 2) cyklů/Hz)</td></tr>
+<tr><td>Přechodová (v čase)</td><td>délka, krok (≤ T_min/20), průběh: skok, obdélníkový a půlsinusový puls, S-křivka posuvu (začátek na ose); tolerance ustálení. Po částech lineární posuv základu d(t) = impulzy Δv_k·δ(t − t_k) v lomech, integrované přesně.</td><td>pole v čase, obálka, průběhy v sondách, čas ustálení</td></tr>
+<tr><td>Náhodné kmitání</td><td>body ASD [g²/Hz], sklony dB/okt, osa, délka [h], spektrální únava (Dirlik, Tovo–Benasciutti, úzkopásmová)</td><td>RMS posuvy, RMS von Mises (Segalman, informativně) a 3σ, poškození D, životnost, PSD v sondách</td></tr>
+<tr><td>Ráz</td><td>puls (půlsinusový, pilový, lichoběžníkový) A [g], τ, nebo tabulka SRS; CQC / SRSS, chybějící hmota (ZPA)</td><td>složené posuvy a von Mises, SRS pulsu, volitelně přechodová odezva</td></tr>
+<tr><td>Předpjatá modální</td><td>stav předpětí; volitelně <b>předpětí s NLGEOM</b></td><td>tvary se ztuhnutím od napětí; celková reakce přesně, rozdělení mezi podpory přibližné. *FREQUENCY v CalculiXu používá referenční (nedeformovanou) geometrii; programy, které používají deformovanou geometrii, dají mírně jiné frekvence (desetiny procenta).</td></tr>
+</table>
+
+<h2>Zkušební profily (jen struktura)</h2>
+<p>Nabídka <b>Zkušební profil</b>: IEC 60068-2-6 (sinus), -2-64 (náhodné), -2-27 (ráz), -2-47 (upevnění).
+<b>Úrovně, rozsahy ani doby nejsou zabudovány</b> – vezměte je z normy. Generátor „IEC 60068-2-6: konst. posuv / zrychlení“
+přebírá x̂ [mm] a a [g], dá f_c = √(a/x̂)/2π a tabulku zrychlení.</p>
+
+<h2>Přidaná hmota</h2>
+<ul>
+<li><b>Bodová hmotnost</b> [kg] v těžišti: tuhá vazba (i Ixx, Iyy, Izz [kg·m²]; plochu ztuhne) nebo rozdělující (jen translační).</li>
+<li><b>Plošná hmotnost</b> [kg/m²] po ploše (osazená deska, nátěr).</li>
+<li>Působí v tíze, otáčení, vlastních frekvencích, dynamice.</li>
+</ul>
+
+<h2>Výsledky</h2>
+<ul>
+<li><b>Harmonická</b>: posuvník frekvence, fáze φ, „absolutně“ = posuv + pohyb základu; „amplituda přes fázi“ na φ nezávisí; obálka = maximum přes frekvence a kde nastalo.</li>
+<li><b>Přechodová</b>, <b>Náhodné</b> (RMS, 3σ, poškození, životnost), <b>Ráz</b>, <b>tvary</b>.</li>
+<li>Záložka <b>Dynamika</b>: FRF, průběh v čase, PSD odezvy, ASD vstupu, SRS pulsu, reakce; tabulka tvarů (frekvence, tlumení,
+efektivní hmotnost; klik = tvar ve 3D).</li>
+</ul>
+<p class="tip">Nelze kombinovat s kontaktem (nutný lineární model), 2D řezem ani skořepinami.</p>

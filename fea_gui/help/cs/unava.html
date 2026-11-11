@@ -1,0 +1,143 @@
+<h1>Únava</h1>
+<p class="lead">Krok Únava počítá únavové poškození a životnost ze statických výsledků: napětí v čase se složí z zatěžovacích stavů násobených zatěžovací křivkou,
+cykly se počítají metodou rainflow a poškození se sčítá podle Palmgrena–Minera s S-N křivkou materiálu.</p>
+
+<h2>Princip</h2>
+<p>Každý zatěžovací stav je <b>jednotkový stav</b>. Zatěžovací křivka (jeden <b>blok</b>) říká, kolikrát stav působí v čase, a napětí v uzlu je superpozice:</p>
+<p><b>σ(t) = Σ f<sub>k</sub>(t) · σ<sub>k</sub></b> &nbsp; (lineární pružnost; více kanálů na jednom stavu se sčítá)</p>
+<p>Příklad: stav „Síla 200 N“ se sinusovým kanálem, střed 0,5, amplituda 0,5 = míjivé zatížení 0–200 N. Blok se za životnost opakuje <b>Návrhový počet bloků</b> krát.</p>
+<ol>
+<li>Spočítejte statiku (krok <a href="reseni.html">Řešení</a>).</li>
+<li>Zadejte kanály zatěžovací křivky a návrhový počet bloků.</li>
+<li>Zvolte metodu, opravu středního napětí, povrch a S-N křivku.</li>
+<li>Klikněte na <b>Spočítat únavu</b>.</li>
+</ol>
+
+<h2>Zatěžovací křivka (jeden blok)</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam kanálů</td><td>Kanály jako „stav: sinus, střed …, amplituda …, … kmitů, fáze …°“ nebo „stav: N bodů“. Klik načte kanál do formuláře.</td><td></td></tr>
+<tr><td>Zatěžovací stav</td><td>Stav, jehož násobek kanál zadává.</td><td>Se šrouby je v seznamu i „Předpětí šroubů“.</td></tr>
+<tr><td>Průběh</td><td>Sinus, nebo Body (tabulka / CSV).</td><td></td></tr>
+<tr><td>Amplituda, Střední hodnota</td><td>Sinus: f(t) = střední hodnota + amplituda · sin(2π · kmity · t / délka bloku + fáze).</td><td>Míjivě 0–1: střed 0,5, amplituda 0,5. Střídavě ±1: střed 0, amplituda 1.</td></tr>
+<tr><td>Kmitů v bloku</td><td>Počet kmitů sinu v jednom bloku.</td><td>Výchozí 1. Opakování zadejte Návrhovým počtem bloků; kmity v bloku jen přidávají časové body (24 na kmit) a zpomalují výpočet (kritická rovina varuje nad 2000 bodů).</td></tr>
+<tr><td>Fáze [°]</td><td>Fázový posun sinu.</td><td>Dva kanály stejné frekvence a fáze 90° = neproporcionální zatížení (rotují hlavní směry).</td></tr>
+<tr><td>Tabulka čas / násobek, + řádek, − řádek</td><td>Body průběhu; mezi body lineárně.</td><td>Aspoň 2 body. Čas v libovolných jednotkách.</td></tr>
+<tr><td>Import CSV…</td><td>Načte body ze souboru (viz níže).</td><td></td></tr>
+<tr><td>Přidat kanál / Uložit kanál / Smazat</td><td>Přidá kanál z formuláře, přepíše kanál vybraný v seznamu, smaže ho.</td><td></td></tr>
+<tr><td>Návrhový počet bloků</td><td>Kolikrát se blok za návrhovou životnost opakuje.</td><td>Např. 1e6; čísla lze psát i jako 2e5.</td></tr>
+<tr><td>Délka bloku</td><td>Časová osa sinusu (perioda = délka bloku / kmitů).</td><td>Výchozí 1; důležitá jen při kombinaci sinusu s body.</td></tr>
+<tr><td>Graf</td><td>Průběh násobků všech použitých stavů v bloku.</td><td>Kontrola, zda křivka odpovídá záměru.</td></tr>
+</table>
+<h3>Import CSV</h3>
+<ul>
+<li>Dva sloupce <b>čas; násobek</b>, nebo jeden sloupec násobků (čas = číslo řádku). Řádky se záhlavím se přeskočí.</li>
+<li>Oddělovač <b>;</b> nebo tabulátor má přednost – čárka je pak desetinná (<code>0;1,5</code>). Čárka jako oddělovač platí jen tehdy, je-li v souboru desetinná tečka nebo textové záhlaví (<code>0,1.5</code>).</li>
+<li>Soubor jen s čárkami a bez bodů (<code>1,5</code>) je nejednoznačný a odmítne se – použijte středník, nebo desetinnou tečku.</li>
+</ul>
+<p class="tip"><b>Tip:</b> střední napětí od trvalých zatížení (předpětí šroubů, vlastní tíha, teplotní napětí) zadejte jako kanál s konstantním násobkem 1: Body (0; 1) a (1; 1).</p>
+
+<h2>Metoda a materiál</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Metoda únavy</td><td><b>S-N (napěťová)</b> – amplituda napětí proti křivce S-N s Marinovými faktory (vysokocyklová únava); <b>ε-N (deformační)</b> – viz <a href="#en">metoda ε-N</a> níže.</td><td>S-N. ε-N pro nízkocyklovou únavu s lokálním plastickým přetvořením ve vrubech.</td></tr>
+<tr><td>Vrubové pravidlo (ε-N)</td><td>Převod pružného MKP napětí na lokální pružně-plastické přetvoření: <b>Neuber</b> (σ·ε = σ_el²/E) nebo <b>Glinka</b> (rovnost hustoty energie přetvoření).</td><td>Neuber (konzervativnější). Aktivní jen pro ε-N.</td></tr>
+<tr><td>Víceosost (metoda)</td><td><b>znaménkový von Mises</b> (znaménko dominantního hlavního napětí), <b>max. hlavní napětí</b> (největší absolutní hodnota), <b>kritická rovina</b>.</td><td>Výchozí znaménkový von Mises. Pro smyk, krut a neproporcionální zatížení použijte kritickou rovinu.</td></tr>
+<tr><td>Kritická rovina – Kritérium</td><td><b>Findley</b> (τa + k·σn,max, tvárné), <b>normálové napětí</b> (rainflow σn, křehké), <b>podle materiálu</b> (šedá litina → normálové napětí, jinak Findley).</td><td>Podle materiálu.</td></tr>
+<tr><td>f₋₁/t₋₁ (S-N materiál)</td><td>Poměr mezí únavy v souměrném tahu / krutu materiálu zvoleného pro řádek S-N; určuje k Findleyho kritéria.</td><td>Prázdné = √3 ≈ 1,732 (tvárné oceli; zkoušky 1,6–1,8). Rozsah (1; 2⟩.</td></tr>
+<tr><td>Roviny (hrubá síť)</td><td>Počet rovin na polokouli pro první hledání.</td><td>100 ≈ rozestup 14°; tři nejhorší kandidáti se zjemní na asi 1°.</td></tr>
+<tr><td>Směry smyku</td><td>Počet směrů smyku v rovině (Findley).</td><td>Výchozí 12.</td></tr>
+<tr><td>důkladné hledání</td><td>4× více rovin a kandidátů.</td><td>Asi 3× pomalejší; pro ověření.</td></tr>
+<tr><td>Střední napětí</td><td>S-N: bez opravy, Goodman, Gerber. ε-N: bez opravy, Morrow, Smith-Watson-Topper (SWT).</td><td>Goodman (konzervativní) / Morrow. U Findleyho se nepoužívá (střední napětí je v členu k·σn,max).</td></tr>
+<tr><td>opakování bloku (uzavřít zbytek rainflow)</td><td>Neuzavřené půlcykly bloku se připojí k dalšímu opakování.</td><td>Zapnuto (správné pro opakovaný blok).</td></tr>
+<tr><td>Povrch (ka)</td><td>Marinův faktor povrchu: leštěný, broušený, obráběný / tažený za studena, válcovaný za tepla, kovaný.</td><td>Obráběný; závisí na Rm (Shigley).</td></tr>
+<tr><td>Spolehlivost (ke)</td><td>50 / 90 / 95 / 99 / 99,9 / 99,99 %.</td><td>50 % = střední S-N; 90 % → 0,897, 99 % → 0,814.</td></tr>
+<tr><td>Průměr pro kb</td><td>Faktor velikosti z účinného průměru [mm].</td><td><i>ignorovat</i> = 1. Pro 2,8–51 mm kb = 1,24·d<sup>−0,107</sup>.</td></tr>
+<tr><td>Ostatní vlivy kf</td><td>Další faktor (teplota, prostředí, zkušenost).</td><td>1,0</td></tr>
+<tr><td>S-N pro materiál</td><td>Materiál, jehož S-N se ukazuje a upravuje.</td><td>Jen materiály síťovaných dílů (bez šroubů, matic a podložek nahrazených nosníkem a bez vynechaných dílů).</td></tr>
+<tr><td>vlastní S-N (jinak odhad z Rm)</td><td>Zapne vlastní křivku SD, ND, k, k2.</td><td>Vypnuto = odhad.</td></tr>
+<tr><td>SD, ND, k, k2</td><td>Amplituda v zlomu [MPa] (bez Marinových faktorů), počet cyklů v zlomu, sklon nad a pod zlomem.</td><td>k2 = 0 = mez únavy (pod SD žádné poškození); Haibach k2 = 2k − 1.</td></tr>
+<tr><td>Z databáze PragTic…</td><td>Únavové vlastnosti z literatury (pragtic.com, J. Papuga) se zdroji.</td><td>Viz níže.</td></tr>
+<tr><td>Řádek „Použito: …“</td><td>S-N a Marinovy faktory ka · kb · ke · kf = použité k, a zdroj.</td><td></td></tr>
+</table>
+
+<h3>Odhad S-N z Rm (bez zkoušek)</h3>
+<ul>
+<li><b>Ocel</b> (E ≥ 150 GPa): Se' = 0,5·Rm při 10⁶ cyklech (nejvýše 700 MPa), 0,9·Rm při 10³, mez únavy pod 10⁶ (Shigley).</li>
+<li><b>Hliník</b> (E 40–150 GPa): 0,4·Rm (nejvýše 130 MPa) při 5·10⁸, bez meze únavy (Haibach pod zlomem).</li>
+<li><b>Plast</b>: 0,25·Rm při 10⁶, k = 10 – jen orientačně; nutná kalibrace ze zkoušek.</li>
+</ul>
+<p>Marinovy faktory snižují amplitudu v zlomu; u odhadu z Rm zůstává bod 0,9·Rm při 10³ cyklech. Obojí platí pro hladký vzorek – vliv vrubu je v MKP napětí (jemná síť ve vrubu).</p>
+
+<h3 id="en">Metoda ε-N (deformační)</h3>
+<ul>
+<li>Průběh pružného MKP napětí (znaménkový von Mises nebo max. hlavní napětí; bez kritické roviny) se vrubovým pravidlem převede na lokální pružně-plastické přetvoření na cyklické křivce Ramberg-Osgood; rainflow, křivka Coffin-Manson-Basquin a Palmgren–Miner dají poškození.</li>
+<li>Parametry σ'f, b, ε'f, c, K', n' se <b>odhadují z Rm a E</b> (jednotný materiálový zákon Bäumel-Seeger) – orientačně, ověřte zkouškami. Řádek „Použito ε-N“ ukazuje hodnoty. Naměřené parametry lze zadat jen přes Python API nebo soubor studie (<code>FatigueSettings.en_params</code>, viz <a href="automatizace.html">Automatizace</a>); GUI ani MCP server pro ně vstup nemají.</li>
+<li>Povrch, spolehlivost, velikost a ostatní Marinovy faktory ani křivka S-N se nepoužijí (zašedlé). Pro díly z 3D tisku metoda není k dispozici.</li>
+</ul>
+
+<h3>Databáze PragTic</h3>
+<p>Dialog <b>S-N z databáze PragTic</b> obsahuje 647 záznamů z literatury. Do hledání napište označení podle libovolné normy (12050, C45, 1.0503, AISI 1045, S45C…); ekvivalenty najde převodník označení. Sloupec <b>Shoda</b> ukazuje <i>shoda</i>, <i>≈ shoda</i> (přibližný ekvivalent), nebo <i>podobný</i> (stejná rodina, podobné složení). Zaškrtnutí <b>jen se S-N daty (tah-tlak / ohyb)</b> skryje záznamy bez únavových dat. Vpravo je celý záznam se zdroji; v poli <b>S-N křivka pro výpočet</b> zvolte variantu (mez tah-tlak, Basquin, mez v ohybu). Volba <b>převzít i Rm a Re do materiálu</b> přepíše Rm a Re materiálu studie (oprava středního napětí používá Rm). Tlačítko <b>Použít S-N</b> nebo dvojklik na řádek křivku převezme.</p>
+<p><b>Zdroj dat a citace.</b> Data patří autorovi databáze: <i>Papuga, J.: PragTic – material database of fatigue properties (Fatigue Data Repository). Czech Technical University in Prague, Faculty of Mechanical Engineering. <a href="https://www.pragtic.com/vmat.php">https://www.pragtic.com/vmat.php</a></i>. Ke každé převzaté křivce FEA Studio uvede číslo záznamu a původní zdroj (článek, norma, příručka); protokol Word citaci doplní sám. Databázi i původní zdroj citujte i ve vlastní dokumentaci výpočtu.</p>
+<p>Databáze není v programu distribuována (autor neudělil souhlas s šířením). Pro vlastní použití ji stáhněte z pragtic.com příkazem <code>python -m fea_core.fatigue.pragtic_fetch</code>; únava funguje i bez ní (odhad z Rm nebo ručně zadaná S-N).</p>
+
+<h2>Výpočet a výsledky</h2>
+<ul>
+<li><b>Spočítat únavu</b> běží na pozadí. S proporcionálními kanály se rainflow počítá jednou – pod 1 s. Kritická rovina trvá desítky sekund; při neproporcionálním zatížení a tisících časových bodů i minuty.</li>
+<li>První výpočet po spuštění programu může být pomalejší (překlad výpočetního jádra).</li>
+<li>Výsledek únavy se v projektu neukládá (ukládá se nastavení); každá změna nastavení nebo studie ho zahodí.</li>
+</ul>
+<table class="grid">
+<tr><th>Ovládací prvek / veličina</th><th>Co ukazuje</th><th>Poznámka</th></tr>
+<tr><td>Poškození D za návrhovou životnost (log₁₀)</td><td>log₁₀ D za Návrhový počet bloků.</td><td>D ≥ 1 (log ≥ 0) = porušení. Uzly bez poškození jsou na spodní mezi (6 řádů pod maximem).</td></tr>
+<tr><td>Životnost [bloky] (log₁₀)</td><td>log₁₀ počtu bloků do porušení (D = 1).</td><td>Barvy obráceně: červená = krátká životnost.</td></tr>
+<tr><td>Bezpečnost k únavě (násobek napětí)</td><td>O kolik by se musela zvýšit všechna napětí (celá zatěžovací křivka), aby D = 1 při návrhovém počtu bloků.</td><td>Zobrazuje se do 10. Bezpečnost &gt; 1 = přijatelné.</td></tr>
+<tr><td>Amplituda ekvivalentního napětí [MPa]</td><td>Největší amplituda ekvivalentního napětí v uzlu.</td><td>U kritické roviny amplituda v kritické rovině.</td></tr>
+<tr><td>Tabulka nejhorších míst</td><td>10 míst: x, y, z, celkové D, životnost [bl.], bezpečnost, normála roviny (jen kritická rovina).</td><td>Klik na řádek: graf průběhu napětí v uzlu a značka ve 3D.</td></tr>
+<tr><td>Graf</td><td>Průběh ekvivalentního napětí v uzlu, počet cyklů a max. amplituda Sa; u kritické roviny normálové napětí σn a smyk τ v kritické rovině.</td><td>Ve 3D: fialová úsečka = normála kritické roviny, tyrkysová = směr smyku.</td></tr>
+<tr><td>Souhrn pod tabulkou</td><td>Max. poškození (VYHOVUJE / NEVYHOVUJE, D &lt; 1), min. životnost, min. bezpečnost, <b>Metoda</b> (text do protokolu), použité S-N, varování.</td><td>Klik v mapě funguje jako sonda.</td></tr>
+</table>
+
+<h3>Jak výsledek číst</h3>
+<ul>
+<li>Výsledkem je <b>místní napětí hladkého vzorku</b>. Nejhorší místa v singularitách (ostré vnitřní rohy, hrany podpor) nehodnoťte podle uzlové hodnoty – zjemněte síť, přidejte zaoblení, nebo použijte metodu vrubu (viz <a href="vysledky.html">Výsledky</a>).</li>
+<li>Znaménkový von Mises má u čistého smyku (σ1 = −σ3) nejednoznačné znaménko – pro krut a neproporcionální zatížení použijte kritickou rovinu.</li>
+<li>Nenulový předepsaný posuv je v každém zatěžovacím stavu a ve superpozici se násobí. Dejte ho do samostatného stavu a ostatní počítejte s nulovým posuvem.</li>
+<li><b>Svary a šrouby</b> se posuzují zvlášť (třída FAT, VDI 2230 σ_ASV) – <a href="spoje.html">Spoje</a>.</li>
+<li><b>Tištěné díly</b> se hodnotí Hillovým ekvivalentem v osách tisku (skořepina a jádro) s S-N tisku (orientačně, podle Ezeha &amp; Susmela 2019, bez Marinových faktorů ka, kb, ke). U tištěného materiálu ukazuje box S-N přímo S-N tisku (SD v rovině XY a SD_z kolmo na vrstvy); vlastní S-N se vztahuje k XY a bez zadaného k2 pokračuje sklonem tisku k2 (plasty nemají mez únavy). Viz <a href="tisk.html">3D tisk</a>.</li>
+<li><b>Ložisková síla</b> není lineární ve směru síly (tlak jen na polovině díry přivrácené k síle) – superpozice stavů s ložiskovou silou dává u rotující síly jiné napětí než skutečnost (program varuje).</li>
+</ul>
+
+<h2>Únava s kontakty, z mechanismu a z dynamiky</h2>
+<ul>
+<li><b>Kontakty (nelineární výpočet):</b> superpozice neplatí. Únava je možná jen z <b>posloupnosti kroků</b> (krok <a href="kontakty.html">Kontakty</a> → Posloupnost kroků, počet cyklů ≥ 2). Průběh tvoří konce kroků <b>poslední cyklu</b> (první cyklus s prokluzem se může lišit); kanály zatěžovací křivky se nepoužijí. Program kontroluje, že se odezva mezi posledními dvěma cykly ustálila (změna do 0,1 %), jinak doporučí přidat cykly. Průběh uvnitř kroku se neuvažuje. Větve („stavy zvlášť“) skončí chybou.</li>
+<li><b>Mechanismus:</b> převod celé křivky z kroku <a href="pohyb.html">Pohyb</a> vytvoří jednotkové stavy (reakce kloubů, setrvačnost) a kanály zatěžovací křivky – únava pak běží superpozicí jako obvykle.</li>
+<li><b>Dynamika:</b> únava z <b>sinového rozmítání</b> (rychlost rozmítání, počet průchodů) a <b>spektrální únava</b> náhodných vibrací (Dirlik, Tovo–Benasciutti, úzké pásmo) se zadávají a počítají v kroku <a href="dynamika.html">Dynamika</a>; výsledky jsou v položkách „Dynamika: …“ v kroku Výsledky. Potřebují Rm materiálu (odhad S-N) nebo zadanou S-N.</li>
+</ul>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 – tištěný držák</h3>
+<ul>
+<li>Jeden kanál: <b>Zatížení oka 200 N: sinus, střed 0,5, amplituda 0,5, 1 kmitů, fáze 0°</b> → míjivé 0–200 N, návrhový počet bloků 1e5 (100 000 cyklů).</li>
+<li>Zatížení je proporcionální → výpočet je okamžitý. Celý díl je tištěný, takže se použije Hillův ekvivalent s S-N tisku – orientačně; bez kalibrace zkouškami to není důkaz.</li>
+<li>Zkuste: kanál Vlastní tíha s konstantním násobkem 1 (střední napětí), nebo 1e6 bloků a sledujte pokles bezpečnosti.</li>
+</ul>
+<h3>Ukázka 2 – sestava</h3>
+<ul>
+<li>Dva kanály: <b>Síla na oko ramena</b> sinus 0–1 (míjivé 0–300 N) a <b>Boční síla na sloupek</b> sinus ±1 (±250 N) s fází 90°, návrhový počet bloků 2e5.</li>
+<li>Kanály nejsou proporcionální → <b>neproporcionální zatížení</b>. Porovnejte znaménkový von Mises a kritickou rovinu (Findley) – u sloupku a patky z S235 (S-N odhadnuté z Rm) se mohou lišit; fialová úsečka ukazuje kritickou rovinu nejhoršího místa.</li>
+<li>Předpětí šroubů a teplotní napětí nejsou v křivce. Pro jejich zahrnutí jako střední napětí přidejte kanály „Předpětí šroubů“ a „Ohřev za provozu“ s konstantním násobkem 1.</li>
+<li>Kořeny a paty svarů jsou na mapě singularity; únavu svarů a šroubů posuďte v dokumentu Spoje – využití.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<table class="grid">
+<tr><th>Hlášení / projev</th><th>Příčina a řešení</th></tr>
+<tr><td>„Nejdřív spočítejte statiku (krok Řešení) – výsledky nemají mechanický zatěžovací stav.“</td><td>Únava potřebuje statické výsledky; studie jen s teplem únavu nemá.</td></tr>
+<tr><td>„Únava s kontaktem / nelineárním výpočtem ve větvích není k dispozici …“</td><td>Studie s kontakty počítaná stav po stavu nemá průběh. V kroku <a href="kontakty.html">Kontakty</a> definujte posloupnost kroků s ≥ 2 cykly a přepočítejte.</td></tr>
+<tr><td>„Zatěžovací stav '…' není ve výsledcích“</td><td>Kanál odkazuje na přejmenovaný nebo smazaný stav. Smažte kanál a přidejte ho znovu, nebo přepočítejte statiku.</td></tr>
+<tr><td>„CSV nelze načíst: CSV je nejednoznačné (čárka může být oddělovač nebo desetinná čárka…)“</td><td>Uložte CSV s oddělovačem ; (Excel v české verzi to dělá sám), nebo s desetinnou tečkou.</td></tr>
+<tr><td>„Pro odhad S-N je třeba Rm materiálu“</td><td>Doplňte Rm v kroku <a href="materialy.html">Materiály</a>, nebo zadejte vlastní S-N.</td></tr>
+<tr><td>„Poměr f₋₁/t₋₁ musí být v rozsahu (1; 2⟩…“</td><td>Findleyho kritérium se nehodí pro křehké materiály – zvolte kritérium normálového napětí.</td></tr>
+<tr><td>„Kritická rovina při neproporcionálním zatížení a N časových bodech je pomalá…“</td><td>Zkraťte blok: méně kmitů stejného tvaru a více opakování (Návrhový počet bloků).</td></tr>
+</table>

@@ -1,0 +1,193 @@
+<h1>Automatizace</h1>
+<p class="lead">Vše, co dělá GUI, jde i bez něj: příkazová řádka, skripty v Pythonu, server MCP pro AI asistenty (Claude, Cursor) a rozhraní REST pro adaptéry CADu a další programy. Příkazy na této stránce lze kopírovat.</p>
+
+<h2>Příprava</h2>
+<p>Příkazy spouštějte ze složky instalace (např. <code>C:\FEA Studio</code>) jejím Pythonem. V PowerShellu:</p>
+<pre>cd "C:\FEA Studio"
+$env:PYTHONIOENCODING = "utf-8"
+.venv\Scripts\python.exe -m fea_core --help</pre>
+<p>V příkazovém řádku cmd místo druhého řádku použijte <code>set PYTHONIOENCODING=utf-8</code>. Bez toho mohou být české znaky ve výstupu poškozené.</p>
+<p class="tip"><b>Tip:</b> projekt .fea je zip s <code>study.json</code> (vstup), <code>model.step</code> (geometrie) a případně výsledky. Pro příkazy, které potřebují study.json, přejmenujte projekt na .zip a rozbalte jej; study.json odkazuje na model.step ve stejné složce.</p>
+
+<h2>Příkazová řádka (python -m fea_core)</h2>
+<table class="grid">
+<tr><th>Příkaz</th><th>Co dělá</th><th>Volby</th></tr>
+<tr><td><code>faces model.step</code></td><td>Vypíše díly (objem) a plochy: index, typ, plocha, těžiště, normála – podklad pro výběry ve skriptu.</td><td><code>--part NÁZEV</code> jen jeden díl</td></tr>
+<tr><td><code>check study.json</code></td><td>Kontrola připravenosti (jako v kroku Řešení, bez kontroly tuhých pohybů). Návratový kód 1 = chyby.</td><td></td></tr>
+<tr><td><code>run study.json</code></td><td>Síť, tepelné stavy, statika; vypíše souhrn (JSON) a uloží <code>results.npz</code> a <code>summary.json</code>.</td><td><code>-o SLOŽKA</code> (výchozí <code>&lt;study&gt;_run</code>), <code>-v</code> výstup CalculiXu</td></tr>
+<tr><td><code>fatigue study.json</code></td><td>Únava podle zatěžovací křivky studie: metoda, S-N, nejhorší místa; uloží <code>fatigue.npz</code>.</td><td><code>--results results.npz</code> bez nového výpočtu, <code>--top 10</code>, <code>-o</code></td></tr>
+<tr><td><code>detect model.step</code></td><td>Rozpoznání šroubů (podle názvu a tvaru) a svarů (název, barva, vrstva, atribut).</td><td><code>--add study.json</code> zapíše do studie; <code>--accept-shape</code>; <code>--no-shape</code>; <code>--weld-color #rrggbb</code> (lze opakovat)</td></tr>
+<tr><td><code>joints study.json</code></td><td>Posouzení šroubů (VDI 2230, EN 1993-1-8) a svarů jako text.</td><td><code>--results results.npz</code>, <code>-o</code></td></tr>
+<tr><td><code>report study.json | projekt.fea</code></td><td>Protokol Word – viz <a href="protokol.html">Protokol</a>.</td><td><code>-o</code>, <code>--safety</code>, <code>--author</code>, <code>--company</code>, <code>--title</code>, <code>--keep-images</code>, <code>--no-images</code>, <code>--no-solve</code>, <code>--no-fatigue</code>, <code>--results</code>, <code>--workdir</code></td></tr>
+</table>
+<p>Příklady:</p>
+<pre>.venv\Scripts\python.exe -m fea_core faces model.step --part "Patka"
+.venv\Scripts\python.exe -m fea_core check studie\study.json
+.venv\Scripts\python.exe -m fea_core run studie\study.json -o studie\vypocet
+.venv\Scripts\python.exe -m fea_core fatigue studie\study.json --results studie\vypocet\results.npz --top 20
+.venv\Scripts\python.exe -m fea_core detect sestava.step --add studie\study.json
+.venv\Scripts\python.exe -m fea_core joints studie\study.json --results studie\vypocet\results.npz
+.venv\Scripts\python.exe -m fea_core report projekt.fea --safety 1.5 -o projekt_protokol.docx</pre>
+
+<h3>Další příkazy</h3>
+<pre># GUI s otevřeným souborem (jako FEA Studio.bat)
+.venv\Scripts\pythonw.exe -m fea_gui projekt.fea
+# znovu vytvoří ukázky včetně výsledků
+.venv\Scripts\python.exe -m examples.create --solve
+# ověřovací úlohy (statika V1–V18, teplo T1–T7, spoje, tisk, únava, pruty, 2D, skořepiny,
+# kontakty K…, dynamika Y…, mechanismy MB…)
+.venv\Scripts\python.exe -m verification.run_all
+# jen vybrané úlohy
+.venv\Scripts\python.exe -m verification.run_all V1 V7 K1 Y2 MB1</pre>
+<p>Ověřovací úlohy porovnají výsledky s analytickým řešením a vypíší tabulku shody – užitečné po instalaci nebo aktualizaci.</p>
+
+<h2>Skript v Pythonu</h2>
+<p>Šablony: <code>examples\create.py</code> a <code>verification\</code>. Plochy se vybírají geometricky (<code>find_faces</code>: díl, rovina x/y/z, poloměr válce, normála, vlastní podmínka), ne podle indexu, takže skript přežije změny modelu v CADu.</p>
+<pre>from fea_core import materials as matlib
+from fea_core.geometry import read_step
+from fea_core.selectors import find_faces
+from fea_core.study import Study, Fixed, Force, LoadCase, MeshSettings
+from fea_core.solve import run_study
+from fea_core.project import save_project
+
+parts = read_step("konzola.step")
+st = Study("Konzola", "konzola.step")
+st.add_material(matlib.by_name("Ocel S235"), default=True)
+st.add_selection("Vetknutí", find_faces(parts, x=0))
+st.add_selection("Konec", find_faces(parts, x=200))
+st.constraints.append(Fixed("Vetknutí"))
+st.load_cases.append(LoadCase("Síla", [Force("Konec", [0, 0, -100])]))
+st.mesh = MeshSettings(size=3.0)
+
+res = run_study(st, "konzola_run", on_log=print, parts=parts)
+s = res.steps[0]
+print(f"max. posuv {s.umag.max():.3f} mm, max. von Mises {s.mises.max():.1f} MPa")
+save_project("konzola.fea", st, "konzola.step", res)     # otevřít v GUI</pre>
+<p>Spuštění: <code>.venv\Scripts\python.exe muj_skript.py</code>. Jednotky mm, N, MPa, t, s.</p>
+
+<h2>Server MCP (AI asistenti)</h2>
+<p>Server MCP zpřístupňuje celý postup – geometrii, výběry ploch, materiály, vazby, zatížení, teplo, síť, výpočet, výsledky a obrázky PNG, únavu, spoje, 3D tisk, kontakty, dynamiku, mechanismy, kalkulačky a protokol Word – jazykovým modelům přes Model Context Protocol. Asistent pak může například „načíst bracket.step, vetknout plochu x = 0, na oko přidat ložnou sílu 200 N dolů, spočítat a ukázat von Mises; jsou maxima singularity?“.</p>
+<pre># stdio – takto jej spouštějí klienti níže
+.venv\Scripts\python.exe -m fea_core.mcp
+# HTTP – jeden server se sdílenou studií, URL http://127.0.0.1:8766/mcp
+.venv\Scripts\python.exe -m fea_core.mcp --transport streamable-http</pre>
+<p>Volby: <code>--workdir SLOŽKA</code> (výchozí <code>%LOCALAPPDATA%\FEAStudio\mcp</code>, nebo <code>FEA_MCP_WORKDIR</code>), <code>--host</code>, <code>--port</code>, <code>--token</code>. Výchozí port HTTP je 8766, REST používá 8765 – mohou běžet obě současně.</p>
+<p class="warn"><b>Pozor:</b> v režimu HTTP sdílí všichni klienti jednu relaci (studii, síť, výsledky) – druhý asistent vidí práci prvního a může ji přepsat. Pro paralelní nezávislou práci použijte jiný <code>--port</code> a <code>--workdir</code>, nebo stdio (každý klient má vlastní proces). Nástroje čtou a zapisují soubory na libovolné cestě a spouštějí výpočty, takže bez tokenu server poslouchá jen na 127.0.0.1; jiná adresa (<code>--host 0.0.0.0</code>) vyžaduje <code>--token</code> (nebo <code>FEA_MCP_TOKEN</code>) a klienti posílají <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+
+<h3>Registrace do všech AI klientů jedním kliknutím</h3>
+<p>Dvojklikem na <b>Register MCP.bat</b> ve složce programu zapíšete server „fea-studio“ do všech nalezených klientů: Claude Desktop, Claude Code, Cursor, Windsurf, Antigravity, Gemini CLI, LM Studio, VS Code (Copilot) a Codex CLI. Původní soubory se zálohují (<code>….fea-zaloha</code>), ostatní nastavení se zachovají. Pak klienty restartujte. Instalátor to dělá také (vypnutí <code>--no-mcp</code>).</p>
+<pre>.venv\Scripts\python.exe -m fea_core.mcp.setup --dry-run    # jen ukáže, co se změní
+.venv\Scripts\python.exe -m fea_core.mcp.setup --remove     # odebere ze všech klientů</pre>
+<p class="tip"><b>Tip:</b> koncové čárky v souboru (VS Code <code>mcp.json</code>) nevadí. Soubor, který nejde přečíst (např. <code>mcp.json</code> s komentáři), program nepřepíše a uvede jej v seznamu – položku doplňte ručně podle příkladů níže.</p>
+
+<h3>Claude Desktop</h3>
+<p>Soubor <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Nastavení → Vývojář → Upravit konfiguraci):</p>
+<pre>{
+  "mcpServers": {
+    "fea-studio": {
+      "command": "C:\\FEA Studio\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "fea_core.mcp"],
+      "cwd": "C:\\FEA Studio",
+      "env": {"PYTHONPATH": "C:\\FEA Studio", "PYTHONIOENCODING": "utf-8"}
+    }
+  }
+}</pre>
+<p>Po uložení restartujte Claude Desktop.</p>
+
+<h3>Claude Code</h3>
+<pre>claude mcp add --scope user fea-studio -e PYTHONPATH="C:\FEA Studio" -e PYTHONIOENCODING=utf-8 -- "C:\FEA Studio\.venv\Scripts\python.exe" -m fea_core.mcp</pre>
+<p>Název serveru musí být před <code>-e</code>; bez <code>--scope user</code> platí položka jen ve složce, kde se příkaz spustil.</p>
+
+<h3>Cursor</h3>
+<p>Soubor <code>.cursor\mcp.json</code> v projektu, nebo <code>%USERPROFILE%\.cursor\mcp.json</code> – stejný obsah jako pro Claude Desktop (bez <code>cwd</code>). Antigravity: Manage MCP Servers → View raw config, stejný obsah.</p>
+
+<h3>Co MCP nabízí</h3>
+<ul>
+<li><b>Nástroje</b> (186): studie (<code>fea_study_new/open/save/status</code>); geometrie a výběry ploch (<code>fea_geometry_find_faces</code> vrací id <code>Díl#i</code>); materiály; vazby (vetknutí, posuv, válcová – i více děr v jednom výběru, vzdálená); zatížení (síla, tlak, tíha, vzdálená síla, ložisková síla, teplota); tepelné stavy a podmínky; síť (<code>fea_mesh_generate</code>); kontrola (<code>fea_check_readiness</code>, včetně tuhých pohybů); výpočet (<code>fea_solve_run</code>); výsledky (<code>fea_results_summary</code>, <code>_probe</code>, <code>_hotspots</code> s klasifikací singularit, <code>_render_image</code>); obrázek modelu; únava; spoje; 3D tisk (<code>fea_print_get</code>, <code>fea_print_set</code>, <code>fea_print_creep</code>, <code>fea_print_props</code>, <code>fea_print_calibrate</code> – kalibrace z tahových zkoušek ISO 527, <code>fea_print_render_shell</code> – obrázek řezu s podílem skořepiny bez výpočtu, <code>fea_print_results</code>, varianty, rozmítání <code>fea_print_sweep</code>, rada <code>fea_print_advice</code>, směry stavby <code>fea_print_rank_build_direction</code>, předvolby <code>fea_print_presets</code>); protokol (<code>fea_report_word</code>); pruty, 2D řezy, skořepiny, vlastní frekvence a vzpěr.</li>
+<li><b>Kontakty</b>: <code>fea_contact_detect</code>, <code>fea_contact_set/list/remove</code>, <code>fea_contact_check</code>, <code>fea_contact_settings</code> (formulace, síťování spáry, NLGEOM, šroubová spára jako kontakt), <code>fea_analysis_set_sequence</code> (větve nebo posloupnost kroků, předepsaný pohyb, cykly), <code>fea_contact_results</code>, <code>fea_contact_render</code>, <code>fea_results_history</code> (křivka síla–dráha).</li>
+<li><b>Dynamika</b>: <code>fea_dyn_settings</code>, <code>fea_dyn_damping_set</code>, <code>fea_dyn_harmonic_set</code>, <code>fea_dyn_transient_set</code>, <code>fea_dyn_random_set</code>, <code>fea_dyn_shock_set</code>, <code>fea_dyn_prestress_set</code>, sondy <code>fea_dyn_probe_add/list/remove</code>, přidaná hmota <code>fea_dyn_mass_add/list/remove</code>, výsledky <code>fea_dyn_results</code>, <code>fea_dyn_frf_get</code>, <code>fea_dyn_render</code>, <code>fea_dyn_plot</code>, zkušební profily <code>fea_dyn_profile_presets</code>.</li>
+<li><b>Mechanismy</b>: tělesa <code>fea_motion_body_add/list/remove</code>, klouby <code>fea_motion_joint_add/list/remove</code>, <code>fea_motion_joints_from_cad</code>, <code>fea_motion_force_add</code>, <code>fea_motion_driver_add</code>, <code>fea_motion_load_add</code>, <code>fea_motion_contact_add</code> (Chrono), <code>fea_motion_settings</code>, <code>fea_motion_check_dof</code>, <code>fea_motion_run</code>, <code>fea_motion_results</code>, <code>fea_motion_render</code>, převod do MKP <code>fea_motion_export_loads</code>.</li>
+<li><b>Kalkulačky</b>: <code>fea_calc_snapfit</code>, <code>fea_calc_pressfit</code>, <code>fea_calc_hertz</code>, <code>fea_calc_friction</code>, <code>fea_calc_friction_library</code>, <code>fea_calc_mechanism</code>, <code>fea_calc_damping</code>, <code>fea_calc_drop</code>.</li>
+<li><b>Úlohy na pozadí</b>: <code>fea_job_start</code> (druh <code>solve</code> = celá studie jako <code>fea_solve_run</code>, nebo <code>motion</code>) vrátí hned <code>job_id</code>; <code>fea_job_status</code> (podíl 0–1, fáze, čas, poslední řádky logu), <code>fea_job_cancel</code>, <code>fea_job_result</code>. Současně běží nejvýše jedna úloha; výchozí časové limity: lineární 30 min, dynamika 2 h, kontakt 4 h, mechanismus 1 h.</li>
+<li><b>Prompty</b>: <code>fea_setup_static_analysis</code>, <code>fea_setup_thermal_analysis</code>, <code>fea_mesh_convergence_check</code>, <code>fea_interpret_stress_results</code>, <code>fea_setup_contact</code>, <code>fea_setup_vibration_test</code>, <code>fea_setup_mechanism</code> – připravené postupy pro asistenta.</li>
+<li>Asistent uloží svou studii nástrojem <code>fea_study_save</code> jako běžný projekt .fea (i s výsledky) – otevřete a zkontrolujte ji v GUI.</li>
+</ul>
+<p class="warn"><b>Pozor:</b> asistent může zadat vazby nebo zatížení jinak, než jste zamýšleli. Vstup vždy kontrolujte (obrázek modelu se šipkami, <code>fea_study_status</code>, nebo projekt v GUI) stejně jako každý ruční vstup.</p>
+
+<h2>REST API</h2>
+<p>HTTP rozhraní se stejnými nástroji jako MCP (stejné názvy, parametry a chybová hlášení), určené pro adaptéry CADu, skripty v jiných jazycích a interní aplikace.</p>
+<pre># jen tento počítač, port 8765
+.venv\Scripts\python.exe -m fea_core.rest
+# jiný port a token
+.venv\Scripts\python.exe -m fea_core.rest --port 8775 --token TAJNE_HESLO
+# přístup ze sítě (jen s tokenem)
+.venv\Scripts\python.exe -m fea_core.rest --host 0.0.0.0 --token TAJNE_HESLO</pre>
+<ul>
+<li>Výchozí adresa 127.0.0.1 = jen tento počítač. Jiná adresa bez tokenu se odmítne.</li>
+<li>S tokenem (<code>--token</code> nebo <code>FEA_REST_TOKEN</code>) musí každý požadavek nést <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+<li>Dokumentace všech koncových bodů a nástrojů v prohlížeči: <code>http://127.0.0.1:8765/docs</code>.</li>
+<li>Jeden server = jedna otevřená studie. Během výpočtu ostatní požadavky vracejí 409 (zaneprázdněno); <code>/api/status</code> a <code>fea_job_status</code>, <code>fea_job_cancel</code>, <code>fea_job_result</code> odpovídají vždy – dlouhý výpočet proto spouštějte asynchronně (<code>fea_job_start</code>).</li>
+</ul>
+<table class="grid">
+<tr><th>Koncový bod</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td>GET /api/status</td><td>Verze, otevřená studie, zaneprázdněno, výsledky, poslední import.</td><td></td></tr>
+<tr><td>GET /api/tools</td><td>Seznam nástrojů se JSON schématem parametrů.</td><td></td></tr>
+<tr><td>POST /api/tools/{name}</td><td>Zavolá nástroj; tělo = JSON argumenty.</td><td><code>?images=url|base64|both</code> pro obrázky</td></tr>
+<tr><td>GET /api/study</td><td>Aktuální vstup (JSON studie).</td><td></td></tr>
+<tr><td>POST /api/import</td><td>Import STEP + metadat z CADu (multipart <code>file</code>, <code>metadata</code>).</td><td>Vytvoří studii, spáruje díly podle názvu, přiřadí materiály z knihovny.</td></tr>
+<tr><td>GET /api/files/{path}</td><td>Stažení souboru z pracovní složky (PNG, .docx, .fea).</td><td></td></tr>
+<tr><td>POST /api/open-gui</td><td>Otevře soubor (výchozí poslední import) v GUI.</td><td>GUI běží odděleně.</td></tr>
+</table>
+<p>Příklad v PowerShellu (import přes <code>curl.exe</code>, ne přes alias <code>curl</code>; nástroje přes <code>Invoke-RestMethod</code>):</p>
+<pre>Invoke-RestMethod http://127.0.0.1:8765/api/status
+curl.exe -F "file=@drzak.step" http://127.0.0.1:8765/api/import
+Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"x": 0}' `
+    -Uri http://127.0.0.1:8765/api/tools/fea_geometry_find_faces</pre>
+<p>Formát metadat a příklad v Pythonu: <code>fea_core\rest\README.md</code>.</p>
+
+<h2>Adaptéry CADu</h2>
+<p>Adaptér exportuje model do STEP s názvy těles, přidá metadata (materiál a jeho vlastnosti, barvu, atributy) a pošle je do REST API. Není-li server spuštěn, uloží STEP + JSON do složky a spustí GUI (proměnná <code>FEA_STUDIO_HOME</code> = složka instalace). Materiál se ve FEA Studiu přiřadí jen tehdy, když odpovídá knihovně (např. „S235“, „AISI 304“); obecné názvy („Steel“) se nepřiřadí a ohlásí se.</p>
+<table class="grid">
+<tr><th>CAD</th><th>Instalace a použití</th><th>Stav ověření</th></tr>
+<tr><td>Autodesk Fusion</td><td>Zkopírujte složku <code>adapters\fusion\FEAStudio</code> do <code>%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\</code> (nebo Nástroje → Doplňky → Skripty a doplňky → Doplňky → „+“). Doplněk spusťte; tlačítko <b>Odeslat do FEA Studia</b> je v panelu <b>FEA STUDIO</b> mezi VLOŽIT a VYBRAT (karty SOLID, SURFACE, MESH, SHEET METAL…) a také v UTILITIES → ADD-INS. Nastavení v <code>settings.json</code> (šablona <code>settings.example.json</code>) nebo v proměnných <code>FEA_REST_URL</code>, <code>FEA_REST_TOKEN</code>, <code>FEA_STUDIO_HOME</code>.</td><td>Export a metadata ověřeny na skutečné sestavě; tlačítko na panelu ověřeno v ostrém Fusionu.</td></tr>
+</table>
+<p>Metadata z Fusionu obsahují i <b>klouby</b> (typ, osa, meze); krok <a href="pohyb.html">Pohyb</a> z nich navrhne klouby mechanismu tlačítkem <b>Z metadat Fusionu…</b> (v ostrém Fusionu zatím neověřeno).</p>
+<p>Postup: spusťte REST server (<code>python -m fea_core.rest</code>), pak adaptér v CADu. Díly ve FEA Studiu mají názvy z CADu (u Fusionu název výskytu, např. „Deska:1“); metadata se podle nich párují.</p>
+
+<h2>Instalace a moduly</h2>
+<p>Program se instaluje <b>po modulech</b>: malý základ (jádro FEA) a volitelné části, které lze kdykoli přidat nebo odebrat. Vše zůstává ve složce programu (<code>.venv</code>, <code>tools</code>); práva správce nejsou potřeba. Podrobnosti: <code>installer\README.md</code>.</p>
+<ol>
+<li>Rozbalte <code>FEAStudio-&lt;verze&gt;.zip</code> (Linux <code>.tar.gz</code>) do trvalé složky – ne do synchronizované (OneDrive, Dropbox…).</li>
+<li>Spusťte <b>Install FEA Studio.bat</b> (Linux <code>./install.sh</code>) a zvolte: <b>minimální</b> (jen jádro), <b>standardní</b> (+ GUI, grafy, Numba, PARDISO, pruty, protokol, mechanismy), <b>úplná</b> (+ MCP/REST, NGSolve, hypre), nebo vlastní výběr. Bez dotazů: <code>Install FEA Studio.bat --profile standard --quiet</code>.</li>
+<li>Instalátor stáhne <code>uv</code>, Python 3.11, zamčené balíčky a CalculiX 2.23, odstraní nepotřebné soubory, vytvoří zástupce a přidružení .fea a spustí ověřovací výpočet. Opakované spuštění je bezpečné.</li>
+</ol>
+<table class="grid">
+<tr><th>Modul</th><th>Co přidá</th></tr>
+<tr><td>core</td><td>jádro FEA, příkazová řádka, CalculiX, Gmsh, OpenCascade: statika, teplo, vlastní frekvence, vzpěr, pruty, 2D, skořepiny, spoje a svary, kontakty a dynamika</td></tr>
+<tr><td>gui, plots</td><td>grafické rozhraní, grafy</td></tr>
+<tr><td>accel</td><td>Numba: únava, 3D tisk, obrázky výsledků pro MCP a protokol</td></tr>
+<tr><td>pardiso</td><td>Intel MKL: rychlejší CalculiX (PARDISO); s modulem ngsolve i řešič NGSolve + PARDISO</td></tr>
+<tr><td>beams, report</td><td>vlastní průřezy prutů, protokol Word</td></tr>
+<tr><td><b>motion</b></td><td>kinematika a dynamika mechanismů (Exudyn) – krok <a href="pohyb.html">Pohyb</a>, převod do MKP a únava</td></tr>
+<tr><td><b>chrono</b></td><td>kontakt těles v mechanismu (Project Chrono, ~600 MB) – volitelný, v žádném profilu; vyžaduje motion</td></tr>
+<tr><td><b>native</b></td><td>otevírání dílů a sestav Inventoru .ipt / .iam a návrhů Fusionu .f3d / .f3z bez CADu a bez exportu STEP (volitelný, v žádném profilu) – <a href="cad.html#nativni">podrobnosti</a></td></tr>
+<tr><td>mcp</td><td>server MCP a rozhraní REST</td></tr>
+<tr><td>ngsolve, hypre</td><td>volitelné řešiče NGSolve + PARDISO (více stavů najednou) a NGSolve + hypre (velké modely); ve Windows hypre potřebuje Microsoft MPI s právy správce – <code>--msmpi</code> při instalaci, příkaz <code>mpi</code>, nebo Nástroje → Moduly programu…</td></tr>
+<tr><td>verify, docs</td><td>ověřovací úlohy a MYSTRAN; sestavení PDF příruček (jen vývojáři)</td></tr>
+</table>
+<pre>.venv\Scripts\python.exe -m fea_core.modules                  # přehled (✓ nainstalováno)
+.venv\Scripts\python.exe -m fea_core.modules install motion   # doinstaluje i závislosti
+.venv\Scripts\python.exe -m fea_core.modules install chrono
+.venv\Scripts\python.exe -m fea_core.modules remove report mcp</pre>
+<p>Totéž v GUI: <b>Nástroje → Moduly programu…</b>. Bez modulu program nespadne: funkce, která jej potřebuje, ohlásí „Modul … chybí. Nainstalujte jej: python -m fea_core.modules install …“ (např. bez chrono je řešič Chrono v kroku Pohyb šedý). Další příkazy instalátoru: <code>python installer\fea_setup.py install | remove | list | slim | doctor | shortcuts | mpi | uninstall [--all]</code>; odinstalace z nabídky Start odstraní zástupce a přidružení; <code>uninstall --all</code> odstraní navíc <code>.venv</code> a <code>tools</code>.</p>
+
+<h2>Časté potíže</h2>
+<table class="grid">
+<tr><th>Hlášení / projev</th><th>Příčina a řešení</th></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'fea_core'</code></td><td>Python mimo instalaci, nebo jiná pracovní složka. Použijte <code>.venv\Scripts\python.exe</code> z instalace; v konfiguraci MCP nastavte <code>cwd</code> a <code>PYTHONPATH</code> na složku instalace.</td></tr>
+<tr><td>Poškozené české znaky ve výstupu</td><td>Nastavte <code>PYTHONIOENCODING=utf-8</code> (v MCP v <code>env</code>).</td></tr>
+<tr><td>REST nebo MCP (HTTP) nejde spustit – port obsazen</td><td>Port používá jiný program nebo druhá instance. REST výchozí port 8765 (používají adaptéry CADu), MCP HTTP 8766. Spusťte s jiným <code>--port</code> (a v adaptéru nastavte stejnou adresu přes <code>FEA_REST_URL</code>).</td></tr>
+<tr><td>REST odpovídá 401 / 403</td><td>401: token chybí nebo nesouhlasí (hlavička <code>Authorization: Bearer …</code>). 403: požadavek z jiné adresy než 127.0.0.1 / localhost bez tokenu, nebo z webové stránky (ochrana proti zneužití z prohlížeče).</td></tr>
+<tr><td>REST odpovídá 409</td><td>Server právě síťuje nebo počítá. Počkejte (<code>GET /api/status</code>, pole <code>busy</code>).</td></tr>
+<tr><td>Adaptér ukládá soubory do složky místo odeslání</td><td>REST neběží, nebo adaptér ukazuje jinam – spusťte <code>python -m fea_core.rest</code> a zkontrolujte <code>FEA_REST_URL</code>.</td></tr>
+</table>

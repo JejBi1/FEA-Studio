@@ -1,0 +1,152 @@
+<h1>Solve</h1>
+<p class="lead">Checks that the study is complete, offers a solver and starts the analysis: mesh, thermal cases, linear statics of all load cases
+(nonlinear with contacts), and optionally creep of printed parts, natural frequencies, buckling and dynamic response. Afterwards the program opens
+<a href="vysledky.html">Results</a>.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Go through the readiness check. Red items block the analysis; orange ones are warnings.</li>
+<li>Keep <b>Solver: Automatic (recommended – direct / iterative by model)</b> unless you have a reason not to.</li>
+<li>For natural frequencies or buckling enable <b>Natural frequencies</b> / <b>Buckling (linear)</b>. Dynamics (<a href="dynamika.html">Dynamics</a>) and contacts (<a href="kontakty.html">Contacts</a>) are set in their own steps and run with the same button.</li>
+<li>Click <b>Run analysis</b>. Follow progress in the <b>Solver log</b> dock and errors in the <b>Messages</b> dock.</li>
+</ol>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Check list</td><td>Errors (red), warnings (orange); with no errors, “The study is ready for analysis”.</td><td>Refreshed on every change.</td></tr>
+<tr><td>Solver</td><td>Solver choice (see the table below). Solvers not installed are greyed out with “– not installed” (tooltip says what is missing).</td><td>Automatic</td></tr>
+<tr><td>Equation solver (CalculiX)</td><td>Direct solver inside CalculiX: PARDISO, PASTIX, SPOOLES. Not used with NGSolve.</td><td>PARDISO (fastest, pardiso module); PaStiX on Windows only. A missing solver is replaced and the results say so in a warning.</td></tr>
+<tr><td>Install solvers…</td><td>Only when a solver is missing: opens Tools → Program modules….</td><td>Restart after installing.</td></tr>
+<tr><td><b>Natural frequencies</b>: compute, Number of modes, From, To</td><td>Modal analysis (Hz, mode shapes, effective mass fractions) with the study's supports and densities.</td><td>6–20 modes; possible without load cases.</td></tr>
+<tr><td><b>Buckling (linear)</b>: compute, Load case, Number of modes</td><td>Critical load factors λ and buckling modes for the loads of the selected case.</td><td>LINEAR – no imperfections or plasticity (see below).</td></tr>
+<tr><td>Run analysis / Cancel</td><td>Starts in the background (active only when the check has no errors) / terminates it (Gmsh, CalculiX, NGSolve, hypre); no results.</td><td></td></tr>
+<tr><td><b>Stop and keep results</b></td><td>Nonlinear analysis only: stops CalculiX and keeps the last converged increment as a <b>partial result</b> (red label in Results).</td><td>A job without a converged increment ends with an error.</td></tr>
+<tr><td>Green bar</td><td>Progress in % with phase and elapsed time (also in the status bar).</td><td>Nonlinear steps advance by CalculiX increments.</td></tr>
+<tr><td>Text below the buttons</td><td>“Computing…”, “Done in X s.”, “Analysis failed.”</td><td>Details in the log.</td></tr>
+</table>
+
+<h2>Readiness check</h2>
+<p>The same check runs at the start of the analysis. It verifies:</p>
+<ul>
+<li>at least one load case or thermal case; a mechanical study has at least one support (heat-only needs none);</li>
+<li>every analysed part has a material: k for heat; density and c_p for transient; α for thermal load;</li>
+<li>selections exist and their parts are in the geometry (not omitted or replaced by a bolt);</li>
+<li>cylindrical supports and bearing loads sit on cylindrical faces; remote supports have a point and components;</li>
+<li>bolts and welds: parts in the geometry, dimensions, no part used twice;</li>
+<li>3D printing (infill 0–100 %, layer, line, build direction, strength) and creep (duration; temperature within the material data);</li>
+<li>thermal cases (conditions, heat sink in steady state, time step, snapshots); empty load cases (warning; skipped when heat is defined);</li>
+<li>contacts: pair sides; μ &gt; 0 with friction; interference only with surface-to-surface / mortar; contact on bolted parts only with a conformal interface; NLGEOM not with bolts, cylindrical or distributing supports; step sequence. After meshing, an <b>initial penetration</b> of parts with a type other than interference is an error; “a part held only by friction … may slip” is a warning;</li>
+<li>dynamics: densities, damping, excitation, frequency range; effective mass ≥ 90 % and modes above 1.5× the highest excitation frequency (warnings); base excitation without supports is an error; <b>modal (superposition) dynamics with contact is not possible</b> (implicit dynamics of a contact step sequence, <code>LoadStep.dynamic</code>, exists only in the Python API / study file);</li>
+<li><b>rigid-body motions</b> (this step only): supports must prevent 3 translations and 3 rotations of the whole model. The error “The supports do not prevent rigid-body motion of the model – free: translation in direction (…); rotation about axis (…) through point (…)” names the missing motion. Without a mesh it uses CAD faces, with a mesh the support nodes. If the check is only approximate, an orange warning appears and the analysis can run.</li>
+</ul>
+<p>After meshing, <b>free bodies</b> are searched too – parts not connected to any support through shared nodes, bolts or welds. Such a problem has no solution; the analysis ends with an error and the program offers to omit the parts.</p>
+
+<h2>Natural frequencies and buckling</h2>
+<p><b>Natural frequencies</b> (CalculiX *FREQUENCY) use the statics mesh. Mass comes from densities (a part without density is an error); the supports come from the study. Without supports the body is free and the first 6 frequencies are ≈ 0 Hz (rigid-body motions; a warning). A study may contain only frequencies, without load cases. Results: <b>Mode shape n: f = … Hz</b> in <a href="vysledky.html#tvary">Results</a> and the <b>Mode shapes</b> tab.</p>
+<p><b>Linear buckling</b> (CalculiX *BUCKLE) computes factors λ: loads of the selected case × λ = critical load. Negative λ = instability under reversed loading. The case's thermal load is included.</p>
+<p class="warn"><b>Caution:</b> buckling is linear – stress stiffening only, no imperfections, plasticity or large deformations. Real capacity is often well below λ·load. For design use EN 1993-1-1, 6.3 (χ) or a nonlinear analysis.</p>
+<p>Solid linear buckling in CalculiX includes shear flexibility and is closer to Engesser's theory. Other codes may give solid-model eigenvalues a few percent higher or lower (different element formulation); ~1–2 % differences between codes are expected. Verified by M1 (cantilever, free plate), M2 and B1 (Euler, plate): <code>python -m verification.run_all M1 M2 B1</code>.</p>
+
+<h2>Nonlinear analysis (contacts and plasticity)</h2>
+<p>Plasticity is defined only through the MCP server or the Python API (material key <code>plastic</code>, assessment <code>fea_plasticity_assess</code>); the GUI does not offer it. Plasticity with kinematic hardening switches large deformations (NLGEOM) on automatically; without NLGEOM CalculiX models the Bauschinger effect isotropically or diverges.</p>
+<p>A study with contact pairs (or bolted interfaces as contact) is computed <b>nonlinearly</b> – always in CalculiX; the solver choice does not apply. Load cases run either <b>each separately</b> (branches, in parallel, after bolt preload) or as a <b>step sequence</b> in one job (contact and friction state carry over) – see <a href="kontakty.html">Contacts</a>. Superposition does not apply. The equilibrium check uses the undeformed position, with contact in the deformed one (NLGEOM always deformed); dynamic steps are not checked.</p>
+<ul>
+<li>Iterations in every increment make it slower; progress shows in the log and the green bar.</li>
+<li>If it does not converge, the <b>last converged increment</b> is kept as a partial result with the warning “PARTIAL RESULT (…): analysis not completed …” and advice in Messages. <b>Stop and keep results</b> does the same.</li>
+<li>Convergence advice (displacement control, smaller first increment, friction only in the next step) is on the <a href="kontakty.html">Contacts</a> page.</li>
+</ul>
+
+<h2>Dynamics</h2>
+<p>If enabled in <a href="dynamika.html">Dynamics</a>, it runs after statics: modal basis in CalculiX (optionally prestressed), static correction for residual modes, then modal superposition (harmonic, transient, random, shock, sine-sweep fatigue). Point mass and dynamics always use CalculiX; not possible with contacts, 2D sections or shells. Results: <a href="vysledky.html#dynamika">Results</a> (“Dynamics: …” items, Dynamics tab).</p>
+
+<h2>Background and other programs</h2>
+<p>The analysis runs in a background thread; the window stays responsive. Do not edit the study during the analysis – the result would be discarded. From MCP and REST a long analysis starts <b>asynchronously</b> with <code>fea_job_start</code> (study or mechanism), is followed with <code>fea_job_status</code>, cancelled with <code>fea_job_cancel</code>, and collected with <code>fea_job_result</code> – see <a href="automatizace.html">Automation</a>.</p>
+
+<h2>Shell model</h2>
+<p>The <b>Shell model</b> group computes plates and sheets from STEP as shells (mid-surface with thickness, S6) – see <a href="shell.html">Shell model</a>. Shells and 2D sections are mutually exclusive.</p>
+
+<h2>2D section analysis</h2>
+<p>The <b>2D section analysis</b> group computes axisymmetric or plane stress / strain instead of 3D – see <a href="2d.html">2D section analysis</a>. A frame structure without CAD uses the built-in member solver (exact Timoshenko element); the solver choice does not apply – see <a href="pruty.html">Members</a>.</p>
+
+<h2>Solver selection</h2>
+<table class="grid">
+<tr><th>Choice</th><th>When to use</th><th>Limitations</th><th>Requires</th></tr>
+<tr><td>Automatic (recommended)</td><td>Always. Contacts (nonlinear), bolts, welds, cylindrical and remote supports, point mass → CalculiX. From 600 000 DOF (200 thousand nodes) NGSolve + hypre; from 2 load cases NGSolve + PARDISO (one factorization for all cases, 2.5–5× faster); otherwise CalculiX.</td><td>Chooses only installed solvers (without ngsolve / hypre it uses CalculiX; the log says what is missing). If NGSolve + PARDISO fails (memory, ill-conditioning), the analysis repeats in CalculiX (noted in the log).</td><td>Nothing extra.</td></tr>
+<tr><td>Direct sparse – CalculiX</td><td>Small and medium models, bolts, welds, cylindrical and rigid remote supports. Verified by all verification problems.</td><td>Memory grows fast: 214 thousand DOF ≈ 1.4 GB, 706 thousand ≈ 6.8 GB; limit ≈ 1 million DOF with 10 GB free. Refactorizes in every load case.</td><td>Core. PARDISO with the pardiso module (Standard profile), otherwise PaStiX (Windows) / SPOOLES.</td></tr>
+<tr><td>Direct, many cases at once – NGSolve + PARDISO</td><td>Medium models with several load cases: one factorization for all cases (197 thousand DOF: 3 cases 14 s instead of 34 s; 10 cases 18 s instead of 97 s).</td><td>No bolts, welds, cylindrical or remote supports, members, *TIE, orthotropic material, elastic support or point mass. Memory is estimated in advance; if short, the analysis ends with an error recommending NGSolve + hypre. No MPI.</td><td><b>ngsolve</b> module (pardiso comes with it).</td></tr>
+<tr><td>Iterative PCG + AMG – NGSolve + hypre</td><td>Large models (hundreds of thousands to millions of DOF); memory grows linearly.</td><td>Same restrictions as NGSolve + PARDISO. Memory ≈ 0.6 GB + 4.8 GB per million DOF (memory-saving mode 3.4 GB per million, about 2× more iterations). Thin bent plates need more iterations.</td><td><b>ngsolve</b> and <b>hypre</b> modules; on Windows <b>Microsoft MPI</b> (administrator rights; Linux uses MPICH from the hypre module).</td></tr>
+</table>
+<ul>
+<li>Thermal cases are always computed by CalculiX.</li>
+<li>All solvers give the same results (displacements 1e-6, stresses 1e-5 relative); stresses and reactions are recovered the same way.</li>
+<li>A manually chosen unavailable or unsuitable solver is reported by the check before meshing: “Solver “NGSolve + PARDISO” is not installed – missing module ngsolve. Install: …”, or “Solver “…” does not support this study: … – choose Automatic or CalculiX.”</li>
+<li>The standard installation has only CalculiX (with PARDISO). The Full profile or <b>Install solvers…</b> (Tools → Program modules… → ngsolve, hypre) adds the rest. Microsoft MPI goes into the system and needs administrator rights (command <code>python installer/fea_setup.py mpi</code>). Restart after installing.</li>
+</ul>
+<h3>Comparison with other programs</h3>
+<p>The direct sparse solvers (CalculiX, NGSolve + PARDISO) correspond to ANSYS Direct (Sparse), SOLIDWORKS Direct Sparse and the direct solvers of Abaqus/Standard and Nastran. Iterative PCG with AMG (NGSolve + hypre) corresponds to ANSYS Iterative (PCG) and SOLIDWORKS FFEPlus. MUMPS is not offered; PARDISO and PaStiX fill its role.</p>
+<p class="tip"><b>Tip:</b> the DOF count appears in <a href="sit.html">Mesh</a> after Generate mesh: DOF = 3 × number of nodes.</p>
+
+<h3>Memory</h3>
+<ul>
+<li>Close memory-hungry applications first; what matters is <b>free</b> RAM.</li>
+<li>When CalculiX exceeds free memory it swaps to disk and becomes extremely slow. NGSolve + hypre and NGSolve + PARDISO estimate memory in advance and end with an explanation if it is insufficient.</li>
+<li>Remedies: coarsen the global mesh and refine only locally, omit unimportant parts, use symmetry, or switch to NGSolve + hypre (if installed and no bolts or welds).</li>
+</ul>
+
+<h2>Analysis progress</h2>
+<ol>
+<li>Geometry loading and readiness check.</li>
+<li>Meshing (Gmsh). A valid mesh from the Mesh step is reused; after changes to geometry, selections, mesh, joints or contact pairs it is meshed again. Contact-pair parts are meshed separately (or with a split interface).</li>
+<li>Thermal cases, each separately in CalculiX.</li>
+<li>Statics: one load case = one step. With bolts a <b>Bolt preload</b> case is added. With contacts: branches or a step sequence.</li>
+<li>Equilibrium check of each case.</li>
+<li>Natural frequencies, buckling and dynamic response, if enabled.</li>
+<li>Creep of printed parts, if enabled in <a href="tisk.html">3D printing</a>: long-term cases are computed again with reduced stiffness; a case “&lt;case&gt; – creep 1000 h, 30 °C” is added.</li>
+<li>Assessment of bolts and welds (<b>Joints – utilization</b> dock).</li>
+</ol>
+
+<h3>Equilibrium check</h3>
+<p>After each case the reactions and the applied loads (forces and moments) are summed. A relative imbalance above <b>0.1 %</b> (1e-3) means a faulty analysis: the result is not returned and the error reads “Case '…': reactions are not in equilibrium with the loads (… imbalance … %). The result is invalid – try a different solver.” Normal values are 10⁻⁶ or less; Results shows “Equilibrium check: imbalance … %”.</p>
+
+<h3>Messages (dock at the bottom)</h3>
+<p>A table of messages: level (error / warning / information), source (geometry, study check, mesh, solver, results), text and time. The study check refreshes after each change. <b>Double-click</b> a row to switch to the step where it is fixed; <b>Show</b> filters by level; <b>Copy</b> copies the selected (or all displayed) rows as tab-separated text; <b>Clear</b> deletes mesh, solver and results messages. The dock title counts errors and warnings and appears by itself on an analysis error. Everything is also in the log.</p>
+
+<h3>Log (Solver log dock)</h3>
+<ul>
+<li>Lines with a time <code>[hh:mm:ss]</code> are program messages: steps, mesh size (“Mesh: … nodes, … C3D10 elements, min. scaled Jacobian …”), heat balance, warnings, analysis time.</li>
+<li>Lines without a time are CalculiX output (iterations, *WARNING, *ERROR); CalculiX warnings go to the result warnings (except notices about ignored items).</li>
+<li>Analysis warnings (“Warning: …”) also show in Results and the report – read them.</li>
+<li>The side tab <b>Joints – utilization</b> shows the bolt and weld tables (see <a href="spoje.html">Joints</a>).</li>
+</ul>
+<p class="warn"><b>Caution:</b> if the study changes during the analysis, the result is discarded at the end (“The study changed during the analysis – result discarded.”) because it would not match the input.</p>
+
+<h2>In the examples</h2>
+<h3>Example 1 – printed bracket</h3>
+<ul>
+<li>Automatic selects CalculiX (small model; NGSolve does not support the cylindrical support of the screw holes).</li>
+<li>The rigid-body check passes: the cylindrical supports Upper screw and Lower screw hold both translations and rotations; the back-face support (ux = 0) adds restraint.</li>
+<li>A warning about the indicative print infill properties.</li>
+<li>Results contain the cases Eye load 200 N, Self-weight and the long-term case “Eye load 200 N – creep 1000 h, 30 °C”.</li>
+</ul>
+<h3>Example 2 – assembly</h3>
+<ul>
+<li>Bolts, welds and cylindrical supports of the anchor holes → always CalculiX; a manual NGSolve choice would be rejected at once.</li>
+<li>Thermal cases Operation – steady state and Ramp-up – 1 hour (transient, 120 s step) run first, then statics of four cases, the Bolt preload case and creep of the arm (2000 h, 30 °C).</li>
+<li>In the log check the steady-state heat balance (15 W in = convection + floor) and the warnings on thermal load of bolts and print.</li>
+</ul>
+
+<h2>Common problems</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and remedy</th></tr>
+<tr><td>“The supports do not prevent rigid-body motion of the model – free: rotation about axis … ”</td><td>A support is missing in some direction (typically rotation about a cylindrical support's axis without a tangential component, or translation along a symmetry plane). Add a support in the reported direction – <a href="vazby.html">Supports</a>.</td></tr>
+<tr><td>“Some parts are not connected to the supports (free bodies – the problem would be singular): …”</td><td>The part does not touch the others in CAD (a gap) or nothing holds it. Connect it (contact, bolt, weld), or exclude it in <a href="spoje.html">Joints</a> → Parts excluded from the analysis (the program offers this).</td></tr>
+<tr><td>“Selection '…' is not a single cylindrical face (node deviation from the cylinder …) – select coaxial cylinders of the same radius”</td><td>One cylindrical support or bearing load may contain only coaxial faces of one radius. For several holes make one support per hole.</td></tr>
+<tr><td>“Case '…': reactions are not in equilibrium with the loads… try a different solver”</td><td>Numerical problem (almost free body, very different stiffnesses). Try Equation solver PASTIX or SPOOLES, and check supports and part connections.</td></tr>
+<tr><td>“Not enough free memory for the analysis: estimate X GB, free Y GB…” / “Not enough memory for the direct solver PARDISO…”</td><td>Close other applications, coarsen the mesh (refine locally), or use NGSolve + hypre.</td></tr>
+<tr><td>“Solver “NGSolve + hypre” is not installed – missing …” / “Solver “NGSolve + PARDISO” is not installed – missing module ngsolve …”</td><td>The manually chosen solver is missing (standard profile = CalculiX only). Choose Automatic, or install the components via <b>Install solvers…</b> (Tools → Program modules…, or <code>python -m fea_core.modules install ngsolve hypre</code>). Microsoft MPI needs administrator rights (<code>python installer/fea_setup.py mpi</code>). Then restart – see <a href="automatizace.html">Automation</a>.</td></tr>
+<tr><td>“Equation solver PARDISO is not available in CalculiX (…) – CalculiX computes with solver PASTIX”</td><td>Installation without the pardiso module (Intel MKL). Results are the same, only slower; install the <b>pardiso</b> module for PARDISO.</td></tr>
+<tr><td>“CalculiX ended with an error: *ERROR …”</td><td>The error text and log path are in the message. Often supports collide on the same nodes (a cylindrical support shares nodes with another support). Split the selections so they do not overlap.</td></tr>
+<tr><td>“Nonlinear analysis (…) did not converge / ended without a converged increment” / “PARTIAL RESULT (…)”</td><td>The contact problem did not converge. Use displacement control, reduce the first increment, enable friction only in the next step, check initial gaps and penetrations – <a href="kontakty.html">Contacts</a>.</td></tr>
+<tr><td>“Dynamics with contact / nonlinear analysis: modal superposition does not apply …”</td><td>For dynamics disable the contacts (bonded parts), or disable dynamics.</td></tr>
+</table>

@@ -1,0 +1,195 @@
+<h1>Export from CAD (SolidWorks, Inventor, Fusion…)</h1>
+<p class="lead">How to get a model from CAD into FEA Studio: export to STEP with the right settings, or for Fusion, SOLIDWORKS and Inventor use the
+<b>Send to FEA Studio</b> button, which also transfers the part materials.</p>
+
+<h2>Quick overview</h2>
+<table class="grid">
+<tr><th>CAD</th><th>Easiest way</th><th>Materials transferred?</th></tr>
+<tr><td>Autodesk Fusion</td><td>add-in – the <b>Odeslat do FEA Studia</b> (Send to FEA Studio) button in the FEA STUDIO panel</td><td>yes</td></tr>
+<tr><td>SOLIDWORKS 2020–2025</td><td><b>FEAStudio_Export</b> macro (toolbar button)</td><td>yes</td></tr>
+<tr><td>Autodesk Inventor 2021–2026</td><td><b>FEAStudio_Export</b> iLogic rule (ribbon button from 2023)</td><td>yes</td></tr>
+<tr><td>others (Solid Edge, Creo, CATIA, NX, Onshape, FreeCAD, Rhino…)</td><td>manual STEP AP214 export → drag it onto the FEA Studio window or <b>Send to → FEA Studio</b></td><td>no – assign them in <a href="materialy.html">Materials</a></td></tr>
+</table>
+<p class="warn">The SOLIDWORKS macro and the Inventor rule have not yet been tried in real SOLIDWORKS or Inventor (only their logic was verified outside CAD). On first use check that the STEP file was saved and FEA Studio opened; if not, use the manual export.</p>
+
+<h2>What FEA Studio needs</h2>
+<table class="grid">
+<tr><th>Requirement</th><th>Note</th></tr>
+<tr><td><b>STEP</b> (.step, .stp), protocol <b>AP214</b> or AP242</td><td>AP203 works but has no colours. AP242 only with precise geometry (B-rep), not tessellated. Other formats are not opened.</td></tr>
+<tr><td><b>Solid bodies</b>, not surfaces or wireframe</td><td>FEA computes the volume. A surfaces-only STEP creates a <a href="shell.html">shell model</a> (you enter the thickness).</td></tr>
+<tr><td><b>The whole assembly in one file</b>, parts in their real position</td><td>Turn off “each part to its own STEP file”.</td></tr>
+<tr><td><b>Part names</b></td><td>Materials, bolts and face selections are bound to the part name; a renamed part is a different part for the study.</td></tr>
+<tr><td><b>Bolts</b>, nuts and washers with a standard name</td><td>E.g. “ISO 4017 - M8 x 30 - 8.8”, “ISO 4762 M6 x 20:1”, “ISO 4032 - M8”, “DIN 125-1 A 8,4”. Library parts (Toolbox, Content Center) usually have them. <a href="spoje.html">Joints</a> → <b>Detect joints…</b></td></tr>
+<tr><td><b>Welds</b> as separate bodies</td><td>Name “Svar…” / “Weld…”, a layer or attribute with svar / weld, or a uniform colour (<b>Weld color in CAD</b> in Joints).</td></tr>
+<tr><td><b>Only the parts to be analysed</b></td><td><b>Suppress</b> unneeded parts in CAD – hiding is not enough. Fusion and Onshape do not export hidden parts; Inventor and SOLIDWORKS may write them depending on version, and FEA Studio would mesh them. Or exclude them in Joints → <b>Parts excluded from the analysis</b>.</td></tr>
+<tr><td>Any <b>units</b></td><td>Converted to mm on loading (inches, metres). mm recommended; check part volumes in the model overview.</td></tr>
+<tr><td><b>No interferences</b></td><td>Touching parts are bonded in the mesh. Overlapping parts either fail to mesh or give the common volume to one part (warning “Parts … overlap” in <a href="sit.html">Mesh</a>) – the analysis then runs on wrong geometry. Remove interferences in CAD.</td></tr>
+</table>
+<p>Details on part names and the geometry check: <a href="model.html">1. Model</a>.</p>
+
+<h2>How to open a STEP file in FEA Studio</h2>
+<table class="grid">
+<tr><th>Way</th><th>Procedure</th></tr>
+<tr><td>Open</td><td>Model step → <b>Open STEP / project…</b>, or <span class="key">Ctrl+O</span></td></tr>
+<tr><td>Drag and drop</td><td>Drag a .step / .stp (or .fea) from Explorer onto the window – anywhere, including the 3D view – or onto the <b>FEA Studio</b> shortcut.</td></tr>
+<tr><td>Send to</td><td>Right-click the STEP → <b>Send to → FEA Studio</b> (Windows 11: <b>Show more options</b>, or <span class="key">Shift</span> + right-click). The installer creates the shortcut.</td></tr>
+</table>
+<ul>
+<li>Shortcut, Send to or a macro always opens a <b>new window</b>; dropping onto an open window replaces its model (unsaved changes → a question).</li>
+<li>Only the first of several dropped files opens; nothing opens during an analysis.</li>
+</ul>
+
+<h2 id="nativni">Inventor parts and assemblies and Fusion designs without STEP export (module native)</h2>
+<p>With the optional module <b>native</b> (Tools → Program modules…) you open an Inventor part <b>.ipt</b>, assembly <b>.iam</b> and Fusion design <b>.f3d</b> / <b>.f3z</b> directly – no CAD and no STEP export needed (Open, drag onto the window, Replace geometry). The program reads the exact ShapeManager geometry and converts it to solids; it is cached as STEP, so everything else works the same.</p>
+<ul>
+<li>Every solid is checked (valid topology, positive volume). What cannot be converted reliably (thread helices without a stored approximation, elliptic cylinders) stops with an explanation – then use STEP.</li>
+<li><b>Inventor assemblies .iam</b> carry only references and positions: the .ipt (and subassembly .iam) files must lie next to the assembly in the same folder structure (copying the whole project folder is enough). Parts are placed at occurrence positions, including subassemblies; body names as in Inventor (<i>Plate:2</i>, several bodies <i>Plate:2_1</i>…). Positions are checked against the assembly and the graphics stored by Inventor. Verified on an assembly of 21 occurrences with a subassembly (no interference, volumes = Inventor STL to 0.05 %). Bolts, nuts and washers (by name, including Content Center) are not loaded but replaced by <b>virtual bolts</b> with a joint assessment – see <a href="spoje.html#virtualni">Joints</a>. Not yet supported: renamed and suppressed occurrences (clear error); hidden occurrences load as visible.</li>
+<li><b>Fusion assemblies</b> (.f3d with components, .f3z with nested documents): the component tree, positions and visibility are built. Bodies hidden in Fusion (light bulb off) load as <b>hidden and excluded</b> – switch them on in <i>Model</i> with the <i>Show</i> / <i>Analyze</i> columns. Names as in Fusion / STEP (<i>Plate:1</i>, <i>Plate:1_1</i>…). Verified against a Fusion STEP export (nested document, rotated occurrences, hidden bodies: positions and volumes to 1e-14). If the tree cannot be read, the program warns and loads bodies in component coordinates.</li>
+<li>Materials are not transferred from native files (the Fusion add-in sends them in metadata).</li>
+<li>This is unofficial reading of Autodesk formats: for important models compare with a STEP export (volume, dimensions).</li>
+</ul>
+
+<h2>Materials from CAD – a JSON file next to the STEP file</h2>
+<p>STEP does not carry the part material. The Fusion add-in and the SOLIDWORKS and Inventor tools therefore write a file with the <b>same name and the .json extension</b> next to the STEP (e.g. <code>Drzak_20261015_101500.step</code> + <code>Drzak_20261015_101500.json</code>). When FEA Studio opens the STEP (any way above), it:</p>
+<ol>
+<li>matches STEP parts to records by name (case and occurrence suffixes “:1”, “&lt;1&gt;”, “ (2)”, “_2”, SOLIDWORKS “-1” do not matter);</li>
+<li>assigns a material <b>only if it is in the library</b>: exact name (also from your library), or the same grade by the grade converter. A temper in the CAD name (T6, O, +QT…) must match;</li>
+<li>leaves other parts on the default <b>Steel S235</b> and reports them.</li>
+</ol>
+<p>The summary is in the <b>Messages</b> dock (source “CAD import”; double-click opens Materials) and the <b>Solver log</b>. Nothing is blocked; no window opens.</p>
+<table class="grid">
+<tr><th>Material in CAD</th><th>In FEA Studio</th></tr>
+<tr><td>S235JR, St 37-2, 1.0038</td><td>Steel S235</td></tr>
+<tr><td>AISI 304, 1.4301:X5CrNi18-10 / AISI 316L</td><td>Stainless 1.4301 / Stainless 1.4404</td></tr>
+<tr><td>6061-T6 (SS), Aluminum 6061</td><td>Aluminum EN AW-6061 T6</td></tr>
+<tr><td>42CrMo4, C45</td><td>Steel 42CrMo4 +QT, Steel C45 +N</td></tr>
+<tr><td>EN AW-5083 O/H111, 5083-O</td><td>Aluminum EN AW-5083 H111 (O and H111 are one temper)</td></tr>
+<tr><td>6061 Alloy (SOLIDWORKS – annealed temper)</td><td>not assigned: a temper other than T6</td></tr>
+<tr><td>1060 Alloy, 1060-H12 (SOLIDWORKS – aluminium 1060)</td><td>not assigned: aluminium 1060 is not in the library (not mistaken for steel AISI 1060)</td></tr>
+<tr><td>Steel, Plain Carbon Steel, Ocel, měkká, ABS, PLA</td><td>not assigned: a generic name without a grade</td></tr>
+</table>
+<p class="tip">Save a material you use often in CAD in Materials with <b>Save to my material library</b> under the <b>same name as in CAD</b> (e.g. “Plain Carbon Steel”); it is then assigned automatically.</p>
+<h3>Your own JSON (another CAD, a script)</h3>
+<p>Any program can write the file: UTF-8, only the <code>parts</code> list is required. <code>names</code> = further names for matching; <code>material_props</code> (<code>Re_MPa</code>, <code>Rm_MPa</code>) optionally confirm the temper:</p>
+<pre>{"source": "My CAD", "document": "Bracket", "units": "mm",
+ "parts": [{"name": "Plate", "material": "S235JR"},
+           {"name": "Console-1", "names": ["Console"], "material": "AISI 304"}]}</pre>
+<p>The JSON is read only for a new study from STEP (a .fea project keeps its materials). Colours and units from the JSON are not used – the STEP file applies.</p>
+
+<h2>Autodesk Fusion</h2>
+<h3>The “Odeslat do FEA Studia” add-in (recommended)</h3>
+<ol>
+<li><b>Installation:</b> the FEA Studio installer adds the add-in if Fusion is on the computer. Otherwise, in the FEA Studio folder: <code>.venv\Scripts\python.exe installer\fea_setup.py fusion</code> (removal: <code>fusion --remove</code>). Restart Fusion.</li>
+<li>In the Design workspace the SOLID, SURFACE, SHEET METAL… tabs have the <b>FEA STUDIO</b> panel (between INSERT and SELECT) with <b>Odeslat do FEA Studia</b>; also in UTILITIES → ADD-INS.</li>
+<li>In the dialog choose <b>Co odeslat</b>: <b>Celý design</b> (whole design), or <b>Vybrané díly / podsestavy</b> (selected parts / subassemblies – select beforehand; the selection is prefilled). Parts keep their assembly position.</li>
+<li>The add-in saves STEP + JSON to <code>%TEMP%\FEAStudio\export</code> and opens FEA Studio; with the REST server running, it sends the files through it (see <a href="automatizace.html">Automation</a>).</li>
+</ol>
+<ul>
+<li>Parts are named after the occurrence (“Deska:1”); several bodies “Deska:1_1”, “Deska:1_2”.</li>
+<li>Hidden bodies are not exported – make everything to be analysed visible.</li>
+<li>T-Spline (Form) and mesh bodies are not written to STEP – convert them to solids.</li>
+<li>The <b>Vybrané díly / podsestavy</b> option has not yet been tried in live Fusion.</li>
+</ul>
+<h3>Manual export</h3>
+<p><b>File → Export</b> → type <b>STEP Files (*.stp, *.step)</b> → location → <b>Export</b>. Open the STEP in FEA Studio. Materials are not transferred this way.</p>
+
+<h2>SOLIDWORKS</h2>
+<h3>Manual export</h3>
+<ol>
+<li><b>File → Save As</b> (3DEXPERIENCE: <b>Save to This PC</b>) → type <b>STEP AP214 (*.step; *.stp)</b> → <b>Options…</b>.</li>
+<li>Set the options per the table → OK → <b>Save</b>.</li>
+</ol>
+<table class="grid">
+<tr><th>Option</th><th>Setting</th></tr>
+<tr><td>Output as: Solid/Surface geometry</td><td>yes</td></tr>
+<tr><td>Export face/edge properties</td><td>yes (colours)</td></tr>
+<tr><td>Export appearances (from 2023)</td><td>yes (colours)</td></tr>
+<tr><td>Split periodic faces</td><td>no (a hole stays one face)</td></tr>
+<tr><td>Export 3D Curve features</td><td>no</td></tr>
+<tr><td>Export assembly components as separate STEP files (from 2023)</td><td><b>no</b> – otherwise several files</td></tr>
+<tr><td>Output coordinate system</td><td>default</td></tr>
+</table>
+<p>SOLIDWORKS writes AP242 only with the MBD add-in, not needed for analysis. Default option values: <b>Tools → Options → System Options → Export</b>.</p>
+<h3>The FEAStudio_Export macro (button)</h3>
+<p>Macro file: <code>adapters\solidworks\FEAStudio_Export.bas</code> in the FEA Studio folder. Installation (once):</p>
+<ol>
+<li><b>Tools → Macro → New</b> → name <code>FEAStudio.swp</code> (not FEAStudio_Export) in the <code>adapters\solidworks</code> folder → Save. The VBA editor opens.</li>
+<li>In the editor <b>File → Import File…</b> (<span class="key">Ctrl+M</span>) → <code>FEAStudio_Export.bas</code>.</li>
+<li>Remove the empty default module (right-click → <b>Remove…</b> → No).</li>
+<li><b>Debug → Compile VBAProject</b>, save (<span class="key">Ctrl+S</span>), close the editor.</li>
+<li><b>Button:</b> <b>Tools → Customize → Commands</b> → category <b>Macro</b> → drag <b>New Macro Button</b> to a toolbar. Macro: <code>FEAStudio.swp</code>, Method: <code>FEAStudio_Export.main</code>, image <code>FEAStudio_Export.bmp</code>.</li>
+</ol>
+<p>When clicked, the macro sets AP214, solid/surface geometry, face/edge properties, unsplit periodic faces and no 3D curves for the export (then restores them), saves STEP + JSON (material, configuration, occurrences) to <code>%TEMP%\FEAStudio\export</code> and launches FEA Studio. Check the options added in 2023 – <b>separate STEP files</b> (off), <b>Export appearances</b> (on), <b>Output coordinate system</b> (default) – once manually; the macro does not change them.</p>
+<ul>
+<li>STEP from SOLIDWORKS has no occurrence names (“Deska-1”): parts are named after the part file (“Deska”, “Deska (2)”), and “Deska_Configuration” for a non-default configuration. The JSON still matches them.</li>
+<li>Accented names are written correctly only from SOLIDWORKS 2024 SP02; in older versions use names without accents.</li>
+<li>Detailed description (Czech): <code>adapters\solidworks\README.md</code>.</li>
+</ul>
+
+<h2>Autodesk Inventor</h2>
+<h3>Manual export</h3>
+<p><b>File → Export → CAD Format</b> → type <b>STEP Files</b> → <b>Options…</b>: Application Protocol <b>214</b> (AP242 only for parts, not assemblies), turn off <b>Include Sketches</b> → Save.</p>
+<h3>The FEAStudio_Export iLogic rule</h3>
+<p>Rule file: <code>adapters\inventor\FEAStudio_Export.iLogicVb</code> in the FEA Studio folder. Installation (once):</p>
+<ol>
+<li><b>Tools → Options → iLogic Configuration</b> → <b>External Rule Directories</b> → <b>+</b> → the <code>adapters\inventor</code> folder → OK.</li>
+<li>Running: <b>Manage → iLogic → iLogic Browser</b> → <b>External Rules</b> → right-click <b>FEAStudio_Export</b> → <b>Run Rule</b>.</li>
+<li><b>Button</b> (Inventor 2023+): right-click the ribbon → <b>Customize User Commands</b> → <b>Ribbon</b> → filter <b>iLogic rules</b> → add FEAStudio_Export (Part and Assembly separately). Inventor 2021–2022 has no button for a rule – run it from the iLogic Browser.</li>
+<li>Inventor 2025+ may ask about security on the first run (the rule starts another program) – allow it.</li>
+</ol>
+<p>The rule saves STEP AP214 without sketches + JSON to <code>%TEMP%\FEAStudio\export</code> and launches FEA Studio.</p>
+<ul>
+<li>Inventor library material names are generic and localised (“Steel, Mild”, “Ocel, měkká”) and are not assigned; grades such as “1.4301” or “S235JR” are.</li>
+<li>Depending on the version, hidden components may go to STEP – suppress unneeded parts.</li>
+<li>Inventor writes the Windows login name into the STEP header – keep this in mind when sharing files.</li>
+<li>Detailed description (Czech): <code>adapters\inventor\README.md</code>.</li>
+</ul>
+
+<h3>Where the macro and the rule find FEA Studio</h3>
+<p>In order: the <code>FEA_STUDIO_HOME</code> environment variable → <code>%APPDATA%\FEAStudio\install.json</code> (written by the installer) → <code>%LOCALAPPDATA%\Programs\FEA Studio</code> → a constant in the macro. If none is found, a message gives the path of the saved STEP – drag it onto the window. Set the variable via Start → “Edit environment variables for your account” → <b>New…</b>: name <code>FEA_STUDIO_HOME</code>, value = the FEA Studio folder (e.g. <code>D:\Programs\FEA Studio</code>).</p>
+
+<h2>Other CAD systems</h2>
+<p>Export STEP manually and open it (Open, drag and drop, Send to); assign materials in Materials. The procedures follow vendor documentation; FEA Studio has not been tried in these systems and labels may differ by version.</p>
+<table class="grid">
+<tr><th>CAD</th><th>Procedure</th><th>Watch out</th></tr>
+<tr><td>Siemens Solid Edge</td><td>Save As → type STEP (*.stp) → Options: Export AP214, Solid Bodies → Export To: <b>Class VI Manifold Solids</b>, Export Units: millimeters</td><td>the setting is remembered – Surface Models or Wireframe must not remain</td></tr>
+<tr><td>PTC Creo Parametric</td><td>File → Save As → Save a Copy → Type STEP → Options: protocol <b>ap214_is</b>; the assembly as one file</td><td>default ap203_is has no colours; ap242 with annotations writes parts as triangle meshes</td></tr>
+<tr><td>CATIA V5</td><td>Tools → Options → General → Compatibility → STEP → Export: <b>AP214</b>; then File → Save As → type stp</td><td>requires the ST1 licence; load the assembly fully (not visualisation mode only)</td></tr>
+<tr><td>CATIA 3DEXPERIENCE</td><td>Export → Format <b>STEP</b> (AP214 or AP242)</td><td>one file; STEP option locations differ by release</td></tr>
+<tr><td>Siemens NX</td><td>File → Export → STEP: Export From <b>Displayed Part</b>, Export As <b>AP214</b> (or AP242), Data to Export <b>Entire Part</b>, precise geometry</td><td>AP242 takes only visible layers; selecting single bodies flattens the assembly and loses part names</td></tr>
+<tr><td>Onshape</td><td>right-click the Part Studio / Assembly tab → Export → Format <b>STEP</b>, Use custom units: <b>Millimeter</b>, leave “Export unique parts as individual files” unchecked → Download</td><td>suppressed parts are not exported, hidden only with “Include hidden instances in export”; without units the file is in metres (converted)</td></tr>
+<tr><td>FreeCAD 0.21 / 1.0</td><td>Edit → Preferences → Import-Export → STEP: Units <b>Millimeter</b>, Scheme <b>AP214</b>, turn off “Export invisible objects”; select only the final <b>Body</b> / <b>Part</b> → File → Export (<span class="key">Ctrl+E</span>) → STEP</td><td>Select all (<span class="key">Ctrl+A</span>) also selects inner features of a Body → duplicated bodies</td></tr>
+<tr><td>Rhino 7 / 8</td><td>ShowEdges / SelOpenPolysrf – no open polysurfaces (close with Join, Cap); select solids → Export Selected → STEP → schema <b>AP214AutomotiveDesign</b></td><td>an open polysurface is written as a surface, not a solid</td></tr>
+</table>
+
+<h2>Unsuitable formats and tools</h2>
+<ul>
+<li><b>STL, OBJ, 3MF, PLY</b> – triangle meshes without precise surfaces (STL also without units). Not opened.</li>
+<li><b>Converting a mesh to a solid</b> (FreeCAD “Convert to solid”, STL → STEP) gives a faceted solid with a face per triangle: slow meshing, holes and cylinders cannot be selected, and false stress peaks appear on facet edges. Last resort only – remodelling is better.</li>
+<li><b>IGES</b> usually carries surfaces only and is not opened. Native CAD files (.sldprt, .ipt, .f3d…), Parasolid and ACIS are not either – always export STEP.</li>
+<li><b>SketchUp, Blender</b> and other polygon modellers have neither precise solids nor STEP export.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<table class="grid">
+<tr><th>Problem</th><th>Cause</th><th>What to do</th></tr>
+<tr><td>Parts named “SOLID”, “Teleso”, “Body2” or similar</td><td>CAD did not write part or occurrence names (FEA Studio replaces generic body names with the component name)</td><td>Name the parts in CAD; split multi-body parts into separate parts</td></tr>
+<tr><td>“The STEP file contains faces or shells without volume”, “The STEP file contains no body”</td><td>surfaces or open bodies were exported</td><td>Export solids (Solid / Manifold Solids), close or knit them in CAD; surfaces-only STEP can be computed as a shell</td></tr>
+<tr><td>“CAD material … is not in the library”</td><td>a generic name or a different temper (e.g. annealed)</td><td>Assign it in Materials; permanently: save to your library under the CAD name</td></tr>
+<tr><td>“Parts without an entry in the CAD metadata”</td><td>part name in STEP does not match the JSON (renaming, accents in older SOLIDWORKS, STEP and JSON from different exports)</td><td>Export again with the button; use file names without accents</td></tr>
+<tr><td>No “CAD metadata” summary</td><td>no JSON next to the STEP (manual export), or a different name</td><td>Always name STEP and JSON the same way, or assign materials manually</td></tr>
+<tr><td>A bolt was not detected</td><td>the name lacks standard and size (“Sroub-1”, an item number)</td><td>Joints → <b>Detect joints…</b> offers parts by shape; or rename in CAD to “ISO 4017 - M8 x 30 - 8.8”</td></tr>
+<tr><td>A part was marked as a weld</td><td>the name contains “weld” / “svar” (e.g. “Weldment…”)</td><td>Rename it in CAD, or untick it in Detect joints…</td></tr>
+<tr><td>A hidden part is analysed</td><td>depending on the version Inventor and SOLIDWORKS may write hidden parts</td><td>Suppress it in CAD, or Joints → <b>Parts excluded from the analysis</b></td></tr>
+<tr><td>Dimensions 25.4× or 1000× off</td><td>wrong units in the STEP header</td><td>Export again in mm; check the volume in the model overview</td></tr>
+<tr><td>Meshing long or failing</td><td>unnecessary details, interferences</td><td>Simplify the model (below); remove interferences in CAD</td></tr>
+<tr><td>Macro / rule did not launch FEA Studio</td><td>program folder not found</td><td>Set <code>FEA_STUDIO_HOME</code>, or drag the STEP from the message onto the window</td></tr>
+<tr><td>Drag and drop does not work</td><td>FEA Studio runs as administrator (Windows blocks dropping from a non-administrator Explorer), a different extension, or an analysis is running</td><td>Start FEA Studio normally; drag only .step, .stp, .fea</td></tr>
+</table>
+<h3>Simplifying a large model</h3>
+<ul>
+<li>Suppress parts that carry no load (cables, electronics, covers, labels).</li>
+<li>Turn off modelled threads (helices); remove cosmetic threads, logos and text.</li>
+<li>Remove small fillets, chamfers and holes far from stressed areas – they refine the mesh needlessly.</li>
+<li>Use symmetry (half or quarter model with supports in the symmetry plane, <a href="vazby.html">Supports</a>).</li>
+</ul>

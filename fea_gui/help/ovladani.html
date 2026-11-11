@@ -1,0 +1,146 @@
+<h1>Controls and keys</h1>
+<p class="lead">Window layout, interactive help (What's this?, setup guide), mouse control in the 3D window (as in Onshape), selection of faces and parts,
+section view, views, undo/redo and saving. At the end: all keyboard shortcuts.</p>
+
+<h2>Window layout</h2>
+<ul>
+<li><b>Top</b> – one header row: menus <b>File</b> (Open, Save, Save as, Report, Replace geometry), <b>Edit</b> (Undo, Redo), <b>View</b> (Fit, view direction, optional steps, Appearance – system / light / dark, Language), <b>Tools</b> and <b>Help</b> (F1 help, What's this? Shift+F1, How to set up a simulation, guided tours, manuals). In the middle are the <b>phase tabs</b> Model, Assembly, Conditions, Calculation, Results; on the right the study and file name, the phase button (Model: <b>Replace geometry…</b>; Assembly: <b>Detect joints…</b>; Calculation: <b>Mesh convergence…</b>; Results: <b>Export CSV / VTU</b> and <b>Generate report</b>) and <b>Run analysis</b> (F5 – opens Solve and runs). A phase tab opens the step used last in that phase. In a narrow window the document name disappears first, then the Replace geometry button (it stays in File).</li>
+<li><b>Above the 3D window</b> – the view bar: description by step (load case, joints, mesh, displayed quantity), material colour legend, what a click does; by phase: Model <b>Color</b> (part / material), Assembly <b>Transparent</b>, Conditions <b>Shaded</b> (with edges, without, wireframe), Mesh <b>Show: Mesh / Parts</b> and <b>Color: element quality</b> (1 = regular tetrahedron), Results <b>Quantity</b> and <b>Mesh edges</b>; then <b>Select</b> (Face P, Body B, Hole H, Edge E, Point V), <b>View</b> (isometric, front, top, right), <b>Section</b> (plane normal to an axis or to a selected face; position slider; flip) and <b>Fit</b> (F).</li>
+<li><b>Left</b> – <b>tool shelf</b>: commands of the current step in headed groups (e.g. Model: GEOMETRY Load, Replace, Check; PARTS Show, Isolate, Hide, Exclude; Loads: LOADS Force, Pressure, Moment, Bearing, Weight, Add; CASES New case, Combinations; Results: Along line, Isosurface, Section force, Animate, Export; Heat: Temperature, Flux, Convection, Radiation; Contacts: Find, Add pair; Members: Node, Member, Section, From wires; Motion: Body, Joint, Driver, Play). In a low window only icons remain; names are in tooltips.</li>
+<li><b>Centre</b> – 3D window.</li>
+<li><b>Right</b> – at the top the <b>Study</b> tree (parts with material, 3D printing, joints, contacts, beams, supports, mechanism, heat, load cases, dynamics and added mass, mesh, results, fatigue). A click switches to the item's step and selects it. Below the tree are the <b>step tabs</b> of the phase with a status dot: green = done, orange = warning or unfinished, red = error or missing input, gray = not used. A new STEP study shows only the eight required steps (Model, Materials, Joints, Supports, Loads, Mesh, Solve, Results); <b>optional steps</b> (3D printing, Contacts, Members, Motion, Heat, Dynamics, Fatigue) appear when the study uses them, or pin with <b>+</b> (also View → Optional workflow steps). <span class="key">Ctrl+PgDown</span> / <span class="key">Ctrl+PgUp</span> switch steps. Below the tabs: the <b>Properties – selected item</b> card (part: volume, mass, Show / Analyse, material with E, ν, ρ, Re, Rm; bolt: designation, preload, clamped parts, utilization; support and load: where it acts, area, value; Mesh and Solve: analysis state with the duration of each phase, solver, size, quality, equilibrium). A bolt's size, class and preload and a force's X / Y / Z components can be changed here. The divider between tree and panel can be moved.</li>
+<li><b>Bottom</b> – <b>tables</b> in tabs with row counts: Model – Parts (Show, Analyse and Material editable), Study materials, Geometry check, Coordinate systems; Joints – Bolts, Welds, Part connections, Excluded parts; Supports and Loads – loads × cases matrix, Load cases, Combinations; Heat, Contacts, Members, Motion, Dynamics; Mesh – Mesh by part, Refinement; Results – Load case results, Highest stresses, Safety by part, Reactions, Joints – utilization. In tables you can change: parts Show, Analyse, Material; bolt size, class and preload mode; load components Fx / Fy / Fz (double-click) and the case matrix (ticking copies a load into a case, unticking in its own case deletes it); <b>+ Row</b> adds a load on the selected faces or a bolt in the selected hole. Actions on the right of the tab row (Show all, Isolate, Filter, Assign material…, Duplicate, Delete, Show in model, <b>Copy to Excel</b>). The <b>Messages</b> dock (errors, warnings, information; double-click switches to the step), the <b>Solver log</b> (everything the program reports, including CalculiX output) and <b>Joints – utilization</b> are here too.</li>
+<li><b>Status bar</b> – left: probe value, edge description or selected parts; right: “Faces selected: n   A = … mm²” and the model summary: readiness check, result equilibrium (✓ in green when the imbalance is below the limit), element count, time of the last solve and units (mm · N · MPa).</li>
+</ul>
+
+<h2>Interactive help</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Note</th></tr>
+<tr><td>Tooltips (hover)</td><td>Every button, field, menu and list has a one-line tooltip; details (units, typical values, limits) are in the second level.</td><td>A form row's label shows its field's description; <span class="key">F1</span> over an element or the ⓘ button in a section header opens the details.</td></tr>
+<tr><td>Panel sections</td><td>Step panels have collapsible sections with a header (arrow, title, gray summary). Right-click for <i>Expand all</i> / <i>Collapse all</i>.</td><td>A section with a <i>calculate</i> checkbox expands when ticked; the guide and What's this? expand collapsed sections.</td></tr>
+<tr><td><b>What's this?</b> <span class="key">Shift+F1</span></td><td>Explanation mode: the element under the mouse is outlined; a click shows a bubble with details and a link to the step's help page. Clicks are not passed to the elements.</td><td><span class="key">Esc</span>, right button or <span class="key">Shift+F1</span> again = exit</td></tr>
+<tr><td><b>How to set up a simulation</b></td><td>Step-by-step guide to <i>your</i> simulation: switches the progress step, highlights controls with numbers ①②③ and shows what is done and what is missing (refreshed after each change).</td><td><a href="fea:nastaveni">Start the guide</a> · “Show in app” repeats the highlight</td></tr>
+<tr><td><b>Example tour</b></td><td>Opens a finished example and guides you through it.</td><td><a href="ukazky.html">Examples</a></td></tr>
+</table>
+
+<h2>Mouse in the 3D window</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Left button – click</td><td>Selection: face / part / hole / edge by step and filter; in Results the probe (value at a point).</td><td>A click on empty space clears the face selection.</td></tr>
+<tr><td>Right button – click (no drag)</td><td>Context menu: Show all, Zoom to selection, Clear selection, View, 3D mouse…</td><td></td></tr>
+<tr><td>Left double-click</td><td>Selects the face / part and zooms to the selection.</td><td>In Results it does not change the view.</td></tr>
+<tr><td>Right button – drag</td><td>Rotation about the model point under the cursor.</td><td>Outside the model: about the view centre.</td></tr>
+<tr><td>Middle button – drag, or <span class="key">Ctrl</span> + right button</td><td>Pan.</td><td></td></tr>
+<tr><td>Wheel</td><td>Zoom toward the point under the cursor.</td><td>One notch = 1.2×</td></tr>
+<tr><td>View cube (top right)</td><td>A click on a face, edge or corner rotates the view.</td><td>Front, Back, Top, Bottom, Left, Right (Z up)</td></tr>
+<tr><td>Arrows / <span class="key">Shift</span>+arrows</td><td>Rotate the view by 15° / 90°.</td><td>Only when the 3D window has focus.</td></tr>
+</table>
+<p>Bottom left is the <b>scale</b> (ruler in mm), which adapts to zoom.</p>
+
+<h2>Selection</h2>
+<p>What a click selects depends on the step:</p>
+<ul>
+<li><b>Model, Materials, 3D printing, Solve, Fatigue</b> – whole parts. <span class="key">Ctrl</span>+click adds / removes a part.</li>
+<li><b>Joints, Contacts, Beams, Supports, Motion, Heat, Loads, Dynamics, Mesh</b> – faces. A click adds a face, a second click removes it (no <span class="key">Ctrl</span> needed); a click on empty space clears the selection. The face under the cursor is light blue; selected faces are orange. The selection carries over between Supports, Loads and Mesh.</li>
+<li><b>Results</b> – a click shows the value of the displayed quantity (probe) and a marker in 3D.</li>
+</ul>
+
+<h3>Selection filter</h3>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td><b>Face</b> <span class="key">P</span></td><td>A click adds / removes a single face.</td><td>Default</td></tr>
+<tr><td><b>Body</b> <span class="key">B</span></td><td>A click adds / removes all faces of the part.</td><td>e.g. convection from the whole surface</td></tr>
+<tr><td><b>Hole</b> <span class="key">H</span></td><td>A click on a cylindrical face selects the whole hole or pin – all coaxial cylindrical faces of the same radius.</td><td>Switching to Hole also extends selected cylinders to whole holes (formerly the “Whole hole” button).</td></tr>
+<tr><td><b>Edge</b> <span class="key">E</span></td><td>A click on an edge shows its type, length and (for a circle) radius, centre and axis in the status bar and the log; in face-selection steps it adds / removes the edge (force on an edge). A click on empty space clears the edge selection; the face selection does not change.</td><td><b>Use circle center</b> / <b>Use edge center</b> in the status bar</td></tr>
+<tr><td><b>Point</b> <span class="key">V</span></td><td>A click on a vertex (exact) or a face (point projected onto the CAD face) adds / removes a point (force at a point); a click on empty space clears the points.</td><td>Coordinates in the status bar</td></tr>
+</table>
+<p><b>Use circle center</b> copies the centre to the clipboard and enters it into the <b>Point [mm]</b> field of the open form (“Force at remote point”, “Moment (remote point)”), clearing “face center”. This enters a point on a hole axis without retyping coordinates.</p>
+
+<h2>Views</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td><b>All</b> <span class="key">F</span></td><td>Shows the whole model.</td><td></td></tr>
+<tr><td><b>View</b>: Isometric, Front, Top, Right</td><td>Standard views (Z up), showing the whole model.</td><td>Other sides via the view cube.</td></tr>
+</table>
+
+<h2>Section</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td><b>Section:</b> off / X / Y / Z</td><td>Section by a plane perpendicular to the axis.</td><td></td></tr>
+<tr><td><b>Section:</b> face</td><td>Section by the plane of the first selected face (normal and position from the face).</td><td>Select a face first (e.g. in Supports), then choose “face”.</td></tr>
+<tr><td>Slider</td><td>Position of the plane within the model envelope.</td><td></td></tr>
+<tr><td><b>flip</b></td><td>Shows the other half.</td><td></td></tr>
+</table>
+<p>In input steps the section cuts the geometry display. In <a href="vysledky.html">Results</a> a colour section is shown <b>through the inside of the mesh</b> with an outline; the probe works on the section face too.</p>
+
+<h2>3D mouse (3Dconnexion)</h2>
+<p>SpaceMouse, SpaceNavigator and other 3Dconnexion devices are read directly from Windows (the 3DxWare driver may run at the same time). Push right = model right, pull = zoom in, twist and tilt = rotation about the model point in the window centre. Fit shows the whole model; on SpaceMouse Pro / Enterprise the view buttons and Roll also work. The Menu button is handled by the driver.</p>
+<p>Right-click in the 3D window → <b>3D mouse (3Dconnexion)</b> dialog: <b>Control the 3D view with the 3D mouse</b>, <b>Speed</b> (0.25× to 4×), <b>Rotation</b>, <b>Pan and zoom</b>, <b>Dominant motion only (dominant axis)</b>, and inversion of single axes. The bars show the cap deflection live – useful to check the device is communicating.</p>
+
+<h2>Tools menu</h2>
+<table class="grid">
+<tr><th>Item</th><th>What it does</th><th>Note</th></tr>
+<tr><td><b>Beam calculator…</b></td><td>Closed-form beam formulas, curved bar, buckling, EN 1993 check.</td><td><a href="pruty.html">Beams</a></td></tr>
+<tr><td><b>Calculators (friction, Hertz, press fit, snap-fit)…</b></td><td>Calculations without FEA for a quick estimate and a check – tabs below.</td><td>Default values = verification examples.</td></tr>
+<tr><td><b>New frame (no CAD)</b></td><td>A study made of members only.</td><td><a href="pruty.html">Beams</a></td></tr>
+<tr><td><b>Mesh convergence…</b></td><td>Analyses on refined meshes, Richardson and GCI.</td><td><a href="vysledky.html#konvergence">Results</a></td></tr>
+<tr><td><b>Program modules…</b></td><td>What is installed; install / remove optional parts (motion, chrono, hypre – large-model solver).</td><td><a href="automatizace.html">Automation</a></td></tr>
+</table>
+<h3>Calculators</h3>
+<table class="grid">
+<tr><th>Tab</th><th>What it computes</th></tr>
+<tr><td>Snap-fit</td><td>Snap-fit hook of rectangular section (Bayer), also tapered: assembly and separation force, strain check.</td></tr>
+<tr><td>Press fit</td><td>Shaft + hub (Lamé, plane stress): pressure, stress, displacements, transmitted torque and force, heating for assembly.</td></tr>
+<tr><td>Hertz</td><td>Hertzian contact: sphere, cylinder, gearing (ISO 6336-2), cam with roller, impact of a sphere.</td></tr>
+<tr><td>Machine element friction</td><td>Friction in joints and machine elements – torque, self-locking, efficiency.</td></tr>
+<tr><td>Friction library</td><td>Friction coefficients of material pairs with sources (μ_min / μ_max by purpose), your own values – see <a href="treni.html">Friction and damping</a>.</td></tr>
+<tr><td>Mechanisms</td><td>Analytical benchmarks: crank, four-bar, cam, pendulum, run-down, stick-slip, rolling, axis drive.</td></tr>
+<tr><td>Damping from measurement</td><td>Damping ratio from the −3 dB bandwidth or logarithmic decrement, Rayleigh α, β, conversions ζ ↔ Q ↔ η.</td></tr>
+<tr><td>Drop</td><td>A drop as an equivalent half-sine acceleration pulse (input for shock in <a href="dynamika.html">Dynamics</a>).</td></tr>
+</table>
+<p>Calculator units: mm, N, MPa, t, s (g = 9810 mm/s²). Each result states its formula and source.</p>
+
+<h2>Undo / redo</h2>
+<p><span class="key">Ctrl+Z</span> reverts the last study change (material, support, load, mesh, print settings, joints, fatigue…), <span class="key">Ctrl+Y</span> redoes it. Up to 200 steps are kept; the history clears when another file opens. View, face selection and section are not recorded.</p>
+<p class="warn"><b>Note:</b> reverting an input change discards the results (and the mesh, if it concerns geometry, selections, joints or printing). Changing fatigue settings does not discard static results.</p>
+
+<h2>Files</h2>
+<ul>
+<li><b>Open…</b> <span class="key">Ctrl+O</span> – STEP (.step, .stp) = new study, or a .fea project. Also <code>python -m fea_gui file.fea</code>.</li>
+<li><b>Save</b> <span class="key">Ctrl+S</span> – the .fea project holds the STEP model, inputs and results (portable to another computer). A new study asks for a name.</li>
+<li><b>Save as…</b> <span class="key">Ctrl+Shift+S</span>.</li>
+<li>Unsaved changes show as an asterisk in the title; closing or opening another file asks first.</li>
+</ul>
+
+<h2>Keyboard shortcuts</h2>
+<table class="grid">
+<tr><th>Key</th><th>Action</th><th>Note</th></tr>
+<tr><td><span class="key">Ctrl+O</span></td><td>Open STEP or .fea project</td><td></td></tr>
+<tr><td><span class="key">Ctrl+S</span></td><td>Save project</td><td></td></tr>
+<tr><td><span class="key">Ctrl+Shift+S</span></td><td>Save as…</td><td></td></tr>
+<tr><td><span class="key">Ctrl+P</span></td><td>Report to Word</td><td><a href="protokol.html">Report</a></td></tr>
+<tr><td><span class="key">Ctrl+Z</span> / <span class="key">Ctrl+Y</span></td><td>Undo / Redo</td><td></td></tr>
+<tr><td><span class="key">F</span></td><td>Show the whole model</td><td></td></tr>
+<tr><td><span class="key">P</span> <span class="key">B</span> <span class="key">H</span> <span class="key">E</span> <span class="key">V</span></td><td>Selection filter Face / Body / Hole / Edge / Point</td><td></td></tr>
+<tr><td>arrows, <span class="key">Shift</span>+arrows</td><td>Rotate the view by 15° / 90°</td><td>The 3D window must have focus.</td></tr>
+<tr><td><span class="key">Ctrl+PgDown</span> / <span class="key">Ctrl+PgUp</span></td><td>Next / previous shown step</td><td></td></tr>
+<tr><td><span class="key">F1</span></td><td>Details of the element under the mouse, otherwise help for the current step</td><td>In the help window: <span class="key">Ctrl+F</span> search, <span class="key">Alt+←</span> / <span class="key">Alt+→</span> back / forward</td></tr>
+<tr><td><span class="key">Shift+F1</span></td><td>What's this? – explanation of an element after a click</td><td>Exit with <span class="key">Esc</span></td></tr>
+</table>
+<p class="tip"><b>Tip:</b> single-letter shortcuts do not work while typing in a text or number field – click into the 3D window first.</p>
+
+<h2>In the examples</h2>
+<ul>
+<li><b>Example 1 – printed bracket:</b> in Supports turn on the <b>Hole</b> filter (<span class="key">H</span>) and click a screw hole – the whole Ø5 hole is selected. Section <b>Y</b> at the middle (y = 20 mm) passes through both hole axes, the Ø8 eye and the rib; in Results the same section is coloured by the stress inside the part.</li>
+<li><b>Example 2 – assembly:</b> the <b>Edge</b> filter (<span class="key">E</span>) and a click on the arm eye edge shows a circle R 5 mm on the eye axis; <b>Use circle center</b> enters it as the remote force point. Section <b>Y</b> through the bolt axis shows the clamped stack with washers and nut; in Results, section <b>Y</b> across the post shows the triangular sections of both fillet welds and the stress in them.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<ul>
+<li><b>Arrows and letter shortcuts do not respond</b> – the focus is in a form field. Click into the 3D window.</li>
+<li><b>“For a section along a face plane, first select a face (e.g. in the Supports step), then choose “face”.”</b> – in Model and Materials parts are selected, not faces. Go to Supports, select a face, then choose the section “face”.</li>
+<li><b>“Hole filter: click the cylindrical face of a hole or pin.”</b> – you clicked a planar face or a non-cylindrical fillet (cone, torus). Click the cylindrical wall.</li>
+<li><b>The “Solver log” or “Messages” panel disappeared</b> (closed with the cross) – right-click the toolbar and show it again.</li>
+<li><b>“Meshing, analysis or report generation is in progress – wait for it to finish or cancel the analysis (Solve / Mesh step).”</b> – a file cannot be opened during an analysis. Wait, or press <b>Cancel</b>.</li>
+<li><b>Results disappeared after <span class="key">Ctrl+Z</span></b> (“Study changed – results discarded, recomputation needed.”) – results belong to the original inputs. Run the analysis again; <span class="key">Ctrl+Y</span> redoes the change but does not restore results.</li>
+</ul>

@@ -1,0 +1,218 @@
+<h1>Testing the program</h1>
+<p class="lead">Ten test problems with a known result (analytical solution or code-based calculation) and the example tours. Each has a procedure and a table of expected values.</p>
+
+<h2>Preparation</h2>
+<ul>
+<li>Launch: the <b>FEA Studio</b> desktop shortcut or <code>FEA Studio.bat</code> in the program folder.</li>
+<li>Test models: <code>examples\user_tests</code> in the installation (<code>T1_…step</code> to <code>T10_…step</code>); recreate with <code>.venv\Scripts\python.exe -m examples.user_tests</code>.</li>
+<li>Guided examples: <b>Help → Example tour</b> (see <a href="ukazky.html">Examples and tours</a>).</li>
+<li>Verification of the whole program without the GUI (about 10 minutes): <code>.venv\Scripts\python.exe -m verification.run_all</code>. The output must end with <b>VÝSLEDEK: všechny kontroly prošly</b> (RESULT: all checks passed; the console is in Czech).</li>
+</ul>
+<p class="tip"><b>Tip:</b> FEA values differ from analytical ones by the mesh error; each value has a tolerance. Displacements within ~3 %, stresses away from singularities within ~5 %. Larger deviations are errors – send the .fea project and a description.</p>
+
+<h2>Recommended order</h2>
+<ol>
+<li><b>Example tour 1</b> (printed bracket), about 1 min analysis.</li>
+<li><b>Example tour 2</b> (assembly: bolts, welds, heat, fatigue), about 3 min.</li>
+<li>Tests T1–T7, 5–10 minutes each.</li>
+<li>Dynamics, contacts and mechanisms: example tours 7–9 and tests T8–T10.</li>
+<li>Your own STEP model – follow the step bar; <span class="key">F1</span> = help.</li>
+<li>Word report (<span class="key">Ctrl+P</span>) and manual (Help → Example tour → Manual).</li>
+</ol>
+
+<h2>T1 – cantilever: statics, deflection and stress</h2>
+<p>Steel beam 200 × 20 × 10 mm, fixed at one end, 100 N force at the other, perpendicular to the 10 mm height.</p>
+<p><img src="model_t1_cantilever.png" alt="Model T1 – Cantilever beam"></p>
+<ol>
+<li><span class="key">Ctrl+O</span> → <code>T1_cantilever.step</code>.</li>
+<li>Material of part Konzola: <b>Steel S235</b> (E = 210 000 MPa, ν = 0.3).</li>
+<li>Supports: face x = 0 → <b>Fixed support</b>.</li>
+<li>Loads: face x = 200 → <b>Force</b> (0; 0; −100) N.</li>
+<li>Mesh: element size 2.5 mm → Generate mesh; Solve → Run analysis.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th><th>Where to read</th></tr>
+<tr><td>Tip deflection (displacement Z)</td><td>0.763 mm (Timoshenko), FEA ~0.76 mm (±3 %)</td><td>Results → Displacement Z, summary</td></tr>
+<tr><td>σx at mid-length, top / bottom face</td><td>+30 / −30 MPa (±5 %)</td><td>Stress σx, click at x = 100</td></tr>
+<tr><td>Reaction Fz at the support</td><td>100 N</td><td>summary – reactions</td></tr>
+<tr><td>Max. von Mises</td><td>at the support, marked as singularity (support edge)</td><td>Highest stresses</td></tr>
+</table>
+<p><b>Fatigue on the same model:</b> Fatigue step → channel of the force case: sine, mean 0, amplitude 1, 1000 cycles per block, 100 blocks, signed von Mises, steel S-N: SD = 20 MPa, ND = 10⁶, k = 5, k2 = 0. At a node on the top face at x = 100: amplitude 30 MPa (±5 %), damage over 100 blocks ≈ 0.74, safety factor ≈ 1.06.</p>
+
+<h2>T2 – plate with a hole: stress concentration and symmetry</h2>
+<p>One eighth of a plate (width 100, thickness 5 mm, hole Ø10, tension 100 MPa): a 150 × 50 × 2.5 mm model with a quarter hole in the corner.</p>
+<p><img src="model_t2_plate_with_hole_eighth.png" alt="Model T2 – Plate with a hole"></p>
+<ol>
+<li>Open <code>T2_plate_with_hole_eighth.step</code>, Steel S235.</li>
+<li>Symmetry supports (<b>Prescribed displacement</b> of one component): face x = 0 → ux = 0; face y = 0 → uy = 0; bottom face z = 0 → uz = 0.</li>
+<li>Loads: end face x = 150 → <b>Pressure</b> −100 MPa (negative = tension).</li>
+<li>Mesh 4 mm; local refinement of the hole face (Hole filter <span class="key">H</span>) to 0.35 mm.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th><th>Where to read</th></tr>
+<tr><td>σx max at the hole edge (x = 0, y = 5)</td><td>≈ 303 MPa (Kt,n = 2.729 × 111.1 MPa, ±5 %)</td><td>Stress σx</td></tr>
+<tr><td>Reaction Fx in the plane x = 0</td><td>12 500 N (100 MPa × 50 × 2.5)</td><td>summary – reactions</td></tr>
+<tr><td>Classification of the maximum</td><td>real location (not a singularity)</td><td>Highest stresses</td></tr>
+</table>
+
+<h2>T3 – thick-walled tube: Lamé, heat and thermal stress</h2>
+<p>Quarter of a ring, ri = 20, ro = 40 mm, height 10 mm.</p>
+<p><img src="model_t3_pipe_quarter.png" alt="Model T3 – Thick-walled tube"></p>
+<ol>
+<li>Open <code>T3_pipe_quarter.step</code>, Steel S235.</li>
+<li>Supports: face x = 0 → ux = 0; face y = 0 → uy = 0; bottom face z = 0 → uz = 0.</li>
+<li>Loads: inner cylindrical face (R 20) → Pressure 100 MPa. Mesh 2.5 mm; run.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th></tr>
+<tr><td>σθ (hoop) at ri / ro</td><td>166.7 / 66.7 MPa (±5 %)</td></tr>
+<tr><td>von Mises at ri</td><td>233.3 MPa (±5 %)</td></tr>
+<tr><td>Radial displacement of the inner face</td><td>0.01873 mm (±3 %)</td></tr>
+</table>
+<p><b>Heat on the same model:</b> Heat step → new steady-state case: inner face <b>Temperature</b> 100 °C, outer face (R 40) 20 °C. Results (case “Heat: …”), S235, λ = 53.3 W/(m·K):</p>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th></tr>
+<tr><td>Temperature at r = 30 mm</td><td>53.2 °C (logarithmic profile)</td></tr>
+<tr><td>Heat flux |q| at r = 30 mm</td><td>≈ 205 000 W/m²</td></tr>
+<tr><td>Heat through the inner face</td><td>≈ 96.6 W (boundary condition heat table), balance within 0.1 %</td></tr>
+</table>
+
+<h2>T4 – shaft: torsion through a remote point</h2>
+<p>Shaft Ø20 × 200 mm, fixed at x = 0, torque 100 N·m on the other end.</p>
+<p><img src="model_t4_shaft.png" alt="Model T4 – Shaft in torsion"></p>
+<ol>
+<li>Open <code>T4_shaft.step</code>, Steel S235; fixed support on face x = 0.</li>
+<li>Loads: face x = 200 → <b>Remote force / moment</b>, point (200; 0; 0), moment Mx = 100,000 N·mm, distributing coupling.</li>
+<li>Mesh 2.5 mm; run.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th></tr>
+<tr><td>Shear stress at the surface (τ = T/Wk)</td><td>63.66 MPa; von Mises ≈ √3 · 63.66 = 110 MPa</td></tr>
+<tr><td>Twist of the end</td><td>0.903° (end circumference ≈ 0.158 mm)</td></tr>
+<tr><td>Reaction moment at the support</td><td>100,000 N·mm</td></tr>
+</table>
+
+<h2>T5 – M10 bolted joint: detection, preload, checks</h2>
+<p>Two lap-jointed 10 mm plates, ISO 4017 M10 8.8 bolt with washers and nut (names from CAD).</p>
+<p><img src="model_t5_joint_m10.png" alt="Model T5 – Bolted joint M10"></p>
+<ol>
+<li>Open <code>T5_joint_M10.step</code>, plates Steel S235.</li>
+<li>Joints → <b>Detect joints…</b> → confirm the bolt (M10 8.8, with nut, washers).</li>
+<li>Supports: end face of plate B at x = 160 → Fixed support. Loads: end face of plate A at x = 0 → Force (−10,000; 0; 0) N.</li>
+<li>Mesh 5 mm; run (CalculiX – other solvers do not support bolts).</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th><th>Where</th></tr>
+<tr><td>Bolt preload case – bolt force</td><td>F_V = 19 760 N</td><td>Joints – utilization dock</td></tr>
+<tr><td>VDI 2230 F_M,zul (μ_G = 0.12)</td><td>29 603 N</td><td>bolt check</td></tr>
+<tr><td>EN 1993-1-8 F_v,Rd (shear in thread)</td><td>22 268 N</td><td>bolt check</td></tr>
+<tr><td>EN 1993-1-8 F_b,Rd (bearing, e1 = e2 = 20)</td><td>43 636 N</td><td>bolt check</td></tr>
+<tr><td>Shear through interface + bolt</td><td>10,000 N</td><td>joint forces</td></tr>
+</table>
+
+<h2>T6 – T-joint with a5 fillet welds</h2>
+<p>Flange 10 mm, web 10 × 100 mm, two a5 fillet welds of length 100 mm (bodies “Svar …”).</p>
+<p><img src="model_t6_t_joint_welds_a5.png" alt="Model T6 – T-joint with welds"></p>
+<ol>
+<li>Open <code>T6_t_joint_welds_a5.step</code>, Steel S235. Joints → Detect joints… → confirm 2 welds.</li>
+<li>Supports: bottom face of the flange (z = −10) → Fixed support.</li>
+<li>Two load cases: “Tah” (tension): top face of the web (z = 100) → Force (0; 0; 20,000) N; “Podélný smyk” (longitudinal shear): same face → Remote force at (0; 50; 0), force (0; 10,000; 0) N.</li>
+<li>Mesh 5 mm; run.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th></tr>
+<tr><td>Effective throat a / weld length from the mesh</td><td>5.0 mm / 100 mm</td></tr>
+<tr><td>Tension: sum of segment forces of both welds</td><td>20,000 N</td></tr>
+<tr><td>Longitudinal shear: mean τ∥ = F / (2·a·L)</td><td>10 MPa</td></tr>
+</table>
+
+<h2>T7 – 3D printing: orthotropy by build direction</h2>
+<p>Two 100 × 10 × 10 mm PLA bars: one printed upright (layers perpendicular to the length), the other lying flat.</p>
+<p><img src="model_t7_printed_bars.png" alt="Model T7 – 3D printed bars"></p>
+<ol>
+<li>Open <code>T7_printed_bars.step</code>. Material of both parts <b>Print PLA Bambu Basic</b>.</li>
+<li>3D printing: part “Tyc nastojato” (upright) – build direction <b>+X</b>; “Tyc nalezato” (flat) – <b>+Z</b>; for both turn off “shell + infill” (whole part solid) → Apply to selected parts. Failure criterion <b>Tsai-Hill</b>.</li>
+<li>Supports: end faces x = 0 → ux = 0; side faces y = 0 and y = 20 → uy = 0; bottom faces z = 0 → uz = 0.</li>
+<li>Loads: both end faces x = 100 → Pressure −10 MPa. Mesh 3 mm; run.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th></tr>
+<tr><td>Elongation of the upright bar (perpendicular to layers)</td><td>σL/E_z = 0.4630 mm</td></tr>
+<tr><td>Elongation of the flat bar (in the layer plane)</td><td>σL/E_xy = 0.3731 mm</td></tr>
+<tr><td>Safety factor (Tsai-Hill)</td><td>upright 3.50 (Rm_z/σ), flat 3.90 (Rm/σ)</td></tr>
+<tr><td>Reaction Fx</td><td>2,000 N</td></tr>
+</table>
+<p>Then turn on “shell + infill” (3 perimeters, infill 20 %): stiffness and safety both drop; the Shell / core section shows the solid shell share.</p>
+
+<h2>T8 – cantilever: natural frequencies and harmonic response</h2>
+<p>Steel beam 100 × 10 × 10 mm fixed at one end, harmonic force 100 N at the free end (verification Y2).</p>
+<p><img src="model_t8_cantilever_10x10x100.png" alt="Model T8 – Dynamic cantilever"></p>
+<ol>
+<li>Open <code>T8_cantilever_10x10x100.step</code>, Steel S235.</li>
+<li>Supports: face x = 0 → <b>Fixed support</b>. Loads: face x = 100 → <b>Force</b> (0; 100; 0) N, load case named “Síla Y 100 N”.</li>
+<li>Step <b>Dynamics</b>: <b>compute dynamics</b>, 10 modes; modal damping ζ = 2 %; <b>compute harmonic response</b>, 10–2 000 Hz; excitation <b>force</b> – load case Síla Y 100 N (Add excitation); probe at (100; 5; 5).</li>
+<li>Mesh 2.5 mm; run (about 20 s).</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th><th>Where to read</th></tr>
+<tr><td>1st and 2nd natural frequency (bending in y and z)</td><td>833 Hz (Euler–Bernoulli 835.5 Hz, Timoshenko 0.3 % lower; ±1 %)</td><td>Dynamics – table of modes</td></tr>
+<tr><td>Sum of effective masses of both modes in y</td><td>61 % (E–B 61.3 %); a square section may split it between the two modes</td><td>table of modes</td></tr>
+<tr><td>3rd and 4th mode (2nd bending), 5th (torsion), 6th (axial)</td><td>≈ 5,000 Hz (E–B 5,236 Hz), ≈ 7,390 Hz, ≈ 12,970 Hz</td><td>table of modes</td></tr>
+<tr><td>Static tip deflection (Síla Y 100 N)</td><td>0.190 mm (E–B FL³/3EI = 0.1905 mm)</td><td>Displacement Y, summary</td></tr>
+<tr><td>Peak |u<sub>y</sub>| at the probe (resonance)</td><td>4.62 mm = 24.2 × static (E–B 0.9707/(2ζ) = 24.27; ±2 %)</td><td>Dynamics – FRF plot, probe</td></tr>
+<tr><td>|u<sub>y</sub>| at 10 Hz</td><td>0.190 mm (quasi-static)</td><td>FRF plot</td></tr>
+</table>
+<p>With ζ = 1 % the peak doubles (resonance response ∝ 1/damping).</p>
+
+<h2>T9 – contact of two blocks: contact pressure</h2>
+<p>Two steel blocks 20 × 20 × 10 mm stacked, 10 MPa on the top face, frictionless contact (verification K1, “patch test”).</p>
+<p><img src="model_t9_contact_blocks.png" alt="Model T9 – Contact between two blocks"></p>
+<ol>
+<li>Open <code>T9_contact_blocks.step</code>, Steel S235.</li>
+<li>Supports (sliding): bottom face z = 0 → uz = 0; faces x = 0 (both blocks) → ux = 0; faces y = 0 → uy = 0.</li>
+<li>Loads: top face z = 20 → <b>Pressure</b> 10 MPa.</li>
+<li>Step <b>Contacts</b>: <b>Find touching parts</b> → pair Kvadr A – Kvadr B, <b>Frictionless contact</b> → Add. The analysis is nonlinear (CalculiX).</li>
+<li>Mesh 2.5 mm; run (about 20 s).</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity</th><th>Expected value</th><th>Where to read</th></tr>
+<tr><td>Contact – pressure</td><td>10.0 MPa uniform (±0.5 %)</td><td>Contact – pressure</td></tr>
+<tr><td>Normal force of the pair</td><td>4,000 N (10 MPa × 400 mm²)</td><td>Contacts tab</td></tr>
+<tr><td>Displacement of the top face</td><td>−0.000953 mm (2ph/E + p/K, K = 50·E)</td><td>Displacement Z</td></tr>
+<tr><td>Contact – opening, status</td><td>0 mm, whole face in contact</td><td>contact quantities</td></tr>
+</table>
+<p><img src="model_t9b_press_fit_eighth.png" alt="Model T9b – Press-fit joint"></p>
+<p><b>T9b – press fit</b> (<code>T9b_press_fit_eighth.step</code>, K4): one eighth of a Ø20 shaft in a Ø20/40 hub, length 2 × 10 mm. Symmetry supports x = 0 → ux = 0, y = 0 → uy = 0, z = 0 → uz = 0. Empty load case “Lis”. Contacts: pair Hridel – Naboj, <b>Interference (press fit)</b>, interference −0.01 mm (Δd = 0.02 mm). Mesh 1.25 mm (about 1 min). Expected (Lamé): contact pressure 78.75 MPa (FEA mean ~80 MPa), hub hoop stress at the bore 131.3 MPa, radial displacement of the hub bore +7.4 µm, of the shaft −2.6 µm.</p>
+
+<h2>T10 – crank mechanism: kinematics and drive torque</h2>
+<p>Crank r = 20 mm, connecting rod l = 80 mm, piston; crank at 100 rad/s; 1,000 N on the piston against the X direction (verification MB1).</p>
+<p><img src="model_t10_crank_r20_l80.png" alt="Model T10 – Slider-crank mechanism"></p>
+<ol>
+<li>Open <code>T10_crank_r20_l80.step</code>, Steel S235 for all parts.</li>
+<li>Step <b>Motion</b>, tab <b>Bodies</b>: <b>Body for each part</b> (the first part Ram = frame).</li>
+<li>Tab <b>Joints</b>: <b>Suggest from geometry</b> → accept 3 revolute joints (frame–crank, crank–rod, rod–piston). Add a <b>Slider</b> frame – piston, origin (100; 0; 13), axis (1; 0; 0).</li>
+<li>Tab <b>Drivers and forces</b>: driver of frame–crank, <b>angular velocity</b> 100 rad/s; load on body Pist, force (−1,000; 0; 0) N at (100; 0; 13); gravity off.</li>
+<li>Tab <b>Analysis</b>: kinematic, 0.0628319 s (one revolution), 360 outputs → <b>DOF check</b> (0 DOF with drivers, 3 redundant constraints) → <b>Run motion</b>.</li>
+</ol>
+<table class="grid">
+<tr><th>Quantity at t = 0.010472 s (crank at 60°)</th><th>Expected value</th></tr>
+<tr><td>Piston position x (centre of mass = pin axis)</td><td>88.102 mm (r·cos φ + √(l² − r²·sin² φ))</td></tr>
+<tr><td>Piston velocity v<sub>x</sub></td><td>−1,953.8 mm/s</td></tr>
+<tr><td>Piston acceleration a<sub>x</sub></td><td>−75,022 mm/s²</td></tr>
+<tr><td>Drive torque without inertia (set mass 0.001 kg and zero inertia manually)</td><td>|M| = F·|v|/ω = 19,538 N·mm</td></tr>
+<tr><td>Drive torque with CAD mass (steel)</td><td>|M| ≈ 19,250 N·mm (inertia of rod and piston)</td></tr>
+<tr><td>Body equilibrium, power balance</td><td>≈ 0 (motion result summary)</td></tr>
+</table>
+<p>The sign of velocity and torque depends on the crank joint axis (+z = counter-clockwise seen from above). Then try <b>Transfer to FEA…</b> for the connecting rod (instant of maximum pin reaction), as in example 8.</p>
+
+<h2>What else to try</h2>
+<ul>
+<li><b>Solvers:</b> Solve → Solver section: CalculiX / NGSolve + PARDISO / NGSolve + hypre; T1 displacement must agree to 4 significant digits. NGSolve solvers come with the <b>Full</b> profile (modules ngsolve, hypre, and on Windows Microsoft MPI); in the standard install they are greyed out (“not installed”) – install with <b>Install solvers…</b> (Tools → Program modules…) and restart, or skip.</li>
+<li><b>Undo / Redo</b> (<span class="key">Ctrl+Z</span> / <span class="key">Ctrl+Y</span>); save <span class="key">Ctrl+S</span> and reopen (results are saved with the project).</li>
+<li><b>Word report</b> (<span class="key">Ctrl+P</span>) – compare the numbers with the tables.</li>
+<li><b>Section</b> in results (top bar: Section → axis and slider) and a <b>probe</b> by clicking into the model.</li>
+<li><b>Automation:</b> <a href="automatizace.html">command line, MCP, REST</a>, e.g. <code>python -m fea_core run study.json</code>.</li>
+</ul>
+
+<h2>Reporting bugs</h2>
+<p>Send the saved <code>.fea</code> project (Ctrl+S), the text of the <b>Solver log</b> dock (Ctrl+A, Ctrl+C), what you expected and what happened; for a crash also the command-line window contents, if open.</p>

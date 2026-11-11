@@ -1,0 +1,152 @@
+<h1>Řešení</h1>
+<p class="lead">Krok Řešení zkontroluje úplnost studie, nabídne řešič a spustí výpočet: síť, tepelné stavy, lineární statiku všech zatěžovacích stavů
+(nelineárně s kontakty) a volitelně tečení tištěných dílů, vlastní frekvence, vzpěr a dynamickou odezvu. Po skončení program otevře
+<a href="vysledky.html">Výsledky</a>.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Projděte seznam kontroly připravenosti. Červené položky výpočet blokují, oranžové jsou varování.</li>
+<li>Ponechte <b>Řešič: Automaticky (doporučeno – přímý / iterační podle modelu)</b>, pokud nemáte důvod jinak.</li>
+<li>Chcete-li vlastní frekvence nebo vzpěr, zapněte skupiny <b>Vlastní frekvence</b> / <b>Vzpěr (lineární)</b>. Dynamiku nastavte v kroku <a href="dynamika.html">Dynamika</a>, kontakty v kroku <a href="kontakty.html">Kontakty</a> – počítají se stejným tlačítkem.</li>
+<li>Klikněte na <b>Spustit výpočet</b>. Průběh sledujte v doku <b>Log řešiče</b>, chyby a varování v doku <b>Zprávy</b>.</li>
+</ol>
+
+<h2>Ovládací prvky</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam kontroly</td><td>Chyby (červeně), varování (oranžově); bez chyb zelený řádek „Studie je připravena k výpočtu“.</td><td>Obnovuje se při každé změně.</td></tr>
+<tr><td>Řešič</td><td>Volba řešiče (tabulka níže). Řešiče nainstalované chybí, jsou zašedlé s poznámkou „– není nainstalováno“ (bublina řekne, co chybí).</td><td>Automaticky</td></tr>
+<tr><td>Řešič soustavy (CalculiX)</td><td>Přímý řešič uvnitř CalculiXu: PARDISO, PASTIX, SPOOLES. Nepoužívá se u NGSolve.</td><td>PARDISO (nejrychlejší, modul pardiso); PaStiX jen ve Windows. Chybějící řešič se nahradí a výsledky to uvedou ve varování.</td></tr>
+<tr><td>Doinstalovat řešiče…</td><td>Jen když řešič chybí: otevře Nástroje → Moduly programu…</td><td>Po instalaci program restartujte.</td></tr>
+<tr><td><b>Vlastní frekvence</b>: počítat, Počet módů, Od, Do</td><td>Modální analýza (Hz, tvary, podíly efektivních hmot) s vazbami studie a hustotou materiálů.</td><td>Obvykle 6–20 módů; jde i bez zatěžovacích stavů.</td></tr>
+<tr><td><b>Vzpěr (lineární)</b>: počítat, Zatěžovací stav, Počet módů</td><td>Kritické součinitele λ a tvary vzpěru pro zatížení zvoleného stavu.</td><td>LINEÁRNĚ – bez imperfekcí a plasticity (níže).</td></tr>
+<tr><td>Spustit výpočet / Zrušit</td><td>Spustí výpočet na pozadí (aktivní jen bez chyb v kontrole) / ukončí jej (Gmsh, CalculiX, NGSolve, hypre); bez výsledků.</td><td></td></tr>
+<tr><td><b>Zastavit a ponechat výsledky</b></td><td>Jen nelineární výpočet: zastaví CalculiX a ponechá poslední konvergovaný přírůstek jako <b>částečný výsledek</b> (červený štítek ve Výsledcích).</td><td>Úloha bez konvergovaného přírůstku skončí chybou.</td></tr>
+<tr><td>Zelená lišta</td><td>Průběh výpočtu v % s fází a uplynulým časem (i ve stavovém řádku).</td><td>Nelineární kroky postupují podle přírůstků CalculiXu.</td></tr>
+<tr><td>Text pod tlačítky</td><td>„Počítám…“, „Hotovo za X s.“, „Výpočet selhal.“</td><td>Podrobnosti v logu.</td></tr>
+</table>
+
+<h2>Kontrola připravenosti</h2>
+<p>Táž kontrola běží na začátku výpočtu. Ověřuje:</p>
+<ul>
+<li>aspoň jeden zatěžovací nebo tepelný stav; mechanická studie má aspoň jednu vazbu (jen teplo vazby nepotřebuje);</li>
+<li>každý počítaný díl má materiál: pro teplo k, pro přechodový stav i hustotu a c_p, pro tepelné zatížení α;</li>
+<li>výběry vazeb a zatížení existují a jejich díly jsou v geometrii (nejsou vynechány ani nahrazeny šroubem);</li>
+<li>válcová vazba a ložisková síla jsou na válcových plochách; vzdálená vazba má bod a složky;</li>
+<li>šrouby a svary: díly v geometrii, rozměry, žádný díl použitý dvakrát;</li>
+<li>3D tisk (výplň 0–100 %, vrstva, linie, směr stavby, pevnost materiálu) a tečení (doba, teplota v rozsahu dat materiálu);</li>
+<li>tepelné stavy (podmínky, odvod tepla u ustáleného stavu, časový krok, počet snímků); prázdné zatěžovací stavy (varování; při zadaném teple se přeskočí);</li>
+<li>kontakty: strany párů; μ &gt; 0 při tření; přesah jen s plocha–plocha / mortar; kontakt na šroubovaných dílech jen s konformní spárou; NLGEOM ne se šrouby, válcovou nebo rozdělovací vazbou; posloupnost kroků. Po síťování je <b>počáteční průnik</b> dílů jiného typu než přesah chyba; „díl držený jen třením … může prokluzovat“ je varování;</li>
+<li>dynamika: hustoty, tlumení, buzení, rozsah frekvencí; efektivní hmota ≥ 90 % a módy nad 1,5× nejvyšší budicí frekvence (varování); buzení základnou bez vazeb je chyba; <b>modální dynamika (superpozice) s kontaktem nejde</b> (implicitní dynamika posloupnosti kroků s kontaktem, <code>LoadStep.dynamic</code>, je jen v Python API / souboru studie);</li>
+<li><b>tuhé pohyby</b> (jen v tomto kroku): vazby musí zamezit 3 posuvům a 3 natočením celého modelu. Chyba „Vazby nezamezí tuhému pohybu modelu – volné: posuv ve směru (…); otočení kolem osy (…) procházející bodem (…)“ říká přesně, který pohyb chybí. Bez sítě se kontroluje z ploch CADu, se sítí z uzlů vazeb. Je-li kontrola jen přibližná, zobrazí se oranžové varování a výpočet lze spustit.</li>
+</ul>
+<p>Po síťování se hledají i <b>volná tělesa</b> – díly nespojené s žádnou vazbou přes společné uzly, šrouby nebo svary. Taková úloha nemá řešení; výpočet skončí jasnou chybou a program nabídne vynechání dílů.</p>
+
+<h2>Vlastní frekvence a vzpěr</h2>
+<p><b>Vlastní frekvence</b> (CalculiX *FREQUENCY) používají síť statiky. Hmotnost plyne z hustot (díl bez hustoty = chyba); vazby z vazeb studie. Bez vazeb je těleso volné a prvních 6 frekvencí vyjde ≈ 0 Hz (tuhé pohyby; varování). Studie může obsahovat jen frekvence, bez zatěžovacích stavů. Výsledky: položka <b>Vlastní tvar n: f = … Hz</b> ve <a href="vysledky.html#tvary">Výsledcích</a> a záložka <b>Vlastní tvary</b>.</p>
+<p><b>Lineární vzpěr</b> (CalculiX *BUCKLE) počítá součinitele λ: zatížení zvoleného stavu × λ = kritické zatížení. Záporné λ = ztráta stability při obráceném zatížení. Tepelné zatížení stavu se zahrne.</p>
+<p class="warn"><b>Pozor:</b> vzpěr je lineární – jen napěťové tužení, bez imperfekcí, plasticity a velkých deformací. Skutečná únosnost bývá výrazně pod λ·zatížení. Pro návrh použijte EN 1993-1-1, 6.3 (χ), nebo nelineární výpočet.</p>
+<p>Plné prvky v CalculiXu zahrnují poddajnost ve smyku a blíží se Engesserově teorii. Jiné programy mohou u plných modelů dát vlastní čísla o několik procent vyšší nebo nižší (jiná formulace prvku); rozdíly ~1–2 % mezi programy jsou očekávané. Ověřeno úlohami M1 (konzola, volná deska), M2 a B1 (Euler, deska): <code>python -m verification.run_all M1 M2 B1</code>.</p>
+
+<h2>Nelineární výpočet (kontakty a plasticita)</h2>
+<p>Plasticita se zadává jen přes MCP server nebo Python API (klíč materiálu <code>plastic</code>, posouzení <code>fea_plasticity_assess</code>); GUI ji nenabízí. Plasticita s kinematickým zpevněním zapne velké deformace (NLGEOM) automaticky; bez NLGEOM CalculiX Bauschingerův efekt modeluje izotropně nebo diverguje.</p>
+<p>Studie s kontaktními páry (nebo šroubové spáry jako kontakt) se počítá <b>nelineárně</b> – vždy v CalculiXu, volba řešiče se nepoužije. Zatěžovací stavy běží buď <b>každý zvlášť</b> (větve, paralelně, po předpětí šroubů), nebo jako <b>posloupnost kroků</b> v jedné úloze (stav kontaktu a tření se přenáší) – viz <a href="kontakty.html">Kontakty</a>. Superpozice neplatí. Kontrola rovnováhy se dělá v nedeformované poloze, s kontaktem v deformované (s NLGEOM vždy deformované); dynamické kroky se nekontrolují.</p>
+<ul>
+<li>Iterace v každém přírůstku výpočet prodlužují; průběh je v logu a na zelené liště.</li>
+<li>Pokud nekonverguje, ponechá se <b>poslední konvergovaný přírůstek</b> jako částečný výsledek s varováním „ČÁSTEČNÝ VÝSLEDEK (…): výpočet nedokončen …“ a radou v dokumentu Zprávy. Tlačítko <b>Zastavit a ponechat výsledky</b> dělá totéž.</li>
+<li>Rady ke konvergenci (řízení posuvem, menší první přírůstek, tření až v dalším kroku) jsou na stránce <a href="kontakty.html">Kontakty</a>.</li>
+</ul>
+
+<h2>Dynamika</h2>
+<p>Je-li zapnutá v <a href="dynamika.html">Dynamice</a>, počítá se po statice: modální báze v CalculiXu (volitelně s předpětím), statická korekce zbytkových módů a odezvy modální superpozicí (harmonická, přechodová, náhodné vibrace, ráz, únava rozmítáním). Bodová hmota a dynamika vždy používají CalculiX; nejde s kontakty, 2D řezem ani skořepinami. Výsledky: <a href="vysledky.html#dynamika">Výsledky</a> (položky „Dynamika: …“, záložka Dynamika).</p>
+
+<h2>Výpočet na pozadí a z jiných programů</h2>
+<p>Výpočet běží ve vlákně na pozadí; okno reaguje a výsledky lze prohlížet po skončení. Během výpočtu studii neupravujte – výsledek by se zahodil. Z MCP a REST se dlouhý výpočet spustí <b>asynchronně</b> příkazem <code>fea_job_start</code> (studie nebo mechanismus), sleduje se příkazem <code>fea_job_status</code>, zruší <code>fea_job_cancel</code> a výsledek převezme <code>fea_job_result</code> – viz <a href="automatizace.html">Automatizace</a>.</p>
+
+<h2>Skořepinový model</h2>
+<p>Skupina <b>Skořepinový model</b> počítá desky a plechy z STEP jako skořepiny (střední plocha s tloušťkou, prvky S6) – viz <a href="shell.html">Skořepinový model</a>. Skořepiny a 2D řez se vylučují.</p>
+
+<h2>2D výpočet řezem</h2>
+<p>Skupina <b>2D výpočet řezem</b> počítá osově symetrickou úlohu nebo rovinnou napjatost / deformaci místo 3D – viz <a href="2d.html">2D výpočet řezem</a>. Prutová konstrukce bez CAD se počítá vestavěným řešičem prutů (přesný Timoshenkův prvek); volba řešiče se na ni nevztahuje – viz <a href="pruty.html">Pruty</a>.</p>
+
+<h2>Volba řešiče</h2>
+<table class="grid">
+<tr><th>Volba v seznamu Řešič</th><th>Kdy použít</th><th>Omezení</th><th>Vyžaduje</th></tr>
+<tr><td>Automaticky (doporučeno)</td><td>Vždy. Kontakty (nelineárně), šrouby, svary, válcové a vzdálené vazby, bodová hmota → CalculiX. Od 600 000 DOF (200 tis. uzlů) NGSolve + hypre; od 2 zatěžovacích stavů NGSolve + PARDISO (jedna faktorizace pro všechny stavy, 2,5–5× rychlejší); jinak CalculiX.</td><td>Vybírá jen z nainstalovaných řešičů (bez modulů ngsolve / hypre použije CalculiX; log říká, co chybí). Selže-li NGSolve + PARDISO (paměť, špatná podmíněnost), výpočet se opakuje v CalculiXu (poznamená se do logu).</td><td>Nic navíc.</td></tr>
+<tr><td>Přímý řídký řešič – CalculiX</td><td>Malé a střední modely, šrouby, svary, válcová a tuhá vzdálená vazba. Ověřeno všemi ověřovacími úlohami.</td><td>Paměť roste rychle: 214 tis. DOF ≈ 1,4 GB, 706 tis. ≈ 6,8 GB; hranice ≈ 1 milion DOF při 10 GB volné RAM. Znovu faktorizuje v každém zatěžovacím stavu.</td><td>Jádro. PARDISO s modulem pardiso (Standardní profil), jinak PaStiX (Windows) / SPOOLES.</td></tr>
+<tr><td>Přímý, více stavů najednou – NGSolve + PARDISO</td><td>Střední modely s více zatěžovacími stavy: matice se faktorizuje jednou pro všechny stavy (197 tis. DOF: 3 stavy 14 s místo 34 s; 10 stavů 18 s místo 97 s).</td><td>Bez šroubů, svarů, válcových a vzdálených vazeb, prutů, *TIE, ortotropie, pružného uložení a bodové hmoty. Paměť se odhadne předem; není-li dost, výpočet skončí chybou s doporučením NGSolve + hypre. Bez MPI.</td><td>Modul <b>ngsolve</b> (pardiso je jeho součástí).</td></tr>
+<tr><td>Iterační PCG + AMG – NGSolve + hypre</td><td>Velké modely (stovky tisíc až miliony DOF); paměť roste lineárně.</td><td>Stejná omezení jako NGSolve + PARDISO. Paměť ≈ 0,6 GB + 4,8 GB na milion DOF (úsporný režim 3,4 GB na milion, asi 2× více iterací). Tenké ohýbané desky potřebují více iterací.</td><td>Moduly <b>ngsolve</b> a <b>hypre</b>; ve Windows <b>Microsoft MPI</b> (práva správce; v Linuxu MPICH z modulu hypre).</td></tr>
+</table>
+<ul>
+<li>Tepelné stavy vždy počítá CalculiX, bez ohledu na volbu.</li>
+<li>Všechny řešiče dávají stejné výsledky (posuvy 1e-6, napětí 1e-5 relativně); napětí a reakce se dopočítávají stejně.</li>
+<li>Ručně zvolený nedostupný nebo nevhodný řešič hlásí kontrola hned, ještě před síťováním: „Řešič „NGSolve + PARDISO“ není nainstalován – chybí modul ngsolve. Instalace: …“, nebo „Řešič „…“ nepodporuje tuto studii: … – zvolte Automaticky nebo CalculiX.“</li>
+<li>Standardní instalace obsahuje jen CalculiX (s PARDISO). Úplný profil nebo <b>Doinstalovat řešiče…</b> (Nástroje → Moduly programu… → ngsolve, hypre) přidá zbytek. Microsoft MPI se instaluje do systému a vyžaduje práva správce (příkaz <code>python installer/fea_setup.py mpi</code>). Po instalaci program restartujte.</li>
+</ul>
+<h3>Srovnání s jinými programy</h3>
+<p>Přímé řídké řešiče (CalculiX, NGSolve + PARDISO) odpovídají ANSYS Direct (Sparse), SOLIDWORKS Direct Sparse a přímým řešičům Abaqus/Standard a Nastranu. Iterační PCG s AMG (NGSolve + hypre) odpovídá ANSYS Iterative (PCG) a SOLIDWORKS FFEPlus. MUMPS se nenabízí; jeho roli plní PARDISO a PaStiX.</p>
+<p class="tip"><b>Tip:</b> počet DOF uvidíte v kroku <a href="sit.html">Síť</a> po tlačítku Vytvořit síť: DOF = 3 × počet uzlů.</p>
+
+<h3>Paměť</h3>
+<ul>
+<li>Před výpočtem zavřete náročné aplikace; rozhoduje <b>volná</b> RAM.</li>
+<li>Překročí-li CalculiX volnou paměť, začne odkládat na disk a výpočet extrémně zpomalí. NGSolve + hypre a NGSolve + PARDISO paměť odhadnou předem a nestačí-li, skončí chybou s vysvětlením.</li>
+<li>Nápravy: hrubá globální síť se lokálním zjemněním, vynechání nedůležitých dílů, symetrie, nebo přechod na NGSolve + hypre (je-li nainstalován a model nemá šrouby ani svary).</li>
+</ul>
+
+<h2>Průběh výpočtu</h2>
+<ol>
+<li>Načtení geometrie a kontrola připravenosti.</li>
+<li>Síťování (Gmsh). Platná síť z kroku Síť se převezme; po změně geometrie, výběrů, sítě, spojů nebo kontaktních párů se sítí znovu. Díly kontaktních párů se síťují samostatně (nebo s rozpojenou spárou).</li>
+<li>Tepelné stavy (jsou-li), každý zvlášť v CalculiXu.</li>
+<li>Statika: jeden zatěžovací stav = jeden krok. Se šrouby přibude stav <b>Předpětí šroubů</b>. S kontakty nelineárně – větve nebo posloupnost kroků.</li>
+<li>Kontrola rovnováhy každého stavu.</li>
+<li>Vlastní frekvence, vzpěr a dynamická odezva (jsou-li zapnuty).</li>
+<li>Tečení tištěných dílů (je-li zapnuto v <a href="tisk.html">3D tisku</a>): dlouhodobé stavy se počítají znovu se sníženou tuhostí; přibude stav „&lt;stav&gt; – tečení 1000 h, 30 °C“.</li>
+<li>Posouzení šroubů a svarů (dok <b>Spoje – využití</b>).</li>
+</ol>
+
+<h3>Kontrola rovnováhy</h3>
+<p>Po každém stavu program sečte reakce a zadaná zatížení (síly i momenty). Relativní nesoulad nad <b>0,1 %</b> (1e-3) značí chybný výpočet: výsledek se nevrátí a výpočet skončí chybou „Stav '…': reakce nejsou v rovnováze se zatížením (nesoulad … %). Výsledek je neplatný – zkuste jiný řešič.“ Obvyklá hodnota je 10⁻⁶ nebo menší; ve Výsledcích je vidět jako „Kontrola rovnováhy: nesoulad … %“.</p>
+
+<h3>Zprávy (dok dole)</h3>
+<p>Tabulka všech hlášení: úroveň (chyba / varování / informace), zdroj (kontrola geometrie, kontrola studie, síť, řešič, výsledky), text a čas. Kontrola studie se obnovuje po každé změně, hlášení sítě po síťování, řešiče a výsledků po výpočtu. <b>Dvojklik</b> na řádek přepne do kroku, kde se problém opravuje; <b>Zobrazit</b> filtruje úroveň; <b>Kopírovat</b> zkopíruje vybrané (nebo všechny zobrazené) řádky jako text oddělený tabulátory; <b>Vymazat</b> smaže hlášení sítě, řešiče a výsledků. Titulek doku ukazuje počty chyb a varování a při chybě výpočtu se dok ukáže sám. Vše je i v logu.</p>
+
+<h3>Log (dok Log řešiče)</h3>
+<ul>
+<li>Řádky s časem <code>[hh:mm:ss]</code> jsou hlášení programu: kroky, velikost sítě („Síť: … uzlů, … prvků C3D10, min. škálovaný jakobián …“), tepelná bilance, varování, doba výpočtu.</li>
+<li>Řádky bez času jsou výstup CalculiXu (iterace, *WARNING, *ERROR); varování CalculiXu přecházejí do varování výsledků (kromě poznámek o ignorovaných položkách).</li>
+<li>Varování výpočtu („Warning: …“) se ukážou i ve Výsledcích a v protokolu – čtěte je.</li>
+<li>Postranní záložka <b>Spoje – využití</b> ukazuje tabulky šroubů a svarů (viz <a href="spoje.html">Spoje</a>).</li>
+</ul>
+<p class="warn"><b>Pozor:</b> změníte-li studii během výpočtu, výsledek se na konci zahodí („Studie se během výpočtu změnila – výsledek zahozen.“), protože by neodpovídal vstupu.</p>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 – tištěný držák</h3>
+<ul>
+<li>Automaticky se zvolí CalculiX (malý model; NGSolve neumí válcovou vazbu šroubových děr).</li>
+<li>Kontrola tuhých pohybů projde: válcové vazby Horní vrut a Dolní vrut drží oba posuvy i natočení, zadní plocha (ux = 0) přidává vazbu.</li>
+<li>Varování o orientačních vlastnostech výplně tisku.</li>
+<li>Ve výsledcích budou stavy Zatížení oka 200 N, Vlastní tíha a dlouhodobý stav „Zatížení oka 200 N – tečení 1000 h, 30 °C“.</li>
+</ul>
+<h3>Ukázka 2 – sestava</h3>
+<ul>
+<li>Šrouby, svary a válcové vazby kotevních děr → vždy CalculiX; ruční volba NGSolve by byla hned odmítnuta.</li>
+<li>Nejdřív se počítají tepelné stavy Provoz – ustálený stav a Náběh – 1 hodina (přechodový, krok 120 s), pak statika čtyř stavů, stav Předpětí šroubů a tečení ramene (2000 h, 30 °C).</li>
+<li>V logu sledujte tepelnou bilanci ustáleného stavu (přívod 15 W = konvekce + podlaha) a varování o tepelném zatížení šroubů a tisku.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<table class="grid">
+<tr><th>Hlášení / projev</th><th>Příčina a řešení</th></tr>
+<tr><td>„Vazby nezamezí tuhému pohybu modelu – volné: otočení kolem osy … “</td><td>Chybí vazba v nějakém směru (typicky otočení kolem osy válcové vazby bez tečné složky, nebo posuv podél roviny symetrie). Přidejte vazbu ve vypsaném směru – <a href="vazby.html">Vazby</a>.</td></tr>
+<tr><td>„Některé díly nejsou připojeny k vazbám (volná tělesa – úloha by byla singulární): …“</td><td>Díl se v CADu nedotýká ostatních (mezera), nebo ho nic nedrží. Připojte ho (kontakt, šroub, svar), nebo ho vynechejte v <a href="spoje.html">Spojích</a> → Díly vynechané z výpočtu (program to nabídne sám).</td></tr>
+<tr><td>„Výběr '…' není jediná válcová plocha (odchylka uzlu od válce …) – vyberte souosé válce stejného poloměru“</td><td>Jedna válcová vazba nebo ložisková síla smí obsahovat jen souosé plochy jednoho poloměru. Pro více děr udělejte vazbu pro každou díru.</td></tr>
+<tr><td>„Stav '…': reakce nejsou v rovnováze se zatížením … Zkuste jiný řešič.“</td><td>Numerický problém (téměř volné těleso, velmi rozdílné tuhosti). Zkuste řešič soustavy PASTIX nebo SPOOLES a zkontrolujte vazby a spojení dílů.</td></tr>
+<tr><td>„Pro výpočet není dost volné paměti: odhad X GB, volno Y GB…“ / „Pro přímý řešič PARDISO není dost paměti…“</td><td>Zavřete ostatní aplikace, zhrubte síť (zjemněte jen lokálně), nebo použijte NGSolve + hypre.</td></tr>
+<tr><td>„Řešič „NGSolve + hypre“ není nainstalován – chybí …“ / „Řešič „NGSolve + PARDISO“ není nainstalován – chybí modul ngsolve …“</td><td>Ručně zvolený řešič chybí (standardní profil = jen CalculiX). Zvolte Automaticky, nebo doinstalujte komponenty přes <b>Doinstalovat řešiče…</b> (Nástroje → Moduly programu…, nebo <code>python -m fea_core.modules install ngsolve hypre</code>). Microsoft MPI vyžaduje práva správce (<code>python installer/fea_setup.py mpi</code>). Pak program restartujte – viz <a href="automatizace.html">Automatizace</a>.</td></tr>
+<tr><td>„Řešič soustavy PARDISO není v CalculiXu k dispozici (…) – CalculiX počítá s řešičem PASTIX“</td><td>Instalace bez modulu pardiso (Intel MKL). Výsledky jsou stejné, jen výpočet pomalejší; pro PARDISO doinstalujte modul <b>pardiso</b>.</td></tr>
+<tr><td>„CalculiX skončil chybou: *ERROR …“</td><td>Text chyby a cesta k logu jsou v hlášení. Častá příčina: vazby se střetávají ve stejných uzlech (válcová vazba sdílí uzly s jinou vazbou). Rozdělte výběry, aby se nepřekrývaly.</td></tr>
+<tr><td>„Nelineární výpočet (…) nekonvergoval / skončil bez konvergovaného přírůstku“ / „ČÁSTEČNÝ VÝSLEDEK (…)“</td><td>Kontaktní úloha nekonvergovala. Použijte řízení posuvem místo silou, zmenšete první přírůstek, zapněte tření až v dalším kroku a zkontrolujte počáteční mezery a průniky – <a href="kontakty.html">Kontakty</a>.</td></tr>
+<tr><td>„Dynamika s kontaktem / nelineárním výpočtem: modální superpozice neplatí …“</td><td>Pro dynamiku vypněte kontakty (spojené díly), nebo dynamiku vypněte.</td></tr>
+</table>

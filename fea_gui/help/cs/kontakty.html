@@ -1,0 +1,63 @@
+<h1>Kontakty</h1>
+<p class="lead">Skutečný kontakt mezi díly sestavy: oddělení, klouzání s třením nebo bez, lisovaný spoj (přesah), přenos jen tlaku.
+Bez dvojic kontaktů jsou dotýkající se díly pevně spojeny sdílenou sítí (lineárně). Každý kontakt dělá analýzu <b>nelineární</b>.</p>
+
+<p class="warn"><b>Nelineární analýza:</b> stavy se řeší přírůstkově, superpozice neplatí, takže žádná únava superpozicí. Bezpečnost je
+„rezerva napětí“, ne násobek zatížení. Vždy CalculiX (ne NGSolve). Tuhost K a tuhost lepení λ jsou penalizační hodnoty, μ je odhad:
+ověřte citlivost (dvě hodnoty μ, jiné K).</p>
+
+<h2>Typy kontaktu</h2>
+<table class="grid">
+<tr><th>Typ</th><th>Chování</th><th>Ekvivalent (Ansys / Fusion)</th><th>CalculiX</th></tr>
+<tr><td>Slepeno</td><td>sdílená síť, nic se neoddělí (lineárně)</td><td>Bonded</td><td>sdílená síť / *TIE</td></tr>
+<tr><td>Bez oddělení (klouzání)</td><td>klouže bez tření, neoddělí se</td><td>No Separation</td><td>TIED + malé λ</td></tr>
+<tr><td>Kontakt bez tření</td><td>může se oddělit; v tlaku jen normálová síla</td><td>Frictionless</td><td>*CONTACT PAIR (penalizace K)</td></tr>
+<tr><td>Kontakt s třením</td><td>Coulomb μ; pružný skluz τ/λ při lpění; klouže nad μ·p</td><td>Frictional</td><td>*FRICTION μ, λ</td></tr>
+<tr><td>Drsný kontakt</td><td>může se oddělit, neklouže</td><td>Rough</td><td>*FRICTION s velkým μ</td></tr>
+<tr><td>Přesah (lisovaný spoj)</td><td>radiální přesah δ_r = Δd/2 jako záporná vůle, nebo překryv z CAD</td><td>Interference</td><td>*CLEARANCE = −δ_r</td></tr>
+<tr><td>Jen tlak (podpora)</td><td>jen tlak; prázdná strana B = podpora k zemi</td><td>Compression Only</td><td>GAPUNI / kontakt</td></tr>
+<tr><td>Bez interakce</td><td>díly se ignorují (mohou pronikat)</td><td>Free</td><td>oddělená síť</td></tr>
+</table>
+
+<h2>Postup</h2>
+<ol>
+<li><b>Najít dotýkající se díly</b>: dvojice v dané vzdálenosti se třídí na <i>kontakt</i>, <i>mezeru</i>, <i>průnik</i>.
+Průnik u jiného typu než přesah je chyba sestavy (modelovaný závit, jmenovitý přesah): opravte CAD, nebo zvolte Přesah.</li>
+<li>Zvolte typ, <b>Přidat vybrané</b> (bez výběru všechny nové dvojice). Nepřidaná dvojice zůstane slepená.</li>
+<li>Klik na dvojici v tabulce: plochy se zvýrazní ve 3D (barva = typ), hodnoty se načtou do formuláře. Upravte typ, μ (0 = z knihovny tření podle účelu), K, λ, přesah, <b>Uložit změny</b>.</li>
+<li>Dvojice jen mezi vybranými plochami: plochy strany A → <b>A z výběru</b>, strany B → <b>B z výběru</b>, <b>Přidat novou dvojici</b>. Menší plochy = rychlejší a přesnější.</li>
+<li>V Řešení zkontrolujte připravenost (např. počáteční průnik, tření bez opory proti skluzu) a spusťte.</li>
+</ol>
+
+<h2>Ovládání</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Hledací vzdálenost</td><td>Bližší dvojice se nabídnou jako kontaktní.</td><td>0,05 mm; větší najde i vůle</td></tr>
+<tr><td>Tření μ</td><td>0 = z <a href="treni.html">knihovny tření</a> podle dvojice a účelu.</td><td>prokluz spoje → μ_min, odpor mechanismu → μ_max</td></tr>
+<tr><td>Účel</td><td>Přenos síly třením (šroubový spoj, lisovaný spoj, brzda) bere dolní μ, hnací / montážní síla horní.</td><td>spočítejte obě meze</td></tr>
+<tr><td>Tuhost K</td><td>Normální penalizační tuhost [N/mm³]; průnik = p/K.</td><td>auto = 50 × menší E dvojice</td></tr>
+<tr><td>Tuhost lepení λ</td><td>Tangenciální tuhost při lpění [N/mm³]; pružný skluz = τ/λ.</td><td>auto = K/100</td></tr>
+<tr><td>Přesah / vůle</td><td>Jedna radiální hodnota na dvojici (přepíše mezeru z geometrie); záporná = přesah.</td><td>lisovaný spoj Ø20 H7/s6: −0,01 až −0,02 mm</td></tr>
+<tr><td>Přisunout uzly do kontaktu</td><td>Posune uzly závislé strany na nadřazenou (malé mezery z CAD). Nikdy u přesahu.</td><td></td></tr>
+<tr><td>Formulace</td><td>plocha-plocha (výchozí, tlak ±0,1 %), mortar (tvrdý kontakt, přesah), uzel-plocha (jen konvergence tření).</td><td>jedna na studii</td></tr>
+<tr><td>Síťování rozhraní</td><td>Zvlášť sítěné díly (nekonformní; nutné pro přesah) nebo konformní síť s rozděleným rozhraním (šroubové spoje).</td><td></td></tr>
+<tr><td>Velké deformace (NLGEOM)</td><td>Geometrická nelinearita – západka, vačka. Nelze s šrouby, válcovou a rozdělující podporou.</td><td></td></tr>
+<tr><td>rozhraní šroubového spoje jako kontakt</td><td>Rozhraní upnutých dílů každého šroubu jako kontakt s μ = μ_T šroubu: otevření, zbytková upínací síla, skluz. Předpětí v kroku 1, pak zamčeno; konformní síť s rozdělením.</td><td>viz <a href="spoje.html">Spoje</a></td></tr>
+</table>
+
+<h2>Nelineární kroky</h2>
+<ul>
+<li><b>Případy odděleně (větve)</b> – výchozí: každý stav zvlášť (po předpětí šroubů), paralelně; bez historie.</li>
+<li><b>Posloupnost kroků</b> – kroky v jedné úloze, stav kontaktu a tření se zachovává (závisí na cestě). Krok má: stav × měřítko, šrouby (předpětí / zamčeno / volně), vypnuté dvojice, změnu tření, předepsaný pohyb tuhé vzdálené podpory (průběh v čase kroku), řízení přírůstků, cykly (únava s třením ≥ 2).</li>
+<li><b>Předepsaný pohyb</b> (posuv / natočení tuhé vzdálené podpory): konverguje lépe než řízení silou; dává <b>křivku síla–dráha</b> (záložka Kontakty).</li>
+</ul>
+
+<h2>Výsledky</h2>
+<ul>
+<li><b>Kontakt – tlak</b>, <b>stav kontaktu</b> (−1 není kontaktní uzel, 0 otevřeno, 1 klouže, 2 lpí), <b>rozevření</b>, <b>skluz</b>, <b>tření (smykové napětí)</b> – nejlépe v řezu.</li>
+<li>Záložka <b>Kontakty</b>: normálová a třecí síla dvojice, plocha v kontaktu, maximální a střední tlak, rozevření, skluz, počty uzlů lpících / klouzajících / otevřených, křivka síla–dráha.</li>
+<li><b>Kterému tlaku věřit:</b> <b>střední tlak z kontaktní síly</b> (<code>p_force</code> = přesná síla dvojice z ccx ÷ aktivní plocha) a výslednici. <b>Špičkový uzlový tlak</b> závisí na formulaci a síti: u kvadratických prvků kolísá i při rovnoměrném tlaku (lisovaný spoj: uzly 48–110 MPa pro skutečných 79 MPa), na volném okraji plochy roste se zjemněním a jiný program nebo jiná formulace kontaktu může u téhož spoje dát několikanásobně jinou špičku. Proto se hlásí i <code>p_max uvnitř plochy</code> (bez stěn na volném okraji) a špička na okraji dá <b>varování</b>. Mortar jako výchozí byl zkoušen: hladší tlak u lisovaného spoje, ale nulové tlaky na okrajích plochy (zkouška patchem −6 % síly) a 4–10× pomalejší; zůstává plocha-plocha.</li>
+<li><b>Částečný výsledek</b>: bez konvergence zůstane poslední zkonvergovaný přírůstek s červeným označením; rada v docku Zprávy. <b>Zastavit a ponechat výsledky</b> (Řešení) ukončí analýzu stejně.</li>
+</ul>
+<p class="tip"><b>Tuhé vzdálené zatížení s natočením:</b> bez NLGEOM bere ccx natočení tuhého tělesa jako konečné, zbytek jako malý. Nerovnováha roste s θ² (0,06–0,4 % při 0,05 rad; nad 0,1 % analýza skončí chybou); program varuje od 0,03 rad. Zmenšete natočení, zapněte NLGEOM, nebo použijte rozdělující vazbu.</p>
+<p class="tip"><b>Bez konvergence:</b> použijte řízení posuvem místo silou (díl držený jen třením ujede), zmenšete první přírůstek dt₀, zapněte tření až v pozdějším kroku (začněte s μ ≈ 1e-4), zkontrolujte počáteční mezery a průniky, přidejte slabé pružiny (Stabilizace).</p>

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Spuštění FEA Studia (GUI) na Linuxu; parametry: soubor .step / .fea. Příkazová řádka: .venv/bin/python -m fea_core --help
+cd "$(dirname "$(readlink -f "$0")")" || exit 1
+export LD_LIBRARY_PATH="$PWD/.venv/sys_libs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec .venv/bin/python -m fea_gui "$@"

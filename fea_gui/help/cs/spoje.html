@@ -1,0 +1,175 @@
+<h1>4. Spoje (šrouby, svary)</h1>
+<p class="lead">Krok Spoje určí, které díly sestavy jsou šrouby a svary, a nastaví jejich parametry. Ve výpočtu je šroub nosník s předpětím.
+Po výpočtu se šrouby posoudí podle VDI 2230 a EN 1993-1-8 a svary podle EN 1993-1-8, EN 1993-1-9 nebo IIW, z sil z MKP.</p>
+
+<p class="tip"><b>Tip:</b> spoje nastavte <b>před síťováním</b>. Změna velikosti šroubu, výšky svaru nebo vypnutí zahodí síť i výsledky; změny jen posouzení (FAT, γ, μ, přídavný materiál) ponechají výsledky MKP.</p>
+
+<h2>Rozpoznání spojů</h2>
+<h3>Rozpoznat spoje…</h3>
+<p>Prohledá díly a nalezené spoje nabídne v dialogu <b>Rozpoznané spoje – potvrzení</b>; přijaté se připojí k existujícím.</p>
+<ul>
+<li><b>Podle názvu</b> (jistota 1,0): „ISO 4017 - M8 x 30 - 8.8“, „ISO 4762 - M6 x 20 - 12.9“, „ISO 4032 - M8 - 8“, „ISO 7089 - 8,4 - 200 HV“, včetně přípony Fusionu „:1“. Název bez normy (např. „Sroub M4 x 17.25“) stačí s klíčovým slovem nebo M d × L; typ hlavy pak určí tvar.</li>
+<li><b>Podle tvaru</b>: díl bez normy s souosým dříkem a hlavou (šestihranná, válcová, zápustná), matice nebo podložka; rozměry se porovnají s tabulkami ISO. Jistota je menší než 1 a předem zaškrtnuté jsou jen návrhy s jistotou ≥ 0,7. Kolíky, magnety, pouzdra a díly s nákružkem uprostřed nejsou šrouby.</li>
+<li><b>Svary</b>: název s „svar“, „weld“ nebo „W_…“, vrstva CAD nebo atribut „weld/svar“, nebo barva zvolená v <b>Barva svarů v CAD</b> (tolerance 0,03 v RGB 0–1).</li>
+</ul>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Sloupec Přidat</td><td>Zaškrtnuté návrhy přidá do studie.</td><td>Výběr řádku zvýrazní díly ve 3D.</td></tr>
+<tr><td>Spoj / Podle / Jistota / Důvod</td><td>Popis; zdroj (název, tvar, barva CAD, vrstva, atribut); jistota (zeleně ≥ 0,85, oranžově ≥ 0,7, červeně méně); zdůvodnění.</td><td>Návrhy podle tvaru a barvy zkontrolujte.</td></tr>
+<tr><td><b>Vybrat vše</b> / <b>Zrušit výběr</b> / <b>Přidat vybrané</b></td><td>Hromadné zaškrtnutí a potvrzení.</td><td></td></tr>
+<tr><td>Nepřijato</td><td>Díly tvaru šroubu, ke kterým se nenašel sevřený díl.</td><td>Často šroub mimo díru, nebo kolík.</td></tr>
+</table>
+<h3>Šroub do vybrané díry…</h3>
+<p>Pro model bez šroubů: ve 3D vyberte válcovou plochu díry a stiskněte tlačítko. Nabídne se největší šroub, jehož průchozí díra podle ISO 273 (jemná řada) se do díry vejde, s třídou 8.8. Sevřené jsou všechny díly souosé s dírou.</p>
+<h3 id="virtualni">Virtuální šrouby ze sestavy CAD</h3>
+<p>Otevřete-li přímo sestavu Inventoru <b>.iam</b> (modul native), spojovací součásti rozpoznané podle názvu (např. Content Center „ISO 4762 M6 x 20“, „ISO 4032 M6“, „ISO 7089 6“)
+se <b>nenačítají jako tělesa</b> a nahradí se <b>virtuálně</b>: velikost, délka, norma a třída z názvu, osa a dosedací plocha z polohy výskytu, sevřené díly z souosých děr.
+Šroub do závitu je díra menší než d v posledním dílu; průchozí díra bez matice → předpokládá se matice ISO 4032 (upozornění). Šroub, který nejde umístit, se jen ohlásí v doku Zprávy. Chybí-li třída, předpokládá se 8.8 – zkontrolujte ji ve formuláři šroubu.</p>
+
+<h2>Jak je šroub modelován</h2>
+<ul>
+<li>Šroub, matice a podložky se <b>nesíťují</b>. Šroub je <b>nosník</b> (Timoshenko, prvek U1 v CalculiXu) v ose díry mezi dosedací plochou hlavy a matice; tuhost odpovídá poddajnosti šroubu a podložek podle VDI 2230.</li>
+<li>Konce nosníku se tuhou vazbou připojí k <b>mezikruží pod hlavou a maticí</b> (vnější průměr dosedací plochy), které se při síťování otiskne do plochy dílu. U šroubu do závitu se konec připojí k válcové ploše díry v délce zašroubování. Dosedací plocha je tuhá (předpoklad VDI).</li>
+<li>Síť kolem šroubů se zjemní na 0,25 × d.</li>
+<li><b>Předpětí</b>: nosník je uprostřed rozříznutý. Je-li zapnutý stav <b>„Předpětí šroubů“</b>, řez stáhne síla F_V; v ostatních stavech je řez zavřený a šroub nese jen provozní zatížení. Stavy lze superponovat.</li>
+<li><b>Zápustná hlava</b> (ISO 10642) se připojí ke kuželové ploše zahloubení. <b>Drážka</b> místo díry = dva půlválce.</li>
+<li><b>Lícovaný šroub</b> (ISO 7379, DIN 609, 7968, 610) přenáší příčnou sílu dříkem: střih dříku a otlačení s jeho průměrem. Prokluz je jen informativní.</li>
+<li><b>Šroub do závitu</b> (bez matice) dostane i posouzení stržení závitu.</li>
+<li><b>Vůle mezi sevřenými díly v CAD</b> → sevřený svazek: mezilehlé díly se připojí otiskem a vůle se bere jako zavřená. Podíl šroubu je Φ_n = 0,5·Φ_K, ohyb šroubu z MKP se nehodnotí a stav předpětí je pro něj vypnutý (jinak by vznikl mechanismus).</li>
+<li>Šrouby a svary se vždy počítají v CalculiXu, i u velkých modelů.</li>
+</ul>
+<p class="warn"><b>Pozor:</b> díly, které se dotýkají plochou, jsou po síťování <b>pevně spojené</b> (společné uzly, bez kontaktu). Síly ve spáře (osová F_A a příčná F_Q) se vyhodnotí z této spojené plochy kolem každého šroubu; posouzení VDI ověří, že se spára nerozevře a neprokluzuje.</p>
+
+<h3>Spára šroubů jako kontakt</h3>
+<p>Má-li se spára skutečně rozevřít nebo prokluzovat, zaškrtněte v <a href="kontakty.html">Kontaktech</a> <b>spáry šroubových spojů jako kontakt</b>. Sevřená spára každého šroubu se pak počítá jako kontakt s třením μ = μ_T (tento krok), síť spáry je konformní s rozpojením a výpočet je nelineární (vždy CalculiX). Předpětí působí v 1. kroku, další kroky šroub zamknou. Šroub je v nelineárním výpočtu konektor (tuhé dosedací plochy a pružiny: osová E·A/L, ohybová a krutová tuhost dříku).
+Výsledek navíc obsahuje <b>zbytkovou svěrnou sílu z kontaktu</b> a podíl rozevřené spáry; prokluz ukáže stav styku 1. Ověřeno úlohou K6 (M10: svěrná síla z kontaktu = F_V; při prokluzu F_t = μ_T·F_n).</p>
+<p class="tip">Kontakt zvětší výpočet a ruší superpozici stavů. Pro běžné posouzení podle VDI 2230 stačí slepená spára.</p>
+
+<h2>Šrouby – ovládací prvky</h2>
+<p>Seznam ukazuje např. „<i>Šroub 1: ISO 4017 M6×30 8.8 – s maticí, l_K 21,2 mm</i>“ s tečkou podle využití. Výběr šroubu zvýrazní jeho díly ve 3D. Změny se uloží tlačítkem <b>Uložit změny šroubu</b>.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Velikost, třída</td><td>Závit M3–M… (hrubý) a třída 4.6 až 12.9, nebo nerez A2/A4-50/70/80.</td><td>8.8</td></tr>
+<tr><td>Předpětí</td><td><i>automaticky – min(F_M,zul; tlak pod hlavou)</i>, <i>síla F_M,max [N]</i> nebo <i>utahovací moment M_A [N·m]</i>. Automatické F_M,max = min(F_M,zul; 0,9·p_G·A_p): menší z 90 % meze kluzu při utahování a 90 % síly, kterou snese tlak pod hlavou nebo maticí (rozhoduje u plastů a hliníku). Který limit rozhodl, ukazuje popis pod formulářem.</td><td>automaticky</td></tr>
+<tr><td>Hodnota</td><td>Síla nebo moment pro ruční režimy.</td><td></td></tr>
+<tr><td>α_A</td><td>Utahovací faktor (rozptyl F_M,max/F_M,min).</td><td>Momentový klíč 1,4–1,6; rázový 2,5–4; na mez kluzu nebo úhlem 1,0–1,2</td></tr>
+<tr><td>Tření: závit μ_G, hlava μ_K</td><td>Tření pro utahovací moment a F_M,zul.</td><td>0,12 / 0,12 (mírně mazáno)</td></tr>
+<tr><td>Tření ve spáře μ_T</td><td>Tření mezi sevřenými díly pro prokluz podle VDI.</td><td>0,15</td></tr>
+<tr><td>Průměr dříku</td><td>Jen lícovaný šroub. „podle díry (jinak d + 1)“ vezme nejmenší díru sevřených dílů.</td><td>DIN 609/7968: d + 1 mm</td></tr>
+<tr><td>střihová rovina v závitu</td><td>Střih podle EN 1993-1-8 s plochou A_s a α_v podle třídy. Vypnuto = střih dříkem (A, α_v = 0,6).</td><td>Zapnuto (konzervativní)</td></tr>
+<tr><td>počítat se šroubem</td><td>Vypnutý šroub se nemodeluje; jeho díly se síťují jako běžná tělesa.</td><td>Pro porovnání variant</td></tr>
+<tr><td><b>Uložit změny šroubu</b> / <b>Smazat</b></td><td>Uloží změny, nebo smaže šroub.</td><td>Velikost a vypnutí zahodí síť a výsledky; třída a předpětí (se stavem Předpětí šroubů) jen výsledky; μ_T, střihová rovina a průměr dříku jen přepočítají posouzení.</td></tr>
+<tr><td>Informační text</td><td>Sevřené díly (tloušťka, díra), podložky, l_K, F_M,zul, M_A, F_M min–max, sednutí F_Z, Φ_K, třída vůle díry podle ISO 273.</td><td>Kontrola rozpoznání</td></tr>
+</table>
+<p>Typ hlavy, druh spoje (s maticí, do závitu, lícovaný), drsnost pro sednutí (Rz 10–40 µm), náhradní průměr D'_A a γ_M3 se v GUI nezadávají; určí je rozpoznání, nebo se mění ve skriptu či přes MCP (viz <a href="automatizace.html">Automatizace</a>).</p>
+
+<h2>Svary – ovládací prvky</h2>
+<p>V CAD je svar <b>samostatné těleso</b> (housenka), které se dotýká svařovaných dílů. Tlačítko <b>Označit díl vybrané plochy jako svar</b> označí díl, na jehož plochu jste klikli. Díl šroubu svarem být nemůže.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Účinná výška a</td><td>Výška svaru. „z geometrie“ ji určí z tělesa svaru (koutový: a = A1·A2·sin θ/(2V)).</td><td>Zadejte, pokud CAD těleso neodpovídá výkresu.</td></tr>
+<tr><td>Úseků po délce</td><td>Počet úseků podél kořene pro vyhodnocení sil.</td><td>10</td></tr>
+<tr><td>FAT σ_w</td><td>Třída pro σ_w = √(σ⊥² + τ⊥²).</td><td>36 – kořen koutového svaru (EN 1993-1-9 tab. 8.5, IIW)</td></tr>
+<tr><td>FAT τ_w</td><td>Třída pro τ_w = τ∥.</td><td>80 (m = 5)</td></tr>
+<tr><td>S-N křivka</td><td>EN 1993-1-9 (m = 3/5, mez useknutí) nebo IIW (m = 22 za zlomem).</td><td></td></tr>
+<tr><td>γ_Mf</td><td>Dílčí součinitel únavové pevnosti (EN 1993-1-9 tab. 3.1).</td><td>1,0–1,35; výchozí 1,15</td></tr>
+<tr><td>únava paty svaru (hot-spot IIW)</td><td>Patu koutového svaru posoudí strukturálním napětím (IIW typ „a“): σ_hs = 1,67·σ(0,4t) − 0,67·σ(1,0t) na povrchu plechu. Při hrubé síti (h &gt; 0,6t) se použijí body 0,5t a 1,5t a program varuje. Nejde o maximum v uzlu.</td><td>Síť u paty ≤ 0,4t (místní zjemnění)</td></tr>
+<tr><td>FAT paty</td><td>90 nosný koutový, 100 nenosný koutový / tupý, 112 tupý s plným průvarem; lze napsat vlastní číslo. Pro t &gt; 25 mm se snižuje (25/t)<sup>0,3</sup> (IIW), resp. <sup>0,2</sup> (EN).</td><td>90</td></tr>
+<tr><td>t plechu u paty</td><td>Tloušťka pro referenční body; „ze sítě“ = paprskem z povrchu dílu.</td><td>Obvykle ze sítě</td></tr>
+<tr><td>Přídavný materiál</td><td>„shodný se základním materiálem“, nebo G 38/42/46, E 38/42/46, ER70S-6, 308LSi, 316LSi. Podměrný materiál → varování a f_u = Rm přídavného. Název mimo tabulku se ukáže jako „neznámý: …“ a posoudí se jako shodný.</td><td>Shodný (EN 1993-1-8, 4.2)</td></tr>
+<tr><td>rozpojit styk svařených dílů</td><td>Přímý styk dílů se nespojí (kořenová mezera), takže celé zatížení jde svarem, jak předpokládá EN 1993-1-8 (konzervativní).</td><td>Zapnuto</td></tr>
+<tr><td>posuzovat svar</td><td>Vypnutý svar se síťuje jako běžný díl, neposuzuje se.</td><td></td></tr>
+<tr><td><b>Uložit změny svaru</b> / <b>Smazat</b></td><td>Uloží nebo smaže svar.</td><td>Výška a, rozpojení styku a posuzování zahodí síť a výsledky; počet úseků a t plechu jen výsledky; FAT, S-N, γ_Mf, nastavení paty a přídavný materiál jen přepočítají posouzení.</td></tr>
+<tr><td>Informační text</td><td>Druh (koutový / tupý), a, délka L, úhel a díly ve styku.</td><td>Červeně „Svar se nedotýká žádného dílu!“</td></tr>
+<tr><td>Barva svarů v CAD</td><td>Díly této barvy se při rozpoznání označí jako svary. Seznam nabízí barvy modelu s počtem dílů.</td><td>„(nepoužívat)“</td></tr>
+</table>
+<h3>Jak se svar vyhodnocuje</h3>
+<ul>
+<li>Těleso svaru se síťuje s díly, síť ve svaru se zjemní přibližně na a. Síly se sečtou z napětí v integračních bodech po úsecích kořene; z nich nominální napětí v průřezu a·L: σ⊥, τ⊥, τ∥.</li>
+<li><b>EN 1993-1-8, směrová metoda</b>: √(σ⊥² + 3(τ⊥² + τ∥²)) ≤ f_u/(β_w·γ_M2) a σ⊥ ≤ 0,9·f_u/γ_M2; β_w z meze kluzu. <b>Tupý svar</b> s plným průvarem se posoudí jako základní materiál (σ_eq ≤ f_y).</li>
+<li><b>Únava</b> (je-li zatěžovací křivka v <a href="unava.html">Únavě</a>): rozkmity σ_w a τ_w, Miner D = D_σ + D_τ ≤ 1, a zvlášť pata. Sloupec „D únava“ ukazuje horší z kořene a paty.</li>
+<li>Konstrukční varování: a &lt; 3 mm, a &gt; 0,7·t_min, délka &lt; max(30 mm; 6a).</li>
+<li><b>Přerušovaný svar</b>: rovnoběžné koutové svary mezi týmiž díly na společné přímce tvoří skupinu. Informativně se ověří mezery ≤ min(12t; 200 mm) (tlak, smyk) a ≤ min(16t; 200 mm) (tah) podle EN 1993-1-8, 4.3.2.1. Každý úsek se posuzuje i sám.</li>
+</ul>
+
+<h2>Posouzení šroubů</h2>
+<p>Pro každý šroub se určí maxima přes zatěžovací stavy sil ve spáře a ve šroubu (F_A, F_SA, F_PA, F_Q, M_b). Zatížení ve studii jsou <b>návrhová</b>; součinitele γ_F tedy zahrňte do zadání.</p>
+<table class="grid">
+<tr><th>Řádek posudku</th><th>Co ověřuje</th></tr>
+<tr><td>VDI 2230: Montážní předpětí F_M,max ≤ F_M,zul</td><td>Utažení nepřekročí 90 % meze kluzu (u automatického jen informativně).</td></tr>
+<tr><td>VDI 2230: Pracovní napětí σ_red,B ≤ R_p0,2</td><td>Tah od předpětí a provozní síly + krut ze závitu.</td></tr>
+<tr><td>VDI 2230: Zbytková svěrná síla F_KR &gt; 0</td><td>Spára se po sednutí a provozní síle nerozevře.</td></tr>
+<tr><td>VDI 2230: Tlak pod hlavou p ≤ p_G</td><td>Otlačení; p_G odhadem z Rm dílu.</td></tr>
+<tr><td>VDI 2230: Prokluz (S_G ≥ 1,2)</td><td>Tření přenese příčnou sílu (u kategorie A jen informativně).</td></tr>
+<tr><td>VDI 2230: Únava σ_a ≤ σ_ASV/S_D</td><td>σ_ASV = 0,85·(150/d + 45) MPa, Haibach k₂ = 5; jen se zatěžovací křivkou.</td></tr>
+<tr><td>VDI 2230: stržení závitu, m ≥ m_ges,min</td><td>Matice nebo vnitřní závit se nestrhne dřív než šroub. U závitu v plastu jen informativně.</td></tr>
+<tr><td>EN 1993-1-8: střih, tah, střih + tah, protlačení, otlačení</td><td>F_v,Rd, F_t,Rd, B_p,Rd, F_b,Rd (otlačení s e1, e2, p1, p2 z geometrie).</td></tr>
+<tr><td>EN 1993-1-8: prokluz (kat. B/C)</td><td>Jen třecí spoje kategorie B a C.</td></tr>
+</table>
+<p>Řádky „(informativně)“ se do využití nepočítají. Využití spoje je maximum ostatních řádků; sloupec „Rozhoduje“ ukazuje rozhodující řádek.</p>
+
+<h2>Nastavení posouzení</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Kategorie šroubů (EN 1993-1-8)</td><td>A – střih a otlačení; B – třecí (MSP); C – třecí (MSÚ).</td><td>A</td></tr>
+<tr><td>Příčná síla na šroub</td><td><i>skupina šroubů – rovnoměrně + kroucení</i>: rovnoměrný podíl a moment přes polární moment skupiny (EN 1993-1-8). <i>podle MKP (spojená spára, pružně)</i>: síla z okolí každého šroubu; spojená spára soustředí smyk ke koncům přeplátování (např. 2,6 a 17,4 kN místo 10 a 10 kN).</td><td>skupina šroubů</td></tr>
+<tr><td>μ pro prokluz (B, C)</td><td>Součinitel tření pro F_s,Rd.</td><td>Třída povrchu A 0,5; B 0,4; C 0,3; D 0,2</td></tr>
+<tr><td>γ_M2</td><td>Dílčí součinitel únosnosti šroubů a svarů.</td><td>1,25</td></tr>
+<tr><td>Stav „Předpětí šroubů“ ve výpočtu MKP</td><td>Přidá zatěžovací stav s předpětím všech šroubů. Změna vyžaduje nový výpočet.</td><td>Zapnuto</td></tr>
+<tr><td><b>Posoudit znovu</b></td><td>Přepočítá posouzení z existujících výsledků (např. po změně únavové křivky).</td><td>Zlomek sekundy.</td></tr>
+<tr><td>Okno s detailem</td><td>Využití a všechny řádky posudku vybraného spoje s mezivýsledky a varováními.</td><td></td></tr>
+</table>
+
+<h2>Dok „Spoje – využití“</h2>
+<p>Záložky <b>Šrouby (n)</b> a <b>Svary (n)</b>; číslo následované „– k ✗“ znamená nevyhovující spoje. Kliknutím na řádek přejdete na spoj.</p>
+<ul>
+<li>Šrouby: Šroub, Označení, Spoj, F_SA max [N], F_Q max [N], Φ, Využití, Rozhoduje.</li>
+<li>Svary: Svar, Díl, a [mm], L [mm], σ_eq max [MPa], D únava, Využití, Rozhoduje.</li>
+<li>Barvy (tabulka, seznam, 3D): <b>zelená ≤ 0,9</b>, <b>oranžová 0,9–1,0</b>, <b>červená &gt; 1,0</b>, šedá = nepočítá se.</li>
+</ul>
+
+<h2>Díly vynechané z výpočtu</h2>
+<p>Vynechané díly se nesíťují – hodí se pro magnety, kolíky, kabely nebo volné díly. Ve 3D jsou průhledné. Vynechání tlačítkem <b>Vynechat díl vybrané plochy</b> (po kliknutí na plochu), vrácení tlačítkem <b>Vrátit</b>. Při chybě „volná tělesa“ program nabídne vynechání nepřipojených dílů.</p>
+
+<h2>Díly síťované samostatně (spojení *TIE)</h2>
+<p>Zaškrtnutý díl má vlastní síť a po síťování se k sousedům připojí vazbou <b>*TIE</b> (pevné spojení bez společných uzlů).
+Použijte ho, když Gmsh díly nespojí (tečný styk, „PLC Error“), nebo když má díl jinou jemnost sítě.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td>Seznam dílů</td><td>zaškrtnutí = síťovat samostatně</td><td>díly šroubů nahrazené nosníkem se neukazují</td></tr>
+<tr><td>Tolerance dotyku</td><td>Největší vzdálenost stěny dílu od povrchu souseda, která se ještě spojí.</td><td><i>auto</i> = 5 % globální velikosti prvku; u CAD s malou mezerou zvětšete</td></tr>
+<tr><td>Tabulka spojení</td><td>Díl, styčná plocha [mm²], použitá tolerance.</td><td>Plní se po síťování; díl bez spojení = varování</td></tr>
+</table>
+<p>Uzly styku, které jsou i ve vazbě, se z *TIE vynechají (varování). *TIE počítá jen CalculiX (automatická volba řešiče ho vybere).</p>
+
+<h2>Spojené díly (sdílená síť)</h2>
+<p>Tabulka (Díl A, Díl B, Styk [mm²]) se naplní po síťování a ukazuje dvojice pevně spojené společnými uzly; výběr řádku zvýrazní oba díly.
+Zkontrolujte, že spojení je zamýšlené: oddělení a tření se počítají jen pro dvojice v <a href="kontakty.html">Kontaktech</a>. Varování „Spojení jen hranou nebo bodem“ znamená několik společných uzlů – obvykle chyba geometrie.
+<b>Vynechat díl A</b> / <b>Vynechat díl B</b> vyřadí díl z vybraného řádku.</p>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 „Tištěný držák“</h3>
+<p>Bez šroubů a svarů. Vruty v dírách Ø5 nahrazuje válcová vazba v <a href="vazby.html">Vazbách</a>; krok Spoje zůstane šedý a tabulka Spojené díly ukáže „Model má jediný díl.“</p>
+<h3>Ukázka 2 „Sestava“</h3>
+<p>Rozpoznání podle názvu najde:</p>
+<ul>
+<li><b>Šroub 1, Šroub 2</b>: ISO 4017 M6×30 8.8 s maticí ISO 4032 a dvěma podložkami ISO 7089. Sevřené jsou příruba ramena (PLA, 8 mm) a patka (S235, 10 mm), l_K = 21,2 mm, díry Ø6,6 (ISO 273 střední vůle). Předpětí je automatické: podložka hlavy dosedá na PLA, takže omezí dovolený tlak plastu, ne pevnost šroubu. Posudek varuje, že sednutí a tečení plastu VDI 2230 nepokrývá.</li>
+<li><b>Svar 1, Svar 2</b>: „Svar a4 vlevo/vpravo“, koutové a = 4 mm (z geometrie) po délce 70 mm, spojují sloupek s patkou. Rozpojený styk zajistí, že boční síla na sloupek jde celá svary.</li>
+</ul>
+<p>Porovnejte v doku Spoje – využití šrouby (stavy „Síla na oko ramena“, „Ohřev za provozu“, „Předpětí šroubů“) a svary (boční síla 250 N na hlavě sloupku dává ohyb, tedy σ⊥ v kořeni). Únava spojů se počítá ze dvou sinusových kanálů posunutých o 90° v <a href="unava.html">Únavě</a>. Po změně historie stiskněte <b>Posoudit znovu</b>.</p>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„Šroub 1: mezi hlavou a dílem 'X' je mezera 0,5 mm – hlava nedosedá“, „matice nedosedá na díl …“</b><br>
+Opravte vazby v CAD a exportujte STEP znovu. „v dílu 'X' nenalezena souosá díra ani drážka“ = díra je mimo osu šroubu, nebo chybí.</li>
+<li><b>„Šrouby nelze připojit k síti: Šroub 1: plocha vazby '…' nemá v síti žádné prvky“</b><br>
+Otisk dosedací plochy se nevytvořil (hlava nedosedá, nebo díra je větší než dosedací průměr). Šroub do závitu potřebuje válcovou plochu závitu.</li>
+<li><b>„Některé díly nejsou připojeny k uložení (volná tělesa – úloha by byla singulární)“</b><br>
+Díl se ničeho plochou nedotýká a není připojen šroubem ani svarem. Vynechejte ho, dotkněte se jiných dílů, nebo přidejte šroub.</li>
+<li><b>„Objemová síť se nevytvořila – geometrie se pravděpodobně protíná nebo se díly dotýkají tečně“</b><br>
+Tečný styk (kolík v drážce, válec na rovině). Vynechejte díl, nebo v CAD odstraňte tečnost.</li>
+<li><b>„Svar se nedotýká žádného dílu!“, „Délka 20,0 mm &lt; max(30 mm; 6a) – svar se nemá započítat“</b><br>
+Těleso svaru musí ležet plochou na obou dílech. Krátký svar EN 1993-1-8 nezapočítá jako nosný.</li>
+<li><b>„Zatěžovací křivka neodpovídá zatěžovacím stavům – únava spojů nehodnocena“</b><br>
+Po přidání nebo smazání stavu upravte kanály v Únavě a stiskněte Posoudit znovu.</li>
+</ul>

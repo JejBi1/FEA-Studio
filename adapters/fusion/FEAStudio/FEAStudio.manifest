@@ -1,0 +1,14 @@
+{
+	"autodeskProduct": "Fusion",
+	"type": "addin",
+	"id": "6b1f3c52-8e0a-4d7e-9a51-fea5f0d10001",
+	"author": "FEA Studio",
+	"description": {
+		"": "Send to FEA Studio: exports the active design (or the selected parts) to STEP with body names, materials, colours and attributes, and opens it in FEA Studio (REST API or GUI); updates the geometry of a linked study."
+	},
+	"version": "1.4.0",
+	"runOnStartup": true,
+	"supportedOS": "windows",
+	"editEnabled": true,
+	"iconFilename": ""
+}

@@ -1,0 +1,143 @@
+<h1>Fatigue</h1>
+<p class="lead">Computes fatigue damage and life from the static results: stress in time is the sum of load cases multiplied by the load history,
+cycles are counted by rainflow and damage is accumulated by Palmgren–Miner with the material's S-N curve.</p>
+
+<h2>Principle</h2>
+<p>Each load case is a <b>unit case</b>. The load history (one <b>block</b>) gives the multiple by which each case acts in time, and the stress in a node is the superposition:</p>
+<p><b>σ(t) = Σ f<sub>k</sub>(t) · σ<sub>k</sub></b> &nbsp; (linear elasticity; several channels on one case are added)</p>
+<p>Example: case “Force 200 N” with a sine channel, mean 0.5, amplitude 0.5 = pulsating 0–200 N. The block repeats <b>Design number of blocks</b> times over the life.</p>
+<ol>
+<li>Compute statics (<a href="reseni.html">Solve</a>).</li>
+<li>Enter the load history channels and the design number of blocks.</li>
+<li>Choose method, mean stress correction, surface and S-N curve.</li>
+<li>Click <b>Run fatigue analysis</b>.</li>
+</ol>
+
+<h2>Load history (one block)</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Channel list</td><td>Channels as “case: sine, mean …, amplitude …, … cycles, phase …°” or “case: N points”. Click loads a channel into the form.</td><td></td></tr>
+<tr><td>Load case</td><td>The case whose multiple the channel sets.</td><td>With bolts the list also contains “Bolt preload”.</td></tr>
+<tr><td>Waveform</td><td>Sine, or Points (table / CSV).</td><td></td></tr>
+<tr><td>Amplitude, Mean</td><td>Sine: f(t) = mean + amplitude · sin(2π · cycles · t / block length + phase).</td><td>Pulsating 0–1: mean 0.5, amplitude 0.5. Fully reversed ±1: mean 0, amplitude 1.</td></tr>
+<tr><td>Cycles per block</td><td>Sine cycles in one block.</td><td>Default 1. Repetitions go in Design number of blocks; more cycles only add time points (24 per cycle) and slow the analysis (the critical plane warns above 2000 points).</td></tr>
+<tr><td>Phase [°]</td><td>Phase shift of the sine.</td><td>Two channels of the same frequency at 90° = non-proportional loading (principal directions rotate).</td></tr>
+<tr><td>Time / multiple table, + row, − row</td><td>Waveform points, linear between them.</td><td>At least 2 points; time in arbitrary units.</td></tr>
+<tr><td>Import CSV…</td><td>Loads points from a file (see below).</td><td></td></tr>
+<tr><td>Add channel / Save channel / Delete</td><td>Adds from the form; overwrites the selected channel; deletes it.</td><td></td></tr>
+<tr><td>Design number of blocks</td><td>Repetitions of the block over the design life.</td><td>E.g. 1e6; 2e5 also accepted.</td></tr>
+<tr><td>Block length</td><td>Time axis of the sine (period = block length / cycles).</td><td>Default 1; matters only when combining a sine with points.</td></tr>
+<tr><td>Plot</td><td>Waveform of the multiples of all used cases within the block.</td><td>Check that it matches the intent.</td></tr>
+</table>
+<h3>CSV import</h3>
+<ul>
+<li>Two columns <b>time; multiple</b>, or one column of multiples (time = row number). Header rows are skipped.</li>
+<li>The separator <b>;</b> or tab takes precedence, so the comma is decimal (<code>0;1,5</code>). A comma separator applies only with a decimal point in the file or a text header (<code>0,1.5</code>).</li>
+<li>Commas only and no points (<code>1,5</code>) is ambiguous and rejected – use a semicolon or a decimal point.</li>
+</ul>
+<p class="tip"><b>Tip:</b> a mean stress from permanent loads (bolt preload, self-weight, thermal stress) is a channel with a constant multiple of 1: Points (0; 1) and (1; 1).</p>
+
+<h2>Method and material</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Fatigue method</td><td><b>S-N (stress-life)</b> – stress amplitude against the S-N curve with Marin factors (high-cycle fatigue); <b>ε-N (strain-life)</b> – see <a href="#en">ε-N method</a> below.</td><td>S-N. ε-N for low-cycle fatigue with local yielding at notches.</td></tr>
+<tr><td>Notch rule (ε-N)</td><td>Conversion of the elastic FE stress to the local elastic-plastic strain: <b>Neuber</b> (σ·ε = σ_el²/E) or <b>Glinka</b> (equal strain energy density).</td><td>Neuber (more conservative). Active only for ε-N.</td></tr>
+<tr><td>Multiaxiality (method)</td><td><b>signed von Mises</b> (sign of the dominant principal stress), <b>max. principal stress</b> (largest absolute value), <b>critical plane</b>.</td><td>Default signed von Mises. For shear, torsion and non-proportional loading use the critical plane.</td></tr>
+<tr><td>Critical plane – Criterion</td><td><b>Findley</b> (τa + k·σn,max, ductile), <b>normal stress</b> (rainflow σn, brittle), <b>by material</b> (grey cast iron → normal stress, otherwise Findley).</td><td>By material.</td></tr>
+<tr><td>f₋₁/t₋₁ (S-N material)</td><td>Ratio of endurance limits in fully reversed tension / torsion of the material chosen for the S-N row; sets k of Findley.</td><td>Empty = √3 ≈ 1.732 (ductile steels: 1.6–1.8). Range (1; 2⟩.</td></tr>
+<tr><td>Planes (coarse grid)</td><td>Planes on the hemisphere for the first search.</td><td>100 ≈ 14° spacing; the three worst candidates are refined to about 1°.</td></tr>
+<tr><td>Shear directions</td><td>Shear directions in the plane (Findley).</td><td>Default 12.</td></tr>
+<tr><td>thorough search</td><td>4× more planes and candidates.</td><td>About 3× slower; for verification.</td></tr>
+<tr><td>Mean stress</td><td>S-N: no correction, Goodman, Gerber. ε-N: no correction, Morrow, Smith-Watson-Topper (SWT).</td><td>Goodman (conservative) / Morrow. Not used with Findley (the mean stress is in k·σn,max).</td></tr>
+<tr><td>block repeats (close rainflow residue)</td><td>Unclosed half-cycles of the block join the next repetition.</td><td>On (correct for a repeated block).</td></tr>
+<tr><td>Surface (ka)</td><td>Marin surface factor: polished, ground, machined / cold-drawn, hot-rolled, forged.</td><td>Machined; depends on Rm (Shigley).</td></tr>
+<tr><td>Reliability (ke)</td><td>50 / 90 / 95 / 99 / 99.9 / 99.99 %.</td><td>50 % = mean S-N; 90 % → 0.897, 99 % → 0.814.</td></tr>
+<tr><td>Diameter for kb</td><td>Size factor from the effective diameter [mm].</td><td><i>ignore</i> = 1. For 2.8–51 mm kb = 1.24·d<sup>−0.107</sup>.</td></tr>
+<tr><td>Other effects kf</td><td>Further factor (temperature, environment, experience).</td><td>1.0</td></tr>
+<tr><td>S-N for material</td><td>Material whose S-N is shown and edited.</td><td>Only materials of meshed parts (not beam-replaced bolts, nor excluded parts).</td></tr>
+<tr><td>custom S-N (otherwise estimate from Rm)</td><td>Enables a custom curve SD, ND, k, k2.</td><td>Off = estimate.</td></tr>
+<tr><td>SD, ND, k, k2</td><td>Amplitude at the knee [MPa] (without Marin factors), cycles at the knee, slope above and below it.</td><td>k2 = 0 = endurance limit (no damage below SD); Haibach k2 = 2k − 1.</td></tr>
+<tr><td>From PragTic database…</td><td>Literature fatigue properties (pragtic.com, J. Papuga) with sources.</td><td>See below.</td></tr>
+<tr><td>“Used: …” line</td><td>S-N and Marin factors ka · kb · ke · kf = k used, and the source.</td><td></td></tr>
+</table>
+
+<h3>S-N estimate from Rm (without tests)</h3>
+<ul>
+<li><b>Steel</b> (E ≥ 150 GPa): Se' = 0.5·Rm at 10⁶ cycles (at most 700 MPa), 0.9·Rm at 10³, endurance limit below 10⁶ (Shigley).</li>
+<li><b>Aluminium</b> (E 40–150 GPa): 0.4·Rm (at most 130 MPa) at 5·10⁸, no endurance limit (Haibach below the knee).</li>
+<li><b>Plastic</b>: 0.25·Rm at 10⁶, k = 10 – indicative only; calibrate from tests.</li>
+</ul>
+<p>Marin factors reduce the knee amplitude; in the Rm estimate the point 0.9·Rm at 10³ cycles remains. Both apply to a smooth specimen – the notch effect is in the FE stress (fine mesh at the notch).</p>
+
+<h3 id="en">ε-N method (strain-life)</h3>
+<ul>
+<li>The elastic FE stress history (signed von Mises or max. principal stress; no critical plane) is converted by the notch rule to the local elastic-plastic strain on the cyclic Ramberg-Osgood curve; rainflow, the Coffin-Manson-Basquin curve and Palmgren–Miner give the damage.</li>
+<li>The parameters σ'f, b, ε'f, c, K', n' are <b>estimated from Rm and E</b> (Bäumel-Seeger uniform material law) – indicative, verify by tests. The “ε-N used” line shows the values. Measured parameters can be given only through the Python API or the study file (<code>FatigueSettings.en_params</code>, see <a href="automatizace.html">Automation</a>); the GUI and the MCP server have no input for them.</li>
+<li>Surface, reliability, size and other Marin factors and the S-N curve are not used (greyed out). Not available for 3D-printed parts.</li>
+</ul>
+
+<h3>PragTic database</h3>
+<p>The <b>S-N from PragTic database</b> dialog holds 647 literature records. Type any grade (12050, C45, 1.0503, AISI 1045, S45C…); equivalents are found through the grade converter. The <b>Match</b> column shows <i>match</i>, <i>≈ match</i> (approximate equivalent) or <i>similar</i> (same family, similar composition). <b>Only with S-N data (tension-compression / bending)</b> hides records without fatigue data. The right side shows the full record with sources; choose an S-N variant (tension-compression limit, Basquin, bending limit) in <b>S-N curve for analysis</b>. <b>also take over Rm and Re into the material</b> overwrites the study material's Rm and Re (the mean stress correction uses Rm). <b>Use S-N</b> or double-click takes the curve over.</p>
+<p><b>Data source and citation.</b> The data belong to the author of the database: <i>Papuga, J.: PragTic – material database of fatigue properties (Fatigue Data Repository). Czech Technical University in Prague, Faculty of Mechanical Engineering. <a href="https://www.pragtic.com/vmat.php">https://www.pragtic.com/vmat.php</a></i>. For each curve taken over, FEA Studio states the record number and the original source; the Word report adds the citation. Cite the database and the original source in your own documentation too.</p>
+<p>The database is not distributed with the program (the author has not granted redistribution). For your own use download it from pragtic.com with <code>python -m fea_core.fatigue.pragtic_fetch</code>; fatigue works without it (estimate from Rm or a manual S-N).</p>
+
+<h2>Analysis and results</h2>
+<ul>
+<li><b>Run fatigue analysis</b> runs in the background. With proportional channels rainflow is computed once – under 1 s. The critical plane takes tens of seconds; with non-proportional loading and thousands of time points, minutes.</li>
+<li>The first run after start may be slower (kernel compilation).</li>
+<li>The fatigue result is not saved in the project (the settings are); any change of settings or study discards it.</li>
+</ul>
+<table class="grid">
+<tr><th>Control / quantity</th><th>What it shows</th><th>Note</th></tr>
+<tr><td>Damage D over design life (log₁₀)</td><td>log₁₀ D over the design number of blocks.</td><td>D ≥ 1 (log ≥ 0) = failure. Nodes without damage sit at the lower bound (6 orders below the maximum).</td></tr>
+<tr><td>Life [blocks] (log₁₀)</td><td>log₁₀ of blocks to failure (D = 1).</td><td>Colours reversed: red = short life.</td></tr>
+<tr><td>Fatigue safety factor (stress multiplier)</td><td>How much all stresses of the whole history could be increased for D = 1 at the design number of blocks.</td><td>Shown up to 10. Above 1 = acceptable.</td></tr>
+<tr><td>Equivalent stress amplitude [MPa]</td><td>Largest equivalent amplitude at the node.</td><td>Critical plane: amplitude in the critical plane.</td></tr>
+<tr><td>Table of the worst locations</td><td>10 locations: x, y, z, total D, life [bl.], safety, plane normal (critical plane only).</td><td>Click a row: stress history plot and a marker in 3D.</td></tr>
+<tr><td>Plot</td><td>Equivalent stress history at the node, cycles and max. amplitude Sa; for the critical plane σn and shear τ.</td><td>In 3D: purple = normal of the critical plane, turquoise = shear direction.</td></tr>
+<tr><td>Summary below the table</td><td>Max. damage (PASS / FAIL, D &lt; 1), min. life, min. safety, <b>Method</b> (report text), S-N used, warnings.</td><td>A click on the map acts as a probe.</td></tr>
+</table>
+
+<h3>How to read the result</h3>
+<ul>
+<li>The result is the <b>local stress of a smooth specimen</b>. Do not judge worst locations in singularities (sharp internal corners, support edges) by the nodal value – refine, add fillets or use a notch method (see <a href="vysledky.html">Results</a>).</li>
+<li>Signed von Mises has an ambiguous sign for pure shear (σ1 = −σ3): use the critical plane for torsion and non-proportional loading.</li>
+<li>A nonzero prescribed displacement sits in every case and multiplies in superposition. Put it in a separate case and compute the others with zero displacement.</li>
+<li><b>Welds and bolts</b> are assessed separately (FAT class, VDI 2230 σ_ASV) – <a href="spoje.html">Joints</a>.</li>
+<li><b>Printed parts</b> use the Hill equivalent in print axes (shell and core) with print S-N (indicative, after Ezeh &amp; Susmel 2019; no Marin factors). The S-N box shows the print S-N directly (SD in XY and SD_z normal to layers); a custom S-N applies to XY, and without a k2 it continues with the print slope (plastics have no endurance limit). See <a href="tisk.html">3D printing</a>.</li>
+<li><b>Bearing load</b> is not linear in force direction (pressure on the half of the hole facing the force): superposing cases with a bearing load gives a different stress than reality for a rotating force (warning).</li>
+</ul>
+
+<h2>Fatigue with contacts, from a mechanism and from dynamics</h2>
+<ul>
+<li><b>Contacts (nonlinear):</b> superposition does not apply. Fatigue is possible only from a <b>step sequence</b> (<a href="kontakty.html">Contacts</a> → Step sequence, cycles ≥ 2). The history is the ends of the steps of the <b>last cycle</b> (the first cycle with slip may differ); load channels are not used. The program checks that the response has stabilized between the last two cycles (change up to 0.1 %), otherwise add cycles. The course within a step is not considered. Branches (“cases separately”) end with an error.</li>
+<li><b>Mechanism:</b> transferring the history from <a href="pohyb.html">Motion</a> creates unit cases (joint reactions, inertia) and history channels; fatigue then superposes as usual.</li>
+<li><b>Dynamics:</b> fatigue from a <b>sine sweep</b> and <b>spectral fatigue</b> of random vibration (Dirlik, Tovo–Benasciutti, narrow-band) are set and computed in <a href="dynamika.html">Dynamics</a>; results appear as “Dynamics: …” items in Results. They need Rm (estimated S-N) or an entered S-N.</li>
+</ul>
+
+<h2>In the examples</h2>
+<h3>Example 1 – printed bracket</h3>
+<ul>
+<li>One channel: <b>Eye load 200 N: sine, mean 0.5, amplitude 0.5, 1 cycles, phase 0°</b> → pulsating 0–200 N, design number of blocks 1e5 (100 000 cycles).</li>
+<li>Proportional loading → instant analysis. The whole part is printed, so the Hill equivalent with print S-N applies – indicative; without test calibration not proof.</li>
+<li>Try: a Self-weight channel with constant multiple 1 (mean stress), or 1e6 blocks, and watch the safety drop.</li>
+</ul>
+<h3>Example 2 – assembly</h3>
+<ul>
+<li>Two channels: <b>Force on the arm eye</b> sine 0–1 (pulsating 0–300 N) and <b>Lateral force on the column</b> sine ±1 (±250 N) at 90° phase; design number of blocks 2e5.</li>
+<li>Non-proportional → <b>non-proportional loading</b>. Compare signed von Mises and the critical plane (Findley) – for the S235 column and base (S-N estimated from Rm) they may differ; the purple segment shows the critical plane at the worst location.</li>
+<li>Bolt preload and thermal stress are not in the history; add channels “Bolt preload” and “Heating in operation” with constant multiple 1 to include them as mean stress.</li>
+<li>Weld roots and toes are singularities on the map; evaluate welds and bolts in the Joints – utilization dock.</li>
+</ul>
+
+<h2>Common problems</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and remedy</th></tr>
+<tr><td>“Compute statics first (Solve step) – the results have no mechanical load case.”</td><td>Fatigue needs static results; a heat-only study has no fatigue.</td></tr>
+<tr><td>“Fatigue with contact / nonlinear analysis in branches is not available …”</td><td>A contact study computed case by case has no history. In <a href="kontakty.html">Contacts</a> define a step sequence with ≥ 2 cycles and recompute.</td></tr>
+<tr><td>“Load case '…' is not in the results”</td><td>The channel refers to a renamed or deleted case. Delete and re-add the channel, or recompute statics.</td></tr>
+<tr><td>“CSV cannot be loaded: CSV is ambiguous (a comma may be a separator or a decimal comma…)”</td><td>Save the CSV with separator ; (Excel in Czech does this itself) or with a decimal point.</td></tr>
+<tr><td>“Rm of the material is needed for the S-N estimate”</td><td>Add Rm in <a href="materialy.html">Materials</a> or enter a custom S-N.</td></tr>
+<tr><td>“The ratio f₋₁/t₋₁ must be in the range (1; 2⟩…”</td><td>Findley does not suit brittle materials – choose the normal stress criterion.</td></tr>
+<tr><td>“Critical plane with non-proportional loading and N time points is slow…”</td><td>Shorten the block: fewer cycles of the same shape, more repetitions (design number of blocks).</td></tr>
+</table>

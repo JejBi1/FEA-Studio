@@ -1,0 +1,126 @@
+<h1>Teplo</h1>
+<p class="lead">Krok Teplo počítá vedení tepla v dílech jako ustálený stav nebo časový průběh (přechodový stav). Okrajové podmínky:
+předepsaná teplota, tepelný tok, výkon, konvekce, sálání a zdroj tepla. Teplotní pole pak může zatížit mechanickou úlohu jako teplotní napětí.</p>
+
+<h2>Co krok umí</h2>
+<ul>
+<li><b>Tepelný stav</b> je samostatná úloha s vlastními okrajovými podmínkami; stavů může být více, každý se počítá zvlášť.</li>
+<li><b>Ustálený stav</b>: přívod tepla musí mít odvod – aspoň jedna předepsaná teplota, konvekce nebo sálání v každé skupině spojených dílů.</li>
+<li><b>Přechodový stav</b>: časový průběh od počáteční teploty s pevným krokem; podmínky působí od času 0 a jsou konstantní. Materiály pak potřebují i ρ a c_p.</li>
+<li><b>Teplotní napětí</b> se nepočítá tady: přidejte zatížení <b>„Teplota (teplotní napětí)“</b> do mechanického stavu v <a href="zatizeni.html">Zatížení</a>.</li>
+<li><b>Jen teplo</b> je možné: vazby ani mechanická zatížení nejsou třeba; prázdné mechanické stavy se do výpočtu nepošlou.</li>
+</ul>
+<p>Vlastnosti v <a href="materialy.html">Materiálech</a>: <b>λ</b> [W/(m·K)] pro vedení, <b>c_p</b> [J/(kg·K)] s ρ pro přechodový stav, <b>α</b> [10⁻⁶/K] pro teplotní napětí. Vestavěné hodnoty: ocel S235 λ = 53,3 W/(m·K), α = 12·10⁻⁶/K, c_p = 440 J/(kg·K); PLA λ = 0,13 W/(m·K), α = 68·10⁻⁶/K, c_p = 1800 J/(kg·K).</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Tlačítkem <b>+</b> založte stav a pojmenujte ho (přidání podmínky stav založí samo).</li>
+<li>Určete, zda je <b>přechodový</b>, a zadejte dobu, krok a počet snímků.</li>
+<li>Ve 3D vyberte plochy, zvolte <b>Typ</b> a hodnotu a stiskněte <b>Přidat z výběru</b>. Zdroj tepla v dílu potřebuje jen díl.</li>
+<li>Zkontrolujte <b>Teploty studie</b> (referenční a počáteční).</li>
+<li>Pro teplotní napětí přidejte v Zatížení do mechanického stavu „Teplota (teplotní napětí)“ s volbou „tepelný stav: …“.</li>
+</ol>
+
+<h2>Ovládací prvky</h2>
+<h3>Tepelné stavy</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Rozbalovací seznam stavů</td><td>Výběr upravovaného stavu; jeho podmínky se ve 3D ukážou barevně, tok a výkon šipkami (do tělesa).</td><td></td></tr>
+<tr><td><b>+</b> / <b>Přejmenovat</b> / <b>−</b></td><td>Nový, přejmenování (odkazy z teplotních zatížení se přejmenují), smazání (smaže i teplotní zatížení, která na něj odkazují; zapíše do logu).</td><td></td></tr>
+<tr><td>přechodový</td><td>Přepne ustálený ↔ přechodový stav.</td><td></td></tr>
+<tr><td>Doba</td><td>Délka simulovaného děje.</td><td>3600 s</td></tr>
+<tr><td>Časový krok</td><td>„auto (doba / 100)“ = 100 kroků; zaokrouhlí se na násobek počtu snímků.</td><td>Menší než nejkratší zajímavý děj</td></tr>
+<tr><td>Počet snímků</td><td>Počet rovnoměrně rozložených uložených okamžiků; poslední = konec. Přidá se t = 0 (počáteční teplota).</td><td>10</td></tr>
+<tr><td colspan="3"><i>Doba, krok, snímky a teploty se zapíšou po dokončení úpravy (Enter nebo opuštění pole); teprve pak se výsledky zahodí.</i></td></tr>
+<tr><td>Informační řádek</td><td>Přechodový: počet kroků, délka kroku, interval snímků. Ustálený: připomínka odvodu tepla.</td><td></td></tr>
+</table>
+
+<h3>Okrajové podmínky</h3>
+<p>Seznam <b>Okrajové podmínky stavu</b> ukazuje podmínky vybraného stavu; kliknutí je načte do formuláře a zvýrazní jejich plochy. <b>Uložit změny vybrané</b> přepíše hodnoty (plochy zůstanou), <b>Plochy z výběru</b> nahradí plochy, <b>Smazat</b> odstraní podmínku.</p>
+<table class="grid">
+<tr><th>Typ</th><th>Zadání</th><th>Význam a typické hodnoty</th></tr>
+<tr><td>Předepsaná teplota</td><td>T [°C]</td><td>Stálá teplota plochy: chladič, lázeň, topné těleso. Program spočítá teplo, které plochou proteče.</td></tr>
+<tr><td>Tepelný tok [W/m²]</td><td>q [W/m²]</td><td>Hustota toku plochou; <b>kladná = do tělesa</b>. Sluneční záření ~1000 W/m² × pohltivost.</td></tr>
+<tr><td>Tepelný výkon [W]</td><td>Q [W]</td><td>Celkový výkon rovnoměrně po ploše; kladný = do tělesa (topná patrona, ztráty součástky).</td></tr>
+<tr><td>Přestup tepla – konvekce</td><td>h [W/(m²·K)], T okolí [°C]</td><td>q = h·(T okolí − T). Vzduch volně 5–25, nuceně 25–250, voda 500–10 000 W/(m²·K).</td></tr>
+<tr><td>Sálání do okolí</td><td>ε v intervalu (0; 1], T okolí [°C]</td><td>q = ε·σ·(T okolí⁴ − T⁴) v absolutních teplotách. Lesklý Al ~0,05, oxidovaná ocel a elox ~0,8, černý lak ~0,95. Nelineární (iterace).</td></tr>
+<tr><td>Zdroj tepla v dílu</td><td>P [W], Díl</td><td>Výkon rovnoměrně v objemu dílu (ztráty vinutí, elektronika). Díl zvolte v seznamu nebo kliknutím na jeho plochu.</td></tr>
+</table>
+<p>Pole <b>T okolí</b> je jen u konvekce a sálání, <b>Díl</b> jen u zdroje tepla. Podmínku nelze úpravou převést na jiný druh; přidejte novou.</p>
+
+<h3>Teploty studie</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Referenční (montážní)</td><td>Teplota bez tepelného přetvoření; teplotní napětí vzniká z ΔT = T − T_ref.</td><td>20 °C</td></tr>
+<tr><td>Počáteční (přechodový)</td><td>Teplota celého modelu v čase 0; se zaškrtnutým „= referenční“ se drží rovna referenční.</td><td>= referenční</td></tr>
+</table>
+<p>Pod formulářem jsou průběžně vypsány chyby (červeně) a varování (oranžově) kontroly připravenosti; jednotky: °C, W, W/m², W/(m²·K), λ [W/(m·K)], α [1/K], c_p [J/(kg·K)].</p>
+
+<h2>Tepelná bilance</h2>
+<p>Obdoba rovnováhy sil u ustáleného stavu. Teplo všech podmínek (plochy přesnou integrací) musí dát nulový součet: zbytek nesmí přesáhnout 0,1 % součtu absolutních toků, jinak se výsledek zahodí. Ve výsledcích je tabulka <b>Teplo okrajových podmínek [W] (+ = do tělesa)</b> a řádek „Tepelná bilance: přívod … W, odvod … W, zbytek … W (… %)“. U přechodového stavu se nekontroluje (část tepla se akumuluje v dílech).</p>
+
+<h2>Teplotní napětí</h2>
+<p>V <a href="zatizeni.html">Zatížení</a> zvolte <b>Teplota (teplotní napětí)</b> a v poli <b>Teplota z</b>:</p>
+<ul>
+<li><b>tepelný stav: …</b> – pole spočteného stavu; u přechodového zadejte <b>Čas</b>, nebo nechte <b>konec stavu</b> (mezi snímky lineární interpolace).</li>
+<li><b>rovnoměrná teplota dílů</b> – T [°C] na zaškrtnuté díly (nic = všechny). Přepíše pole tepelného stavu; uzel na rozhraní dílů s různou teplotou dostane průměr.</li>
+</ul>
+<p>Zatěžovací stav smí mít nejvýše jedno pole z tepelného stavu. Napětí je úměrné ΔT, stav se tedy superponuje a jde použít v únavě. Kontrola rovnováhy se vztahuje k síle plně bráněné roztažnosti Σ E·α·|ΔT|·V / L. Teplotní zatížení umí CalculiX i řešič pro velké modely; tepelné stavy počítá vždy CalculiX.</p>
+<p class="warn"><b>Pozor:</b> tuhost a pevnost se s teplotou nemění. U plastů (PLA měkne nad ~50 °C) a oceli nad ~300 °C je výsledek nekonzervativní. Roztažnost 3D tisku je izotropní.</p>
+
+<h3>Šrouby a teplota</h3>
+<ul>
+<li>Šrouby <b>nevedou teplo</b> (nosník nemá objem); teplo teče jen plochami, kterými se díly dotýkají.</li>
+<li>Šroub se roztahuje podle <b>průměrné teploty svých dosedacích ploch</b>, α = 11,5·10⁻⁶/K (nerez „A…“ 16·10⁻⁶/K). Rozdíl roztažností mění sílu ve šroubu; tuhost a předpětí se nemění.</li>
+<li>Šroub se sevřeným svazkem s vůlí v CAD se neroztahuje (varování).</li>
+</ul>
+
+<h3>3D tisk a teplo</h3>
+<p>U tištěných dílů se vodivost a tepelná kapacita prvku násobí podílem plného materiálu (skořepina + výplň). Díl s výplní 20 % vede hůř než plný. Orientační model paralelního vedení; vzduch ve výplni se zanedbá.</p>
+
+<h2>Výsledky</h2>
+<p>V <a href="vysledky.html">Výsledcích</a> jsou tepelné stavy v seznamu <b>Zatěžovací stav</b> za mechanickými pod názvem „<b>Teplo: </b><i>název</i>“; měřítko deformace je vypnuté.</p>
+<table class="grid">
+<tr><th>Veličina</th><th>Význam</th><th>Poznámka</th></tr>
+<tr><td>Teplota [°C]</td><td>Teplota v uzlech; sonda interpoluje uvnitř prvku.</td><td>U přechodového stavu pro zvolený čas.</td></tr>
+<tr><td>Tepelný tok |q| [W/m²]</td><td>Velikost hustoty toku.</td><td rowspan="2">U přechodového stavu jen pro konec (poslední čas).</td></tr>
+<tr><td>Tepelný tok qx, qy, qz [W/m²]</td><td>Složky v osách modelu.</td></tr>
+</table>
+<p>U přechodového stavu je výběr <b>Čas</b> se snímky „t = 0 s“ až „t = doba“. Informační panel ukazuje maximální a minimální teplotu s místem, max |q|, referenční teplotu, teplo podmínek a bilanci. U mechanického stavu s teplotním zatížením lze zobrazit <b>Teplotu</b> a všechna napětí.</p>
+
+<h2>Omezení</h2>
+<ul>
+<li>V tomto okně je sálání jen <b>do okolí</b>: bez vzájemného ozáření ploch. Sálání mezi plochami dutiny (view factory počítá CalculiX, <code>CavityRadiation</code>) je dostupné jen přes Python API / soubor studie (viz <a href="automatizace.html">Automatizace</a>).</li>
+<li>Dotýkající se díly sdílejí uzly, styk je <b>dokonalý</b> – bez odporu rozhraní. Izolační vrstvu nebo pastu modelujte jako tenký díl s vlastní λ. Totéž platí v tomto okně pro <a href="kontakty.html">kontaktní páry</a> a rozpojené spáry (v teple se neuvažuje kontaktní vodivost ani otevření). Konečná tepelná vodivost kontaktu h_c kontaktního páru (<code>ContactPair.conductance</code>) je dostupná jen přes Python API / soubor studie.</li>
+<li>λ, c_p, h a ε nezávisí na teplotě. Proudění tekutin a změna fáze se nemodelují; konvekce je okrajová podmínka se zadaným h.</li>
+<li>Podmínky přechodového stavu jsou konstantní v čase; každý přechodový stav začíná z počáteční teploty.</li>
+<li>MYSTRAN (křížová kontrola) teplo nepřevádí.</li>
+</ul>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 „Tištěný držák“</h3>
+<p>Bez tepelných stavů; 30 °C v kroku 3D tisk slouží jen k odhadu tečení. Pro vyzkoušení teplotního napětí přidejte do nového zatěžovacího stavu „Teplota (teplotní napětí)“ jako rovnoměrnou teplotu dílu 40 °C. Díl drží válcová vazba a opření, uvidíte napětí od bráněné roztažnosti PLA (α = 68·10⁻⁶/K).</p>
+<h3>Ukázka 2 „Sestava“</h3>
+<p>Referenční teplota 20 °C. Oba tepelné stavy mají shodné podmínky:</p>
+<ul>
+<li><b>Výkon 15 W</b> do plochy „Otvor sloupku“ (topné těleso v otvoru Ø10),</li>
+<li><b>konvekce h = 10 W/(m²·K)</b>, T okolí 25 °C na ploše „Povrch ramena“ (všechny plochy ramena kromě dosedací na patce),</li>
+<li><b>předepsaná teplota 20 °C</b> na ploše „Spodek patky“ (podlaha).</li>
+</ul>
+<p><b>„Provoz – ustálený stav“</b>: v tabulce tepla musí teplo otvoru (+15 W), konvekce ramena a teploty podlahy dát nulový součet, bilance do 0,1 %. Rameno může teplo i přijímat, je-li chladnější než okolí (25 °C). <b>„Náběh – 1 hodina“</b> je přechodový: 3600 s, krok 120 s (30 kroků), 6 snímků v časech 0, 600, 1200 … 3600 s – ukáže prohřívání ocelového sloupku. Mechanický stav <b>„Ohřev za provozu“</b> bere pole z ustáleného stavu. Ocel (12·10⁻⁶/K) a PLA (68·10⁻⁶/K) se roztahují různě: namáhají rameno, šrouby i svary, a šrouby se roztahují podle teploty svých dosedacích ploch (varování). Rameno vede teplo jen podílem plného materiálu (výplň 25 % Gyroid); šrouby teplo nevedou.</p>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„Tepelný stav 'X': ustálený stav nemá kudy teplo odvést – zadejte předepsanou teplotu, přestup tepla (konvekci) nebo sálání“</b><br>
+Doplňte odvod tepla, nebo stav přepněte na přechodový.</li>
+<li><b>„Tepelný stav 'X': díly bez odvodu tepla (není přes ně cesta k předepsané teplotě, konvekci ani sálání – ustálený stav nemá řešení)“</b><br>
+Díly nejsou plochou spojené s místem odvodu; šroub teplo nevede. Doplňte konvekci, nebo je vynechejte v <a href="spoje.html">Spojích</a>.</li>
+<li><b>„Materiál 'X' (díl 'Y') nemá tepelnou vodivost k [W/(m·K)]“</b>, „nemá hustotu a měrnou tepelnou kapacitu c_p“, nebo „nemá součinitel teplotní roztažnosti α [1/K] (teplotní zatížení)“<br>
+Doplňte λ, c_p nebo α v Materiálech. Platí pro všechny síťované díly.</li>
+<li><b>„Tepelný stav 'X': tepelná bilance nesedí (zbytek … W, … % toků). Výsledek je neplatný.“</b><br>
+Obvykle překryté podmínky na stejných plochách (teplota s tokem nebo konvekcí; dvě teploty na společné hraně), nebo nedokonvergované sálání. Zkontrolujte překryvy a v logu, že iterace CalculiXu doběhly.</li>
+<li><b>„Tepelný tok se ukládá jen pro konec přechodového stavu – zvol poslední čas.“</b><br>
+Zvolte poslední čas, nebo zkraťte dobu stavu.</li>
+<li><b>„Tepelný stav 'X': 50000 časových kroků – výpočet bude dlouhý“</b>, „časový krok musí být 0 (automaticky) až doba stavu“<br>
+Každý krok stojí jednu až dvě faktorizace; zvětšete krok, nebo zkraťte dobu.</li>
+</ul>

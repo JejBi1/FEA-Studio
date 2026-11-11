@@ -1,0 +1,95 @@
+<h1>Protokol Word</h1>
+<p class="lead">Tlačítko <b>Protokol…</b> (<span class="key">Ctrl+P</span>) vytvoří technickou zprávu ve Wordu (.docx): zadání, síť, výsledky s obrázky,
+kontroly spojů, únava, 3D tisk, předpoklady a varování s hodnocením průchod / neprůchod.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Spočítejte statiku (a teplo). Chcete-li únavu, spočítejte ji nejdřív v <a href="unava.html">Únava</a> – protokol používá výsledek z GUI.</li>
+<li>Klikněte na <b>Protokol…</b> v horní liště nebo stiskněte <span class="key">Ctrl+P</span>.</li>
+<li>Vyplňte údaje, zkontrolujte cestu, klikněte na <b>Vytvořit protokol</b>.</li>
+<li>Vytváří se na pozadí („Vytvářím protokol…“ ve stavovém řádku) a po dokončení se otevře ve Wordu.</li>
+</ol>
+<p>Bez výsledků obsahuje protokol jen zadání („Výsledky nejsou k dispozici – protokol bude obsahovat jen zadání.“).
+Studie jen s vedením tepla dá plný protokol tepelné analýzy.</p>
+
+<h2>Dialog protokolu Word</h2>
+<p>Nahoře je přehled obsahu, např. „Zatěžovací stavy: 6 · tepelné stavy: 2 · kontroly spojů: spustí se · únava: ne (krok Únava)“.</p>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Název</td><td>Nadpis a zápatí.</td><td>Předvyplněno podle typu analýzy: „MKP pevnostní analýza“, „MKP tepelná analýza“ (jen teplo) nebo „MKP pevnostní a tepelná analýza“ – &lt;studie&gt;.</td></tr>
+<tr><td>Zpracoval</td><td>Autor (titulní blok, vlastnosti dokumentu).</td><td>Pamatuje se.</td></tr>
+<tr><td>Firma</td><td>Firma v titulním bloku.</td><td>Pamatuje se.</td></tr>
+<tr><td>Předmět</td><td>Odstavec pod titulním blokem: předmět, zakázka, popis konstrukce.</td><td>Nepovinné.</td></tr>
+<tr><td>Závěr</td><td>Váš závěr – poslední kapitola; odstavce odděluje prázdný řádek.</td><td>Prázdné = bez kapitoly Závěr.</td></tr>
+<tr><td>Požadovaná bezpečnost k Re</td><td>Limit hodnocení statiky: PASS, je-li min. Re/σ_vM ≥ hodnota.</td><td>0,1–10, výchozí 1,0, pamatuje se poslední hodnota. Obvykle 1,5.</td></tr>
+<tr><td>obrázky (model, napětí, posuv, bezpečnost)</td><td>Obrázky modelu se zatížením (4 pohledy) a mapy výsledků.</td><td>Zapnuto; bez obrázků rychleji.</td></tr>
+<tr><td>Ponechat obrázky (složka &lt;název&gt;_obrazky)</td><td>PNG se uloží vedle protokolu do &lt;název&gt;_obrazky (jako --keep-images).</td><td>Vypnuto, pamatuje se. Cizí existující složka se nikdy nepřepíše (přidá se _2…).</td></tr>
+<tr><td>podrobné kontroly každého spoje</td><td>Tabulky všech kontrol každého šroubu a svaru (jinak jen přehled).</td><td>Zapnuto.</td></tr>
+<tr><td>po dokončení otevřít ve Wordu</td><td>Otevře soubor v přidruženém programu.</td><td>Pamatuje se.</td></tr>
+<tr><td>Soubor, „…“</td><td>Cesta k .docx.</td><td>Výchozí: složka projektu, „&lt;studie&gt;_protokol.docx“.</td></tr>
+<tr><td>Vytvořit protokol</td><td>Spustí vytváření.</td><td>Chybějící kontroly spojů se spustí automaticky.</td></tr>
+</table>
+
+<h2>Obsah protokolu</h2>
+<ul>
+<li><b>Titulní blok</b> – studie, geometrie, firma, autor, datum, program; předmět.</li>
+<li><b>Souhrn</b> – tabulka statiky po případech: max. posuv, max. σ_vM, σ_vM mimo singularity, min. bezpečnost k Re, nerovnováha, hodnocení (k ≥ požadovaná). Tepelné stavy; spoje (max. využití), únava (max. D, min. bezpečnost), 3D tisk (min. bezpečnost Tsai-Wu/Hill, bez tečení).</li>
+<li><b>1 Zadání analýzy</b> – díly (objem, hmotnost ze sítě), materiály se zdroji (u tisku vlastnosti plné extruze), podpory s plochami, zatěžovací stavy a zatížení, šrouby (označení, třída, délka sevření, předpětí), svary (a, délka), tepelné stavy; obrázek modelu u každého stavu.</li>
+<li><b>2 Síť a řešič</b> – typ prvku, velikost, zjemnění, uzly, prvky, DOF, min. škálovaný Jacobián s hodnocením kvality, řešič.</li>
+<li><b>3 Výsledky</b> – pro každý tepelný a zatěžovací stav: hodnoty, místa maxim s klasifikací singularit, reakce (síly, momenty), kontrola rovnováhy, bezpečnost k Re po dílech, mapy von Mises, posuvů, bezpečnosti.</li>
+<li><b>Šroubové a svarové spoje</b> – přehled využití, volitelně podrobné kontroly (VDI 2230, EN 1993-1-8, EN 1993-1-9 / IIW).</li>
+<li><b>Únava</b> – metoda (jako v kroku Únava), křivky S-N se zdroji, nejhorší místa, mapy.</li>
+<li><b>3D tisk</b> – nastavení, bezpečnost po dílech, tečení; vždy červené varování o tečení plastů.</li>
+<li><b>Kontakty</b> (pokud jsou) – dvojice s typem, μ se zdrojem a účelem, K, λ, přesah, formulace, posloupnost kroků; výsledky po krocích, mapy tlaku a stavu, křivky síla–dráha; vždy červená varování o nelineární analýze, odhadu μ, penalizaci K/λ a možném částečném výsledku.</li>
+<li><b>Dynamika</b> (pokud je zapnuta) – tvary s efektivní hmotností, tlumení, buzení a zkušební profil, FRF, obálky, RMS a 3σ, spektrální únava, ráz a SRS, přidaná hmota; vždy červené varování o nejistotě tlumení (±50 %).</li>
+<li><b>Pohyb (mechanismus)</b> (pokud je spočten) – tělesa, klouby, pohony, největší reakce kloubů a jejich okamžik, síly pohonů a výkon, grafy reakcí, rovnováha a výkonová bilance, stavy přenesené do MKP; vždy červené varování o tuhých tělesech, odhadu tření a nadbytečných vazbách.</li>
+<li><b>Předpoklady, omezení a varování</b> – lineární pružnost, díly spojené sdílenou sítí (bez dvojice kontaktu), předpoklady kontaktů a dynamiky tam, kde se používají, všechna varování výpočtu.</li>
+<li><b>Závěr</b> – text pole Závěr.</li>
+</ul>
+<p>Čísla se formátují podle jazyka protokolu (desetinný oddělovač, ·10ⁿ, minus „−“). Reakce pod 10⁻⁵ celkového zatížení se uvádějí jako 0 (šum).
+Mapa bezpečnosti se vynechá, je-li všude ≥ 10.</p>
+<p class="warn"><b>Poznámka:</b> protokol je podpůrný dokument, ne automatické posouzení. „PASS“ vychází z maxima v uzlu a nepozná, zda jde o rozhodující místo.
+Singularity posuďte sami a uveďte to do pole Závěr.</p>
+
+<h2>Bez GUI (příkazová řádka)</h2>
+<p><code>report</code> vytvoří protokol ze studie (study.json) nebo projektu .fea. Projekt s výsledky se nepřepočítává; studie bez výsledků se spočítá.
+Únava se spočítá, má-li studie průběh zatížení; spoje se zkontrolují.</p>
+<pre>.venv\Scripts\python.exe -m fea_core report projekt.fea -o protokol.docx --safety 1.5 --author "Jméno Příjmení" --company "Název firmy"</pre>
+<table class="grid">
+<tr><th>Volba</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td>-o cesta.docx</td><td>Výstupní soubor.</td><td>Výchozí &lt;název&gt;_protokol.docx vedle zdroje.</td></tr>
+<tr><td>--safety 1.5</td><td>Požadovaná bezpečnost k Re.</td><td>Výchozí 1,0.</td></tr>
+<tr><td>--title, --author, --company</td><td>Název, autor, firma.</td><td></td></tr>
+<tr><td>--keep-images</td><td>Ponechá PNG ve složce „&lt;název&gt;_obrazky“ vedle protokolu.</td><td>Cizí existující složka se nikdy nepřepíše (přidá se _2…). V GUI Ponechat obrázky.</td></tr>
+<tr><td>--no-images</td><td>Bez obrázků.</td><td></td></tr>
+<tr><td>--no-solve</td><td>Nepočítat studii bez výsledků – jen zadání.</td><td></td></tr>
+<tr><td>--no-fatigue</td><td>Nepočítat únavu.</td><td></td></tr>
+<tr><td>--results results.npz</td><td>Použít uložené výsledky.</td><td></td></tr>
+<tr><td>--workdir složka</td><td>Pracovní složka výpočtu.</td><td></td></tr>
+</table>
+<p>Nástroj MCP <code>fea_report_word</code> a další automatizace: <a href="automatizace.html">Automatizace</a>.</p>
+
+<h2>V ukázkách</h2>
+<h3>Ukázka 1 – tištěný držák</h3>
+<ul>
+<li>Souhrn: tři případy (síla na oko 200 N, vlastní tíha, případ s tečením) a řádek 3D tisku s min. bezpečností. Bezpečnost k Re pro PLA je orientační; rozhoduje bezpečnost tisku.</li>
+<li>Kapitola 3D tisk: 3 perimetry, gyroid 20 %, Tsai-Wu, tečení 1000 h / 30 °C, červené varování o tečení.</li>
+<li>Kapitola Únava se objeví jen tehdy, když únavu spočtete před vytvořením protokolu.</li>
+</ul>
+<h3>Ukázka 2 – sestava</h3>
+<ul>
+<li>Zadání navíc obsahuje tabulky šroubů (2× M6 8.8, předpětí) a svarů (a = 4 mm) a kapitolu Tepelné stavy s obrázky okrajových podmínek.</li>
+<li>Výsledky začínají tepelnými stavy (bilance, mapa teplot), pak šest mechanických stavů včetně Předpětí šroubů a případu s tečením.</li>
+<li>Šroubové a svarové spoje se vyplní automaticky; s podrobnými kontrolami je protokol výrazně delší.</li>
+</ul>
+
+<h2>Časté problémy</h2>
+<table class="grid">
+<tr><th>Hlášení / příznak</th><th>Příčina a řešení</th></tr>
+<tr><td>„Protokol nelze vytvořit: PermissionError …“</td><td>Soubor stejného názvu je otevřen ve Wordu – zavřete ho nebo přejmenujte.</td></tr>
+<tr><td>„Nejprve otevřete model nebo projekt.“</td><td>Protokol potřebuje otevřenou studii.</td></tr>
+<tr><td>V protokolu chybí únava</td><td>Každá změna nastavení únavy nebo studie zruší výsledek únavy v GUI. Spočtěte znovu; dialog musí ukazovat „únava: ano“.</td></tr>
+<tr><td>„Protokol – varování: Obrázek … : …“ v logu</td><td>Obrázek nešel vykreslit; protokol vznikl bez něj. Zkuste znovu, nebo bez obrázků.</td></tr>
+<tr><td>Hodnocení FAIL kvůli singularitě</td><td>Souhrn uvádí i σ_vM mimo singularity. Místo posuďte (<a href="vysledky.html">Výsledky</a>) a zdůvodněte v poli Závěr.</td></tr>
+<tr><td>Protokol se neotevřel</td><td>Chybí Word nebo jiný program pro .docx. Soubor existuje – otevřete ho jinde (LibreOffice, Word Online).</td></tr>
+</table>

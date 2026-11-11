@@ -1,0 +1,95 @@
+<h1>Vazby</h1>
+<p class="lead">Uložení modelu: vetknutí, předepsaný posuv (včetně symetrie a nenulového posuvu), válcová vazba díry nebo čepu, vzdálená vazba
+a pružné uložení (podloží, pružiny). Vazby platí ve všech zatěžovacích stavech a musí zamezit všem šesti tuhým pohybům.</p>
+
+<h2>Postup</h2>
+<ol>
+<li>Vyberte plochy ve 3D (filtr <b>Plocha</b> <span class="key">P</span>; díry: <b>Díra</b> <span class="key">H</span>). Klik na prázdné místo výběr zruší.</li>
+<li>Klikněte na tlačítko požadované vazby. Vznikne výběr „Vetknutí 1“, „Posuv 1“, „Válcová vazba 1“… a vazba se objeví v seznamu a modře ve 3D.</li>
+<li>Klik na řádek seznamu zvýrazní jeho plochy ve 3D a načte hodnoty do formuláře.</li>
+</ol>
+
+<h2>Ovládací prvky</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam vazeb</td><td>Všechny vazby studie.</td><td>„Posuv 1: ux = 0 mm“, „Válcová vazba 1: válcová – radiálně, tečně, osově“</td></tr>
+<tr><td><b>Vetknutí z výběru</b></td><td>ux = uy = uz = 0 na vybraných plochách.</td><td></td></tr>
+<tr><td><b>Předepsaný posuv</b>: <b>ux</b>, <b>uy</b>, <b>uz</b></td><td>Zaškrtnutá složka má předepsanou hodnotu [mm]; nezaškrtnutá je volná.</td><td>Výchozí: všechny zaškrtnuty, 0 mm (= vetknutí)</td></tr>
+<tr><td><b>Posuv z výběru (zaškrtnuté složky)</b></td><td>Vytvoří předepsaný posuv na vybraných plochách.</td><td></td></tr>
+<tr><td><b>Uložit změny vybraného posuvu</b></td><td>Přepíše složky posuvu položky vybrané v seznamu; plochy zůstanou.</td><td></td></tr>
+<tr><td><b>Válcová vazba (díra / čep)</b>: <b>radiálně</b>, <b>tečně (otáčení)</b>, <b>osově</b></td><td>Zaškrtnutá složka je nulová v osách válce.</td><td>Výchozí: všechny tři</td></tr>
+<tr><td><b>Válcová vazba z výběru</b> / <b>Uložit změny vybrané válcové vazby</b></td><td>Vytvoří / přepíše válcovou vazbu; vybrané plochy musí být válcové.</td><td></td></tr>
+<tr><td><b>Pružné uložení (podloží, pružiny)</b> – rozbalte: <b>Tuhost</b>, jednotka, <b>Směr</b></td><td>Tuhost k [N/mm³] na plochu, nebo celková K [N/mm]; kolmo k ploše, nebo ve všech směrech.</td><td>Beton ~0,05–0,2 N/mm³; pryžová podložka 5 mm ~1–10 N/mm³</td></tr>
+<tr><td><b>Z výběru</b> / <b>Uložit změny</b> (pružné)</td><td>Nové pružné uložení na vybraných plochách / přepíše tuhost a směr.</td><td>Zelené pružiny ve 3D</td></tr>
+<tr><td><b>Plochy z výběru</b></td><td>Nahradí plochy vybrané vazby aktuálním výběrem.</td><td>Zahodí síť</td></tr>
+<tr><td><b>Smazat</b></td><td>Smaže vazbu vybranou v seznamu.</td><td><span class="key">Ctrl+Z</span> ji obnoví</td></tr>
+</table>
+
+<h2>Druhy vazeb</h2>
+<h3>Vetknutí</h3>
+<p>Plocha se nemůže pohnout v žádném směru – nejtužší možné uložení; skutečná příruba, šrouby a základ jsou poddajné. Proto vznikají <b>singularity</b> na hranách vetknuté plochy (napětí roste se zjemňováním); tabulka maxim je označí „singularita – hrana vetknutí“. Napětí vyhodnoťte 2–3 prvky od hrany.</p>
+
+<h3>Předepsaný posuv a symetrie</h3>
+<ul>
+<li><b>Jedna složka = 0</b>: plocha se může hýbat v ostatních směrech – beztřecí uložení na rovině, nebo <b>rovina symetrie</b> (pro rovinu kolmou k ose X zaškrtněte jen ux = 0). Polovina modelu pak nese polovinu zatížení (zadejte poloviční sílu). Nulový posuv kolmo k rovinné ploše singularitu nedělá.</li>
+<li><b>Nenulový posuv</b> [mm]: vnucená deformace (montážní odsazení, vynucený průhyb); reakce ve výsledcích dá potřebnou sílu.</li>
+<li>Složky jsou v <b>globálních osách</b> X, Y, Z; skloněnou rovinu symetrie tak definovat nelze.</li>
+</ul>
+<p class="warn"><b>Pozor:</b> vazba působí v obou směrech – „ložná“ vazba ux = 0 drží díl i v tahu (jako lepidlo). Zkontrolujte znaménko reakce: táhne-li vazba díl k základu, díl by se ve skutečnosti zvedl. Nenulový posuv platí v <b>každém</b> zatěžovacím stavu, takže se ve superpozici a v únavě násobí se zatížením (únava na to upozorní).</p>
+<p class="tip"><b>Podpora jen v tlaku</b> (ložisko, které se může zvednout) se zadá v kroku <a href="kontakty.html">Kontakty</a>: typ <b>Jen tlak (podpora)</b> s prázdnou stranou B. Výpočet je pak nelineární (bez superpozice); stav styku 0 ukáže, kde se plocha od podpory zvedla.</p>
+
+<h3>Válcová vazba (díra / čep)</h3>
+<p>Uložení ve směrech os válce (jako Cylindrical Support v Ansysu); osa se určí z vybraných ploch.</p>
+<table class="grid">
+<tr><th>Složka</th><th>Co brání</th><th>Typické použití</th></tr>
+<tr><td><b>radiálně</b></td><td>Pohybu plochy kolmo k ose (díra se neposune ani nezdeformuje do oválu).</td><td>Čep v díře bez vůle, kluzné ložisko; otáčení a pohyb podél osy zůstávají volné.</td></tr>
+<tr><td><b>tečně (otáčení)</b></td><td>Otáčení plochy kolem osy.</td><td>Čep zajištěný proti otáčení, hřídel s perem.</td></tr>
+<tr><td><b>osově</b></td><td>Pohyb podél osy.</td><td>Axiální zarážka, rameno.</td></tr>
+</table>
+<ul>
+<li>Všechny tři složky = díra je tuhě držena (jako vetknutí); reakce se ukáže v osách díry.</li>
+<li><b>Více děr v jednom výběru</b> (např. všechny díry příruby): výběr se rozdělí na souvislé části, každá díra dostane vlastní osu (souosé části stejného průměru se sloučí, např. díra rozdělená na dvě poloviny) a vazba platí v osách každé díry. Reakce je jedna pro celý výběr (součet); pro jednotlivé reakce použijte samostatné vazby. Filtr <b>Díra</b> <span class="key">H</span> vybere celou díru.</li>
+<li>Jen nulové posuvy. Vždy řeší CalculiX (automatická volba řešiče ji vybere sama).</li>
+<li>Plocha válcové vazby nesmí sdílet uzly s vzdálenou silou / momentem ani se šroubovým spojem.</li>
+</ul>
+
+<h3>Vzdálená vazba</h3>
+<p>Uložení plochy přes vzdálený bod (jako Remote Displacement): skupina <b>Vzdálená vazba (bod mimo plochu)</b> – bod, zamezené posuvy ux, uy, uz a natočení rx, ry, rz kolem bodu, tuhé nebo rozdělovací (RBE3) spojení plochy. Jen posuvy = kloub. Reakce zahrnuje moment k bodu.</p>
+<ul>
+<li><b>Předepsaný pohyb:</b> tuhou vzdálenou vazbu lze v nelineární posloupnosti kroků (<a href="kontakty.html">Kontakty</a>) posouvat a natáčet podle časového průběhu. Řízení posuvem (zacvakávací spoj, lisování) konverguje lépe než řízení silou a dá křivku síla–dráha.</li>
+<li><b>Převod z mechanismu</b> (<a href="pohyb.html">Pohyb</a> → Převést do MKP…) vytvoří rozdělovací vzdálenou vazbu v uzemněném kloubu; její reakce by se měla rovnat reakci kloubu z MBD (kontrola vazby).</li>
+</ul>
+
+<h3>Pružné uložení (podloží, pružiny)</h3>
+<p>Plocha na pružném podloží (Winklerův základ, jako Elastic Support v Ansysu). Každý uzel plochy dostane pružinu k zemi úměrně svému podílu plochy:</p>
+<ul>
+<li><b>N/mm³ (na plochu)</b>: tuhost podloží k – tlak [MPa] na 1 mm stlačení. Beton ~0,05–0,2 N/mm³; pryžová podložka tloušťky t s modulem E ≈ E/t (pryž E ≈ 5 MPa, t = 5 mm → 1 N/mm³).</li>
+<li><b>N/mm (celkem)</b>: celková tuhost K všech vybraných ploch (katalogová tuhost tlumicího prvku), rozdělená podle plochy.</li>
+<li><b>Směr kolmo k ploše</b>: pružiny jen kolmo; plocha se může posouvat, takže model musí být zajištěn i v rovině (jinak kontrola tuhých pohybů ohlásí volný posuv). <b>Ve všech směrech</b>: stejná tuhost v x, y, z.</li>
+</ul>
+<p>Uložení je <b>lineární</b>: přenáší tah i tlak (podloží se nezvedne) – na to upozorní varování. Reakce (součet sil pružin) je ve výsledcích pod názvem výběru („Pružné uložení 1“). Pružiny se ve 3D kreslí zeleně.</p>
+
+<h2>Kontrola tuhých pohybů</h2>
+<p>V kroku <a href="reseni.html">Řešení</a> program ověří, že vazby brání třem posuvům a třem natočením celého modelu. Pokud ne, vypíše volné pohyby, např. „Vazby nezamezí tuhému pohybu modelu – volné: posuv ve směru (1, 0, 0); otočení kolem osy (0, 0, 1) procházející bodem (35, 20, 0) mm“, a výpočet nespustí. Bez sítě kontrola používá body ploch; po vytvoření sítě používá přímo uzly.</p>
+<p>Po síťování se navíc ověří, že je <b>každý díl</b> připojen k nějaké vazbě (stykem, šroubem nebo svarem). Studie jen s tepelným vedením vazby nepotřebuje.</p>
+
+<h2>Reakce</h2>
+<p>Ve <a href="vysledky.html">Výsledcích</a> má každý stav blok <b>Reakce [N]</b>: jeden řádek na vazbu, pojmenovaný podle výběru („Vetknutí 1: Fx …, Fy …, Fz …“). Reakce válcové vazby obsahuje jen zamezené složky. Součet reakcí a zatížení program kontroluje (rovnováha; nesouhlas nad 0,1 % je chyba výpočtu).</p>
+<p class="tip"><b>Tip:</b> výběr pojmenovaný podle účelu („Vetknutí 1“) najdete ve stromu studie pod Vazbami; klik na položku přepne do tohoto kroku a ukáže plochy.</p>
+
+<h2>V ukázkách</h2>
+<ul>
+<li><b>Ukázka 1 – tištěný držák:</b> „Horní vrut“ a „Dolní vrut“ – válcové vazby děr Ø5 se všemi třemi složkami (vruty drží díl ve všech směrech). „Zadní plocha“ – jen ux = 0: deska se opírá o zeď. Ve výsledcích zkontrolujte reakci Zadní plochy: výslednice Fx &gt; 0 znamená, že zeď tlačí. Na horní hraně však vazba může lokálně táhnout (skutečná deska by se tam od zdi odlepila a víc nesly vruty) – vazba bez kontaktu je tu zjednodušení.</li>
+<li><b>Ukázka 2 – sestava:</b> díry kotev Ø9 v patce mají válcovou vazbu ve všech složkách (kotvy do podlahy). Spodní plocha patky není vázána – deska visí jen na kotvách, podlaha ji nepodpírá.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„Studie nemá žádnou vazbu“</b> – přidejte aspoň jednu (u studie jen s teplem nepotřebné).</li>
+<li><b>„Vazby nezamezí tuhému pohybu modelu – volné: …“</b> – přidejte vazbu ve vypsaném směru. Typicky: válcová vazba jen s radiálním zamezením na jedné díře nechá volné otáčení kolem osy a pohyb podél ní; ux = 0 na rovině nechá volné posuvy v rovině.</li>
+<li><b>„Vyberte jen válcové plochy díry nebo čepu (filtr výběru Díra, H, vybere celou díru).“</b> – výběr obsahuje rovinnou plochu nebo sražení. Zrušte výběr a vyberte díru filtrem Díra.</li>
+<li><b>„Výběr '…' není ani válcová plocha, ani skupina válcových děr: část k z n (u bodu …) …“</b> – kromě děr je ve výběru rovinná nebo jiná nevalcová plocha (sražení, čelo). Vyberte jen válcové plochy (<span class="key">H</span>).</li>
+<li><b>„Výběr '…' není jediná válcová plocha … – vyberte souosé válce stejného poloměru“</b> (ložisková síla) – ložisková síla potřebuje jednu osu: vytvořte samostatný výběr a zatížení pro každou díru.</li>
+<li><b>„Válcová vazba sdílí uzly s plochou '…' (vzdálené zatížení / podpora, šroub) – ccx nedovolí dvě vazebné rovnice v jednom uzlu.“</b> – zmenšete jeden z výběrů tak, aby se plochy nedotýkaly.</li>
+<li><b>„Některé díly nejsou připojeny k vazbě (volná tělesa …)“</b> – díl nemá spojení s vazbou. Přidejte spoj, nebo díl vynechejte (krok <a href="spoje.html">Spoje</a>).</li>
+</ul>

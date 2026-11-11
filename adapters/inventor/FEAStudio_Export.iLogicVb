@@ -1,0 +1,590 @@
+﻿' =====================================================================================================
+' FEA Studio – export from Autodesk Inventor (external iLogic rule, VB.NET)
+'
+' What the rule does:
+'   1. saves the active part or assembly with the STEP translator as STEP AP214 (without sketches) to
+'      %TEMP%\FEAStudio\export\<name>_<yyyymmdd_hhmmss>.step,
+'   2. writes <same name>.json next to it (UTF-8 without BOM) – part metadata: occurrence name („Deska:1“),
+'      part number, part file, material and colour – in the import format of FEA Studio
+'      (fea_core/rest/README.md, section „Import from CAD“),
+'   3. starts FEA Studio with the STEP: "<folder>\.venv\Scripts\pythonw.exe" -m fea_gui "<step>"
+'      (backup "<folder>\FEA Studio.bat" "<step>"); FEA Studio assigns the materials according to the JSON.
+'
+' The FEA Studio program folder is searched in this order:
+'   (1) environment variable FEA_STUDIO_HOME,
+'   (2) file %APPDATA%\FEAStudio\install.json, key "home" (written by the installer),
+'   (3) default installation folder %LOCALAPPDATA%\Programs\FEA Studio,
+'   (4) constant FEA_STUDIO_HOME_PRAVIDLO at the start of Sub Main.
+'
+' VB 2012 syntax (iLogic in Inventor 2021–2026: no $"…", ?. or NameOf), .NET types written with their full names.
+' No network calls. NOT VERIFIED in real Inventor (not on the development PC).
+' Installation, launch and the ribbon button: README.md in the same folder.
+' =====================================================================================================
+
+Sub Main()
+    ' ---- settings --------------------------------------------------------------------------------
+    ' (4) FEA Studio program folder if the rule does not find it otherwise, e.g. "D:\Programs\FEA Studio".
+    Const FEA_STUDIO_HOME_PRAVIDLO As String = ""
+    ' STEP protocol for parts: 3 = AP214 (recommended), 2 = AP203 (Inventor API sample „Export to STEP“),
+    ' 5 = AP242 (according to the Autodesk community, parts only). Assemblies always AP214 (Inventor does not offer AP242 for assemblies).
+    ' FEA Studio reads all three; AP242 adds nothing to the calculation.
+    Const STEP_PROTOKOL_DILU As Integer = 3
+    ' Start FEA Studio after the export (False = only save STEP + JSON and show the path).
+    Const SPUSTIT_FEA_STUDIO As Boolean = True
+    ' Show the message also after a successful export (otherwise only on a problem or warning).
+    Const ZPRAVA_VZDY As Boolean = False
+
+    Try
+        Dim doc As Document = ThisApplication.ActiveDocument
+        If doc Is Nothing Then
+            Zprava("Open the part or assembly you want to send to FEA Studio.", 1)
+            Return
+        End If
+        Dim jeSestava As Boolean = (doc.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject)
+        If Not jeSestava AndAlso doc.DocumentType <> DocumentTypeEnum.kPartDocumentObject Then
+            Zprava("A drawing or presentation cannot be sent to FEA Studio – open a part or assembly.", 1)
+            Return
+        End If
+
+        ' files: %TEMP%\FEAStudio\export\<name>_<yyyymmdd_hhmmss>.step + .json
+        Dim nazev As String = DocumentName(doc)
+        Dim slozka As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "FEAStudio", "export")
+        System.IO.Directory.CreateDirectory(slozka)
+        Dim zaklad As String = SafeName(nazev) & "_" & _
+            DateTime.Now.ToString("yyyyMMdd_HHmmss", System.Globalization.CultureInfo.InvariantCulture)
+        Dim stepPath As String = System.IO.Path.Combine(slozka, zaklad & ".step")
+        Dim poradi As Integer = 1
+        While System.IO.File.Exists(stepPath)
+            poradi += 1
+            stepPath = System.IO.Path.Combine(slozka, zaklad & "_" & poradi.ToString() & ".step")
+        End While
+        Dim jsonPath As String = System.IO.Path.ChangeExtension(stepPath, ".json")
+
+        ' 1. part metadata
+        Dim zaznamy As New System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Object))
+        Dim index As New System.Collections.Generic.Dictionary(Of String, Integer)(System.StringComparer.OrdinalIgnoreCase)
+        Dim poznamky As New System.Collections.Generic.List(Of String)      ' for JSON
+        Dim upozorneni As New System.Collections.Generic.List(Of String)    ' for JSON and the message
+        Dim stav() As Integer = {0, 0}                                      ' 0 = hidden occurrences, 1 = metadata errors
+        Try
+            If jeSestava Then
+                Dim asm As AssemblyDocument = CType(doc, AssemblyDocument)
+                ' all leaf occurrences of parts, also in nested subassemblies
+                For Each occ As ComponentOccurrence In asm.ComponentDefinition.Occurrences.AllLeafOccurrences
+                    Try
+                        AddOccurrence(occ, zaznamy, index, stav)
+                    Catch
+                        stav(1) += 1
+                    End Try
+                Next
+            Else
+                CollectPart(CType(doc, PartDocument), nazev, zaznamy, index)
+            End If
+        Catch ex As Exception
+            upozorneni.Add("The part metadata could not be read completely (" & ex.Message & ") – check the materials in FEA Studio.")
+        End Try
+        If stav(0) > 0 Then
+            upozorneni.Add(stav(0).ToString() & " hidden occurrences: depending on the version and the stored state of subassemblies, Inventor " & _
+                           "may write them into the STEP and FEA Studio would then mesh them. Parts that do not belong to the analysis, " & _
+                           "better suppress (or exclude them from the analysis in FEA Studio).")
+        End If
+        If stav(1) > 0 Then
+            upozorneni.Add("For " & stav(1).ToString() & " occurrences the metadata could not be read – assign their material in FEA Studio.")
+        End If
+
+        ' 2. STEP
+        Dim protokol As Integer = If(jeSestava, 3, STEP_PROTOKOL_DILU)
+        Dim chyba As String = ExportStep(doc, stepPath, protokol)
+        If chyba <> "" OrElse Not System.IO.File.Exists(stepPath) Then
+            Zprava("The STEP export failed." & vbCrLf & chyba & vbCrLf & vbCrLf & stepPath, 2)
+            Return
+        End If
+
+        ' 3. metadata JSON next to the STEP (UTF-8 without BOM)
+        poznamky.AddRange(upozorneni)
+        System.IO.File.WriteAllText(jsonPath, BuildJson(nazev, jeSestava, protokol, zaznamy, poznamky), _
+                                    New System.Text.UTF8Encoding(False))
+
+        ' 4. FEA Studio
+        If Not SPUSTIT_FEA_STUDIO Then
+            Zprava("The STEP and metadata are saved:" & vbCrLf & stepPath & WarnText(upozorneni), 0)
+            Return
+        End If
+        Dim zkousene As New System.Collections.Generic.List(Of String)
+        Dim home As String = FindHome(FEA_STUDIO_HOME_PRAVIDLO, zkousene)
+        If home = "" Then
+            Dim msg As String = "The STEP and metadata are saved, but the FEA Studio folder could not be found." & vbCrLf & vbCrLf & _
+                "Set the FEA_STUDIO_HOME environment variable to the program folder (and restart Inventor), " & _
+                "or write it into the FEA_STUDIO_HOME_PRAVIDLO constant at the beginning of the rule. " & _
+                "You can also drag the STEP file onto the FEA Studio window." & vbCrLf & vbCrLf & "STEP:" & vbCrLf & stepPath
+            If zkousene.Count > 0 Then
+                msg = msg & vbCrLf & vbCrLf & "Folders tried:" & vbCrLf & "  " & String.Join(vbCrLf & "  ", zkousene.ToArray())
+            End If
+            Zprava(msg & WarnText(upozorneni), 1)
+            Return
+        End If
+        Dim chybaSpusteni As String = LaunchFea(home, stepPath)
+        If chybaSpusteni <> "" Then
+            Zprava("FEA Studio could not be started from the folder:" & vbCrLf & home & vbCrLf & "(" & chybaSpusteni & ")" & _
+                   vbCrLf & vbCrLf & "The STEP and metadata are saved:" & vbCrLf & stepPath & WarnText(upozorneni), 1)
+            Return
+        End If
+        If upozorneni.Count > 0 OrElse ZPRAVA_VZDY Then
+            Zprava("The model is opening in FEA Studio:" & vbCrLf & stepPath & WarnText(upozorneni), 0)
+        End If
+    Catch ex As Exception
+        Zprava("Export pro FEA Studio selhal: " & ex.Message, 2)
+    End Try
+End Sub
+
+
+' ===================================================================== messages and texts
+
+' kind: 0 = information, 1 = warning, 2 = error
+Sub Zprava(msg As String, druh As Integer)
+    Dim ikona As System.Windows.Forms.MessageBoxIcon = System.Windows.Forms.MessageBoxIcon.Information
+    If druh = 1 Then ikona = System.Windows.Forms.MessageBoxIcon.Warning
+    If druh = 2 Then ikona = System.Windows.Forms.MessageBoxIcon.Error
+    System.Windows.Forms.MessageBox.Show(msg, "FEA Studio", System.Windows.Forms.MessageBoxButtons.OK, ikona)
+End Sub
+
+Function WarnText(upozorneni As System.Collections.Generic.List(Of String)) As String
+    If upozorneni.Count = 0 Then Return ""
+    Return vbCrLf & vbCrLf & "Warnings:" & vbCrLf & "- " & String.Join(vbCrLf & "- ", upozorneni.ToArray())
+End Function
+
+' Document name: file without extension; for an unsaved document the displayed name.
+Function DocumentName(doc As Document) As String
+    Dim f As String = ""
+    Try
+        f = doc.FullFileName
+    Catch
+    End Try
+    If Not String.IsNullOrEmpty(f) Then Return System.IO.Path.GetFileNameWithoutExtension(f)
+    Dim d As String = StripExt(doc.DisplayName)
+    If d = "" Then d = "model"
+    Return d
+End Function
+
+Function StripExt(s As String) As String
+    If s Is Nothing Then Return ""
+    s = s.Trim()
+    For Each ext As String In New String() {".ipt", ".iam"}
+        If s.EndsWith(ext, StringComparison.OrdinalIgnoreCase) Then s = s.Substring(0, s.Length - ext.Length)
+    Next
+    Return s
+End Function
+
+' "Deska:1" -> "Deska"
+Function StripOccurrence(s As String) As String
+    Return System.Text.RegularExpressions.Regex.Replace(If(s, ""), ":\d+$", "")
+End Function
+
+' File name: without characters Windows does not allow in names (diacritics stay), at most 60 characters.
+Function SafeName(s As String) As String
+    Dim t As String = System.Text.RegularExpressions.Regex.Replace(If(s, ""), "[\\/:*?""<>|\s\x00-\x1F]+", "_")
+    t = t.Trim("_"c, "."c, " "c)
+    If t.Length > 60 Then t = t.Substring(0, 60)
+    If t = "" Then t = "model"
+    Return t
+End Function
+
+Function CleanPath(s As String) As String
+    If s Is Nothing Then Return ""
+    s = s.Trim().Trim(""""c).Trim()
+    While s.Length > 3 AndAlso (s.EndsWith("\") OrElse s.EndsWith("/"))
+        s = s.Substring(0, s.Length - 1)
+    End While
+    Return s
+End Function
+
+
+' ===================================================================== JSON
+
+Function JsonStr(s As String) As String
+    If s Is Nothing Then s = ""
+    Dim sb As New System.Text.StringBuilder("""")
+    For Each ch As Char In s
+        If ch = """"c Then
+            sb.Append("\""")
+        ElseIf ch = "\"c Then
+            sb.Append("\\")
+        ElseIf AscW(ch) < 32 Then
+            sb.Append("\u" & AscW(ch).ToString("X4"))
+        Else
+            sb.Append(ch)
+        End If
+    Next
+    sb.Append("""")
+    Return sb.ToString()
+End Function
+
+Function JsonList(items As System.Collections.Generic.List(Of String)) As String
+    Dim res As New System.Collections.Generic.List(Of String)
+    For Each s As String In items
+        res.Add(JsonStr(s))
+    Next
+    Return "[" & String.Join(", ", res.ToArray()) & "]"
+End Function
+
+' Number 0–1 with a decimal point (independent of the Windows settings).
+Function Num01(v As Double) As String
+    v = System.Math.Max(0.0, System.Math.Min(1.0, v))
+    Return v.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)
+End Function
+
+' Colour [r, g, b] 0–1 (sRGB) from the appearance; "" = appearance without a plain colour.
+Function ColorJson(vzhled As Asset) As String
+    If vzhled Is Nothing Then Return ""
+    Try
+        Dim v As ColorAssetValue = TryCast(vzhled.Item("generic_diffuse"), ColorAssetValue)
+        If v Is Nothing Then Return ""
+        Dim c As Inventor.Color = v.Value
+        Return "[" & Num01(c.Red / 255.0) & ", " & Num01(c.Green / 255.0) & ", " & Num01(c.Blue / 255.0) & "]"
+    Catch
+        Return ""
+    End Try
+End Function
+
+Sub AddField(sb As System.Text.StringBuilder, e As System.Collections.Generic.Dictionary(Of String, Object), klic As String, jsonKlic As String)
+    If Not e.ContainsKey(klic) OrElse e(klic) Is Nothing Then Return
+    Dim s As String = CStr(e(klic))
+    If s = "" Then Return
+    sb.Append(", """ & jsonKlic & """: " & JsonStr(s))
+End Sub
+
+Function ProtocolName(protokol As Integer) As String
+    If protokol = 2 Then Return "AP203"
+    If protokol = 5 Then Return "AP242"
+    Return "AP214"
+End Function
+
+Function InventorVersion() As String
+    Try
+        Return ThisApplication.SoftwareVersion.DisplayVersion
+    Catch
+        Return ""
+    End Try
+End Function
+
+Function BuildJson(nazev As String, jeSestava As Boolean, protokol As Integer, _
+                   zaznamy As System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Object)), _
+                   poznamky As System.Collections.Generic.List(Of String)) As String
+    Dim nl As String = vbCrLf
+    Dim inv As System.Globalization.CultureInfo = System.Globalization.CultureInfo.InvariantCulture
+    Dim sb As New System.Text.StringBuilder()
+    sb.Append("{""source"": ""Autodesk Inventor""," & nl)
+    sb.Append(" ""source_version"": " & JsonStr(InventorVersion()) & "," & nl)
+    sb.Append(" ""adapter"": ""FEAStudio_Export.iLogicVb""," & nl)
+    sb.Append(" ""document"": " & JsonStr(nazev) & "," & nl)
+    sb.Append(" ""document_type"": " & JsonStr(If(jeSestava, "assembly", "part")) & "," & nl)
+    sb.Append(" ""units"": ""mm""," & nl)
+    sb.Append(" ""step_protocol"": " & JsonStr(ProtocolName(protokol)) & "," & nl)
+    sb.Append(" ""exported"": " & JsonStr(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", inv)) & "," & nl)
+    sb.Append(" ""parts"": [")
+    For i As Integer = 0 To zaznamy.Count - 1
+        Dim e As System.Collections.Generic.Dictionary(Of String, Object) = zaznamy(i)
+        sb.Append(If(i = 0, nl, "," & nl))
+        sb.Append("  {""name"": " & JsonStr(CStr(e("name"))))
+        sb.Append(", ""names"": " & JsonList(CType(e("names"), System.Collections.Generic.List(Of String))))
+        AddField(sb, e, "component", "component")
+        AddField(sb, e, "part_number", "part_number")
+        AddField(sb, e, "material", "material")
+        AddField(sb, e, "material_key", "material_key")
+        If CStr(e("color")) <> "" Then sb.Append(", ""color"": " & CStr(e("color")))
+        sb.Append(", ""count"": " & CInt(e("count")).ToString(inv))
+        If CInt(e("hidden")) > 0 Then sb.Append(", ""hidden"": " & CInt(e("hidden")).ToString(inv))
+        sb.Append("}")
+    Next
+    sb.Append(nl & " ]," & nl)
+    Dim pz As New System.Collections.Generic.List(Of String)
+    For Each p As String In poznamky
+        pz.Add(JsonStr(p))
+    Next
+    sb.Append(" ""notes"": [" & String.Join(", ", pz.ToArray()) & "]" & nl & "}" & nl)
+    Return sb.ToString()
+End Function
+
+
+' ===================================================================== part metadata
+
+Function IsGeneric(s As String) As Boolean
+    Select Case If(s, "").Trim().ToLowerInvariant()
+        Case "", "default", "výchozí", "solid", "body", "solid1", "body1", "těleso", "teleso", "těleso1", _
+             "part", "part1", "component", "shape", "compound"
+            Return True
+    End Select
+    Return False
+End Function
+
+' Substitute part name (without duplicates and generic names), at most 24 per part.
+Sub AddName(e As System.Collections.Generic.Dictionary(Of String, Object), s As String)
+    If s Is Nothing Then Return
+    s = s.Trim()
+    If IsGeneric(s) Then Return
+    If String.Equals(s, CStr(e("name")), StringComparison.Ordinal) Then Return
+    Dim nazvy As System.Collections.Generic.List(Of String) = CType(e("names"), System.Collections.Generic.List(Of String))
+    If nazvy.Contains(s) OrElse nazvy.Count >= 24 Then Return
+    nazvy.Add(s)
+End Sub
+
+Function NewEntry(klic As String, jmeno As String, _
+                  zaznamy As System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Object)), _
+                  index As System.Collections.Generic.Dictionary(Of String, Integer)) As System.Collections.Generic.Dictionary(Of String, Object)
+    Dim e As New System.Collections.Generic.Dictionary(Of String, Object)
+    e("name") = jmeno
+    e("names") = New System.Collections.Generic.List(Of String)
+    e("component") = ""
+    e("part_number") = ""
+    e("material") = ""
+    e("material_key") = ""
+    e("color") = ""
+    e("count") = 0
+    e("hidden") = 0
+    index(klic) = zaznamy.Count
+    zaznamy.Add(e)
+    Return e
+End Function
+
+' iProperty from "Design Tracking Properties" ("Part Number", "Material", ...).
+Function IProp(sady As PropertySets, nm As String) As String
+    Try
+        Dim v As Object = sady.Item("Design Tracking Properties").Item(nm).Value
+        If v Is Nothing Then Return ""
+        Return CStr(v).Trim()
+    Catch
+        Return ""
+    End Try
+End Function
+
+' Part material: name from the material browser (localised); key = language-independent name.
+Function PartMaterial(pd As PartDocument, ByRef klic As String) As String
+    Try
+        Dim a As Asset = pd.ActiveMaterial
+        If a IsNot Nothing Then
+            klic = a.Name
+            Return a.DisplayName
+        End If
+    Catch
+    End Try
+    Return IProp(pd.PropertySets, "Material")
+End Function
+
+Function OccurrenceColor(occ As ComponentOccurrence, pd As PartDocument) As String
+    Dim s As String = ""
+    Try
+        s = ColorJson(occ.Appearance)
+    Catch
+    End Try
+    If s = "" AndAlso pd IsNot Nothing Then
+        Try
+            s = ColorJson(pd.ActiveAppearance)
+        Catch
+        End Try
+    End If
+    Return s
+End Function
+
+' Standalone part.
+Sub CollectPart(pd As PartDocument, nazev As String, _
+                zaznamy As System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Object)), _
+                index As System.Collections.Generic.Dictionary(Of String, Integer))
+    Dim matKlic As String = ""
+    Dim e As System.Collections.Generic.Dictionary(Of String, Object) = NewEntry("dil", nazev, zaznamy, index)
+    e("component") = nazev
+    Dim cislo As String = IProp(pd.PropertySets, "Part Number")
+    e("part_number") = cislo
+    AddName(e, cislo)                         ' STEP from Inventor carries the part number (PRODUCT) for a part
+    AddName(e, StripExt(pd.DisplayName))
+    e("material") = PartMaterial(pd, matKlic)
+    e("material_key") = matKlic
+    Dim barva As String = ""
+    Try
+        barva = ColorJson(pd.ActiveAppearance)
+    Catch
+    End Try
+    e("color") = barva
+    e("count") = 1
+End Sub
+
+' One leaf occurrence of the assembly. The same part (file + material) = one record with the number of occurrences.
+Sub AddOccurrence(occ As ComponentOccurrence, _
+                  zaznamy As System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Object)), _
+                  index As System.Collections.Generic.Dictionary(Of String, Integer), stav() As Integer)
+    Dim skryty As Boolean = False
+    Dim cesta As String = ""
+    For Each p As ComponentOccurrence In occ.OccurrencePath
+        If p.Suppressed Then Return                       ' suppressed occurrence / subassembly - the STEP does not contain it
+        If Not p.Visible Then skryty = True               ' Inventor may write a hidden occurrence to the STEP (depending on the version)
+        cesta = If(cesta = "", p.Name, cesta & "/" & p.Name)
+    Next
+    If TypeOf occ.Definition Is VirtualComponentDefinition Then Return   ' virtual component: bill of materials only
+    If occ.DefinitionDocumentType <> DocumentTypeEnum.kPartDocumentObject Then Return
+
+    Dim pd As PartDocument = Nothing
+    Try
+        pd = TryCast(occ.Definition.Document, PartDocument)
+    Catch
+    End Try
+    If pd Is Nothing Then
+        Try
+            pd = TryCast(occ.ReferencedDocumentDescriptor.ReferencedDocument, PartDocument)
+        Catch
+        End Try
+    End If
+    Dim soubor As String = ""
+    Dim matKlic As String = ""
+    Dim material As String = ""
+    If pd IsNot Nothing Then
+        soubor = pd.FullFileName
+        material = PartMaterial(pd, matKlic)
+    End If
+    Dim zakl As String = StripOccurrence(occ.Name)
+    If soubor <> "" Then zakl = System.IO.Path.GetFileNameWithoutExtension(soubor)
+    Dim klic As String = If(soubor <> "", soubor, zakl) & "|" & material
+
+    Dim e As System.Collections.Generic.Dictionary(Of String, Object)
+    If index.ContainsKey(klic) Then
+        e = zaznamy(index(klic))
+        AddName(e, occ.Name)
+    Else
+        e = NewEntry(klic, occ.Name, zaznamy, index)     ' occurrence name „Deska:1“
+        e("component") = zakl
+        If pd IsNot Nothing Then
+            Dim cislo As String = IProp(pd.PropertySets, "Part Number")
+            e("part_number") = cislo
+            AddName(e, cislo)                             ' STEP from Inventor carries the part number for a part
+            AddName(e, zakl)                              ' part file name
+            AddName(e, StripExt(pd.DisplayName))
+        Else
+            AddName(e, zakl)
+        End If
+        e("material") = material
+        e("material_key") = matKlic
+        e("color") = OccurrenceColor(occ, pd)
+    End If
+    If cesta <> occ.Name Then AddName(e, cesta)          ' "Podsestava:1/Deska:1"
+    e("count") = CInt(e("count")) + 1
+    If skryty Then
+        e("hidden") = CInt(e("hidden")) + 1
+        stav(0) += 1
+    End If
+End Sub
+
+
+' ===================================================================== STEP export
+
+' STEP translator (deterministic options); "" = OK, otherwise the error text.
+Function ExportStep(doc As Document, stepPath As String, protokol As Integer) As String
+    Dim chyba As String = ""
+    Try
+        Dim tr As TranslatorAddIn = CType(ThisApplication.ApplicationAddIns.ItemById("{90AF7F40-0C01-11D5-8E83-0010B541CD80}"), TranslatorAddIn)
+        If Not tr.Activated Then tr.Activate()
+        Dim ctx As TranslationContext = ThisApplication.TransientObjects.CreateTranslationContext()
+        ctx.Type = IOMechanismEnum.kFileBrowseIOMechanism
+        Dim opts As NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap()
+        If tr.HasSaveCopyAsOptions(doc, ctx, opts) Then
+            opts.Value("ApplicationProtocolType") = protokol    ' 2 = AP203, 3 = AP214, 5 = AP242 (parts only)
+            opts.Value("IncludeSketches") = False              ' sketches would be written as wires
+        End If
+        Dim dm As DataMedium = ThisApplication.TransientObjects.CreateDataMedium()
+        dm.FileName = stepPath
+        tr.SaveCopyAs(doc, ctx, opts, dm)
+        Return ""
+    Catch ex As Exception
+        chyba = ex.Message
+    End Try
+    ' backup: Save a copy as by extension (options from the last export in the dialog)
+    Try
+        doc.SaveAs(stepPath, True)
+        Return ""
+    Catch ex As Exception
+        Return chyba & " / " & ex.Message
+    End Try
+End Function
+
+
+' ===================================================================== FEA Studio folder and launch
+
+Function HomeFromInstallJson() As String
+    Return HomeFromJsonFile(System.IO.Path.Combine( _
+        System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "FEAStudio", "install.json"))
+End Function
+
+' Key "home" from the JSON file (regular expression - System.Text.Json is not in Inventor up to 2024).
+Function HomeFromJsonFile(p As String) As String
+    Try
+        If Not System.IO.File.Exists(p) Then Return ""
+        Dim txt As String = System.IO.File.ReadAllText(p)               ' UTF-8 (BOM is detected automatically)
+        Dim m As System.Text.RegularExpressions.Match = _
+            System.Text.RegularExpressions.Regex.Match(txt, """home""\s*:\s*""((?:[^""\\]|\\.)*)""")
+        If Not m.Success Then Return ""
+        Return System.Text.RegularExpressions.Regex.Unescape(m.Groups(1).Value)
+    Catch
+        Return ""
+    End Try
+End Function
+
+Function HomeValid(h As String) As Boolean
+    If h = "" OrElse Not System.IO.Directory.Exists(h) Then Return False
+    Return System.IO.File.Exists(System.IO.Path.Combine(h, ".venv", "Scripts", "pythonw.exe")) OrElse _
+           System.IO.File.Exists(System.IO.Path.Combine(h, "FEA Studio.bat"))
+End Function
+
+' Program folder: FEA_STUDIO_HOME > install.json > %LOCALAPPDATA%\Programs\FEA Studio > constant.
+Function FindHome(pevna As String, zkousene As System.Collections.Generic.List(Of String)) As String
+    Dim kandidati As New System.Collections.Generic.List(Of String)
+    kandidati.Add(System.Environment.GetEnvironmentVariable("FEA_STUDIO_HOME"))
+    Try
+        ' user variable from the registry – even if it was set only after Inventor was started
+        kandidati.Add(System.Environment.GetEnvironmentVariable("FEA_STUDIO_HOME", System.EnvironmentVariableTarget.User))
+    Catch
+    End Try
+    kandidati.Add(HomeFromInstallJson())
+    kandidati.Add(System.IO.Path.Combine( _
+        System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Programs", "FEA Studio"))
+    kandidati.Add(pevna)
+    For Each k As String In kandidati
+        Dim h As String = CleanPath(k)
+        If h = "" Then Continue For
+        If Not zkousene.Contains(h) Then zkousene.Add(h)
+        Try
+            If HomeValid(h) Then Return h
+        Catch
+        End Try
+    Next
+    Return ""
+End Function
+
+' Launch without waiting; "" = started, otherwise the error text.
+Function LaunchFea(home As String, stepPath As String) As String
+    Dim chyba As String = ""
+    Dim exe As String = System.IO.Path.Combine(home, ".venv", "Scripts", "pythonw.exe")
+    If System.IO.File.Exists(exe) Then
+        Try
+            Dim psi As New System.Diagnostics.ProcessStartInfo(exe, "-m fea_gui """ & stepPath & """")
+            psi.WorkingDirectory = home
+            ' explicitly: Inventor 2025+ runs on .NET 8, where the default value differs from .NET Framework
+            psi.UseShellExecute = False
+            System.Diagnostics.Process.Start(psi)
+            Return ""
+        Catch ex As Exception
+            chyba = ex.Message
+        End Try
+    End If
+    Dim bat As String = System.IO.Path.Combine(home, "FEA Studio.bat")
+    If System.IO.File.Exists(bat) Then
+        Try
+            Dim psiBat As New System.Diagnostics.ProcessStartInfo(bat, """" & stepPath & """")
+            psiBat.WorkingDirectory = home
+            psiBat.UseShellExecute = True
+            psiBat.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized
+            System.Diagnostics.Process.Start(psiBat)
+            Return ""
+        Catch ex As Exception
+            chyba = ex.Message
+        End Try
+    End If
+    If chyba = "" Then chyba = ".venv\Scripts\pythonw.exe and FEA Studio.bat are missing in the folder"
+    Return chyba
+End Function

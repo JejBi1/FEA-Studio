@@ -1,0 +1,146 @@
+<h1>Zatížení</h1>
+<p class="lead">Zatěžovací stavy a zatížení v nich: síla na plochy, hrany nebo body (i v lokální nebo válcové soustavě), síla kolmo na plochu,
+tlak (konstantní, lineární, hydrostatický), moment a síla ve vzdáleném bodě, ložisková síla, tíha, otáčení (odstředivá síla) a teplota.
+Každý zatěžovací stav je samostatný výpočet se stejnými vazbami.</p>
+
+<h2>Zatěžovací stavy</h2>
+<ul>
+<li>Jeden stav = jeden výpočetní krok (jeden *STEP v CalculiXu). Zatížení v jednom stavu se sčítají; stavy se navzájem nekombinují – každý má vlastní výsledky.</li>
+<li>Stavy jsou také <b>jednotkové stavy</b> pro <a href="unava.html">únavu</a>: zatěžovací křivka je násobí a superponuje (výpočet je lineární). Pro tečení 3D tisku se volí „dlouhodobé stavy“ (<a href="tisk.html">3D tisk</a>).</li>
+<li>Pro kombinaci (např. síla + tíha) dejte obě zatížení do jednoho stavu.</li>
+<li>Prázdný stav vyvolá varování; u tepelných stavů se prázdný zatěžovací stav přeskočí. Při předepnutých šroubech přidá výpočet stav <b>Předpětí šroubů</b> sám – tento název je vyhrazen.</li>
+</ul>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam stavů</td><td>Vybere stav, jehož zatížení se ukazují a upravují (ve 3D jen jeho zatížení).</td><td></td></tr>
+<tr><td><b>+</b></td><td>Nový stav (zeptá se na název).</td><td>„Zatěžovací stav 2“</td></tr>
+<tr><td><b>Přejmenovat</b></td><td>Změní název; odkazy v kanálech únavy a v dlouhodobých stavech tečení se přejmenují také.</td><td></td></tr>
+<tr><td><b>−</b></td><td>Smaže stav i s jeho zatíženími; kanály únavy a tečení na něj se odstraní (zapíše do logu).</td><td>Zeptá se; <span class="key">Ctrl+Z</span> ho obnoví</td></tr>
+</table>
+
+<h2>Nové zatížení</h2>
+<p>Ve 3D vyberte plochy, v skupině <b>Nové zatížení</b> zvolte <b>Typ</b>, zadejte hodnoty a stiskněte <b>Přidat z výběru</b>. Tíha, otáčení a teplota plochy nepotřebují. <b>Síla (složky)</b> působí i na hrany (filtr <b>Hrana</b> <span class="key">E</span>) a body (filtr <b>Bod</b> <span class="key">V</span>); řádek <b>Působí na</b> ukazuje, co se použije.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Typ</b></td><td>Druh zatížení (níže).</td><td></td></tr>
+<tr><td><b>Působí na</b></td><td>U síly: plochy / hrany / body podle filtru výběru a toho, co je vybráno.</td><td>Filtr Hrana a vybrané hrany → hrany; filtr Bod a vybrané body → body; jinak plochy</td></tr>
+<tr><td><b>Souř. systém</b> + <b>Systémy…</b></td><td>Složky vektoru v globálních osách, nebo v lokální kartézské či válcové soustavě (dialog <b>Systémy…</b>).</td><td>Válcová jen pro sílu; vzdálené zatížení, ložisková síla a tíha jsou kartézské</td></tr>
+<tr><td><b>F [N]</b> / <b>M [N·mm]</b> / <b>g [mm/s²]</b></td><td>Vektor v složkách X, Y, Z.</td><td>1 N·m = 1 000 N·mm</td></tr>
+<tr><td><b>F [N]</b> / <b>p [MPa]</b> / <b>T [°C]</b></td><td>Jedna hodnota (síla kolmo na plochu, tlak, rovnoměrná teplota).</td><td>1 MPa = 1 N/mm² = 10 bar</td></tr>
+<tr><td><b>Bod [mm]</b> + <b>střed plochy</b></td><td>Vzdálený bod; zaškrtnuto = těžiště vybraných ploch vážené plochou.</td><td>Střed díry: filtr Hrana + <b>Použít střed kružnice</b></td></tr>
+<tr><td><b>Podpora</b></td><td><b>distribuční (nezvyšuje tuhost)</b>, nebo <b>tuhé</b> spojení plochy s bodem.</td><td>Výchozí distribuční</td></tr>
+<tr><td><b>Průběh tlaku</b></td><td>konstantní / lineární / hydrostatický (kapalina).</td><td>viz níže</td></tr>
+<tr><td><b>Gradient [MPa/mm]</b>, <b>Počátek</b> / <b>Hladina – bod</b>, <b>Kapalina ρ</b>, <b>Směr tíhy</b></td><td>Parametry proměnného tlaku.</td><td>Voda 1000 kg/m³, tíha (0; 0; −1)</td></tr>
+<tr><td><b>Bod osy</b>, <b>Směr osy</b>, <b>Otáčky</b>, <b>α</b>, <b>Otáčí se</b></td><td>Otáčení: osa, otáčky [ot/min], úhlové zrychlení [rad/s²], otáčené díly. <b>Osa z výběru</b> = osa vybrané válcové plochy nebo kružnice.</td><td>Nic zaškrtnuto = všechny díly</td></tr>
+<tr><td><b>Teplota z</b></td><td>„tepelný stav: …“, nebo „rovnoměrná teplota dílů“.</td><td></td></tr>
+<tr><td><b>Čas</b> + <b>konec stavu</b></td><td>Snímek přechodového tepelného stavu [s].</td><td>jen u přechodového stavu</td></tr>
+<tr><td><b>Díly</b></td><td>Díly s rovnoměrnou teplotou.</td><td>Nic zaškrtnuto = všechny díly</td></tr>
+<tr><td><b>Přidat z výběru</b></td><td>Přidá zatížení do vybraného stavu.</td><td></td></tr>
+<tr><td><b>Uložit změny vybraného</b></td><td>Přepíše hodnoty zatížení vybraného v seznamu.</td><td>plochy zůstanou</td></tr>
+<tr><td><b>Plochy z výběru</b></td><td>Nahradí plochy vybraného zatížení aktuálním výběrem (u síly na hraně / v bodě hrany / body).</td><td></td></tr>
+<tr><td><b>Smazat</b></td><td>Smaže zatížení vybrané v seznamu.</td><td></td></tr>
+</table>
+
+<h2>Druhy zatížení</h2>
+<table class="grid">
+<tr><th>Typ</th><th>Co zadáte</th><th>Jak působí / poznámka</th></tr>
+<tr><td><b>Síla (složky)</b></td><td>F = (Fx; Fy; Fz) [N], ve válcové soustavě (F_r; F_θ; F_z).</td><td><b>Celková</b> síla se rovnoměrně rozloží po ploše všech vybraných ploch (ne po každé zvlášť); na hranách rovnoměrně po délce (F/L); na bodech po F/n.</td></tr>
+<tr><td><b>Síla kolmo na plochu</b></td><td>F [N]</td><td>Jen rovinné plochy se stejnou normálou; kladná tlačí do plochy. Uloží se jako složky.</td></tr>
+<tr><td><b>Tlak</b></td><td>p [MPa], průběh</td><td><b>Kladný tlak působí do materiálu</b> (proti vnější normále); na zakřivené ploše sleduje normálu (vnitřní přetlak v potrubí = kladný tlak na vnitřní plochu).</td></tr>
+<tr><td><b>Moment (vzdálený bod)</b></td><td>M [N·mm], bod, podpora</td><td>Moment v bodě přenesený na plochu.</td></tr>
+<tr><td><b>Síla ve vzdáleném bodě</b></td><td>F [N], bod, podpora</td><td>Síla v bodě mimo model; plocha dostane F a moment r × F.</td></tr>
+<tr><td><b>Ložisková síla (díra / čep)</b></td><td>F [N]</td><td>Čep v oku – viz níže.</td></tr>
+<tr><td><b>Gravitace</b></td><td>g [mm/s²]</td><td>Vlastní tíha všech dílů podle hustoty; Země (0; 0; −9810).</td></tr>
+<tr><td><b>Otáčení (odstředivá síla)</b></td><td>osa, otáčky, α, díly</td><td>Odstředivá síla ρ·ω²·r a setrvačná −ρ·α × r – viz níže.</td></tr>
+<tr><td><b>Teplota (teplotní napětí)</b></td><td>tepelný stav nebo T [°C]</td><td>Viz níže.</td></tr>
+<tr><td><b>Setrvačnost</b> (jen převodem z kroku Pohyb)</td><td>zrychlení bodu a₀, ω, α tělesa, díly</td><td>Setrvačné síly tuhého pohybu tělesa mechanismu – viz níže.</td></tr>
+</table>
+
+<h3>Síla na hranu a do bodu</h3>
+<ul>
+<li><b>Hrana:</b> filtr <span class="key">E</span>; klik přidá hranu (další klik ji odebere; klik na prázdné místo výběr zruší). Síla se rovnoměrně rozloží po délce všech vybraných hran.</li>
+<li><b>Bod:</b> filtr <span class="key">V</span>; klik na vrchol vybere vrchol přesně, klik na plochu vybere bod promítnutý na plochu CADu. Síťování vloží bod jako uzel; každý bod dostane F/n.</li>
+<li><p class="warn"><b>Pozor:</b> síla na hraně nebo v bodě je v plném tělese <b>singulární</b> – napětí a posuv v jejím okolí rostou se zjemňováním bez mezí. Vyhodnoťte mimo místo působení (tabulka maxim je označí). Pro skutečný styk (podložka, čepel) zatěžujte malou plochu, nebo použijte sílu ve vzdáleném bodě.</p></li>
+</ul>
+
+<h3>Místní a válcový souřadný systém</h3>
+<ul>
+<li>Dialog <b>Systémy…</b>: název, typ, počátek, osa z a osa x (θ = 0). <b>Z výběru</b> vezme osu vybrané válcové plochy nebo kružnice (filtr Hrana), nebo normálu rovinné plochy.</li>
+<li><b>Kartézský</b> systém jen otáčí složky – všude stejný směr.</li>
+<li><b>Válcový</b>: složky (F_r; F_θ; F_z) = radiálně od osy, tečně (proti směru hodinových ručiček kolem z), podél osy. Směr se mění po ploše; zadaná hodnota je <b>součet velikostí</b> (hustota F/A, F/L), takže výslednice obecně není F. Tečná síla po celém obvodu hřídele dá kroutící moment F_θ·R; po čele hřídele ⅔·F_θ·R; radiální síla dovnitř po plášti působí jako tlak F_r / A.</li>
+<li>Bod na ose válcového systému nemá radiální ani tečný směr – síla v něm skončí chybou.</li>
+</ul>
+
+<h3>Proměnný tlak</h3>
+<ul>
+<li><b>lineární:</b> p = p₀ + gradient · (x − počátek); gradient [MPa/mm] je vektor (např. (0; 0; −0,001) = pokles 1 kPa na mm výšky). Hodnoty mohou být záporné (tah).</li>
+<li><b>hydrostatický (kapalina):</b> p = p₀ + ρ·g·hloubka pod hladinou; p₀ = přetlak plynu nad hladinou. <b>Hladina – bod</b> = libovolný bod hladiny, <b>Směr tíhy</b> (0; 0; −1) pro osu Z nahoru, g = 9,81 m/s². Voda, sloupec 1 m = 9,81 kPa = 0,00981 MPa.</li>
+<li>Do výpočtu vstupuje jako konzistentní uzlové síly (přesná integrace na zakřivených plochách; prvek protnutý hladinou se integruje jemněji).</li>
+</ul>
+
+<h3>Otáčení</h3>
+<ul>
+<li>Statický výpočet v soustavě otáčející se s dílem (d'Alembert): <b>odstředivá síla</b> ρ·ω²·r z otáček a při zadaném <b>úhlovém zrychlení</b> α setrvačná síla −ρ·α × r (kladné α = roztáčení proti směru kolem osy; pohon dodá moment J·α jako reakci).</li>
+<li><b>Otáčí se</b>: zaškrtnuté díly (rotor v sestavě); nic = všechny díly. Materiály potřebují hustotu ρ.</li>
+<li>Bez Coriolisovy síly a bez změkčení odstředivou silou (lineární výpočet) – platí pro běžné otáčky a malé deformace. Nejvýše jedno otáčení na stav.</li>
+</ul>
+
+<h3>Setrvačnost z mechanismu</h3>
+<ul>
+<li>Vytvoří tlačítko <b>Převést do MKP…</b> v kroku <a href="pohyb.html">Pohyb</a>: pro vybraný okamžik (nebo okamžik maxima) dostane těleso stav s reakcemi kloubů (vzdálené síly, rozdělovací spojení na plochy kloubu) a zatížením <b>Setrvačnost</b> – objemová síla −ρ·(a₀ + α × r + ω × (ω × r)) z zrychlení, úhlové rychlosti a úhlového zrychlení tělesa (d'Alembert); tíha je v ní obsažena. Jeden kloub je podpora (vzdálená vazba); jeho reakce by se měla rovnat reakci z MBD.</li>
+<li>Převod celého průběhu vytvoří jednotkové stavy (složky reakcí kloubů a setrvačnosti) a kanály zatěžovací křivky pro <a href="unava.html">únavu</a>.</li>
+<li>Seznam ukáže popis (a₀, ω, α, bod, díly); ve formuláři se neupravuje – po změně mechanismu převod opakujte. Lze smazat jako jiná zatížení. Zahrnuje i přidanou hmotnost (krok <a href="dynamika.html">Dynamika</a>).</li>
+</ul>
+
+<h3>Vzdálený bod: distribuční nebo tuhé spojení</h3>
+<ul>
+<li><b>distribuční (nezvyšuje tuhost)</b>: síla a moment se rozdělí do uzlů plochy (jako RBE3 / Distributed v Ansysu); plocha se deformuje volně. Výslednice a moment jsou přesné. <b>Doporučeno.</b></li>
+<li><b>tuhé</b>: plocha se pohybuje jako tuhé těleso (RBE2 / Rigid). Tuhost modelu se zvýší a na hraně plochy vzniknou špičky napětí. Vždy řeší CalculiX.</li>
+</ul>
+
+<h3>Ložisková síla</h3>
+<p>Modeluje čep v díře (Bearing Load): složka kolmá k ose působí jako tlak p ~ cos θ jen na <b>polovině válce přivrácené k síle</b>; výslednice je přesně F a moment k ose nulový. Složka podél osy je rovnoměrný smyk po celé ploše. F je síla, kterou čep působí na díl (u díry tlačí stěnu ve směru F; u čepu – vnějšího válce – na stranu odvrácenou od F). Výběr musí být jeden válec – filtr <b>Díra</b> <span class="key">H</span> vybere celou díru. Ve 3D ukazuje 7 šipek rozložení cos.</p>
+
+<h3>Teplota (teplotní napětí)</h3>
+<ul>
+<li><b>tepelný stav: …</b> – pole z kroku <a href="teplo.html">Teplo</a> (u přechodového stavu snímek v zadaném čase, nebo <b>konec stavu</b>). Tepelný stav se při výpočtu spočítá nejdřív automaticky.</li>
+<li><b>rovnoměrná teplota dílů</b> – T [°C] zaškrtnutým dílům (nic = všechny). Má přednost před polem z tepelného stavu.</li>
+<li>Napětí vzniká z ΔT = T − <b>Referenční (montážní)</b> teploty (krok Teplo, výchozí 20 °C). Materiály potřebují α.</li>
+<li>Nejvýše jedno pole z tepelného stavu na zatěžovací stav. Teplotní zatížení je lineární v ΔT, takže platí superpozice i únava.</li>
+</ul>
+
+<h3>Zatížení prutů</h3>
+<p>U prutových konstrukcí (krok <a href="pruty.html">Pruty</a>) přidá nabídka Typ tyto položky:</p>
+<ul>
+<li><b>Prut – síla / moment v uzlu</b>: uzel (nabídka nebo klik na uzel ve 3D), F [N] a M [N·mm] v globálních osách.</li>
+<li><b>Prut – spojité zatížení</b>: prut (nabídka nebo klik), q [N/mm] po délce, volitelně <b>lineárně do</b> hodnoty na konci prutu; v globálních osách (sníh, vítr), nebo v lokálních osách prutu (x podél osy, z = „nahoru“ průřezu). Na oblouku po délce oblouku.</li>
+<li><b>Gravitace</b> působí i na pruty (hustota × plocha průřezu).</li>
+</ul>
+<p>Ve 3D jsou zatížení prutů červené šipky (velikost podle hodnoty).</p>
+
+<h2>Zobrazení a úpravy</h2>
+<ul>
+<li>Plochy zatížení jsou červené (tlak fialově) s popiskem; šipka tahové síly začíná na ploše, tlakové na ní končí. Vzdálená síla má šipku ve vzdáleném bodě, moment dvojitou šipku. Zatížené hrany jsou purpurové se šipkami, body křížkem; válcová síla má šipky v bodech daleko od osy. Osa otáčení je purpurová úsečka.</li>
+<li>Klik na řádek seznamu (nebo na zatížení ve stromu studie) vybere jeho plochy a načte hodnoty do formuláře; po úpravě stiskněte <b>Uložit změny vybraného</b>.</li>
+<li>Každá změna zatížení zahodí výsledky – výpočet je nutné spustit znovu.</li>
+</ul>
+<p class="tip"><b>Tip:</b> při přepnutí na <b>Gravitace</b> se vyplní (0; 0; −9810) mm/s²; při přepnutí z tíhy na jiný typ se vektor vynuluje. Úprava existující tíhy hodnotu zachová.</p>
+
+<h2>V ukázkách</h2>
+<ul>
+<li><b>Ukázka 1 – tištěný držák:</b> stav „Zatížení oka 200 N“ = ložisková síla (0; 0; −200) N na díru „Oko“ Ø8 v patce na konci ramene. Osa oka je vodorovná (Y) a síla je kolmá k ose → cos tlak na spodní polovině oka. Stav „Vlastní tíha“ = tíha (0; 0; −9810) mm/s². Únava škáluje stav „Zatížení oka“ jako míjivé 0–1; tečení jej bere jako dlouhodobé.</li>
+<li><b>Ukázka 2 – sestava:</b> „Síla na oko ramena“ – ložisková síla (0; 0; −300) N na oko Ø10 s vodorovnou osou X: cos tlak na spodní polovině oka. „Boční síla na sloupek“ – síla ve vzdáleném bodě (250; 0; 0) N v bodě (35; 35; 150) mm, distribuční spojení s horní plochou sloupku (z = 90 mm): plocha nese 250 N a moment 250 N × 60 mm = 15 000 N·mm kolem osy Y. „Vlastní tíha“ a „Ohřev za provozu“ – teplota z tepelného stavu „Provoz – ustálený stav“ (ΔT vůči 20 °C). Výsledky navíc obsahují stav „Předpětí šroubů“.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>„Nejprve vyberte jednu nebo více ploch ve 3D pohledu.“</b> / <b>„Nejprve vytvořte zatěžovací stav.“</b> – vyberte plochy (krok s výběrem plochy), nebo vytvořte stav tlačítkem <b>+</b>.</li>
+<li><b>„Sílu kolmo na plochu lze zadat jen na rovinných plochách se stejnou normálou.“</b> – na zakřivené ploše použijte <b>Tlak</b> (p = F / A), nebo sílu ve složkách.</li>
+<li><b>„Válcový souřadný systém je jen pro sílu …“</b> – pro vzdálené zatížení, ložiskovou sílu a tíhu zvolte kartézský systém nebo globální osy.</li>
+<li><b>„Výběr '…': bod není na povrchu“</b> (při síťování) – bod je příliš daleko od povrchu dílu; vyberte ho znovu filtrem Bod na ploše nebo vrcholu.</li>
+<li><b>„… bod leží na ose válcové soustavy …“</b> – radiální / tečná složka v bodě na ose není definovaná; posuňte bod nebo osu, nebo použijte jen osovou složku.</li>
+<li><b>„Výběr '…': ložisková síla nejde rozdělit – plocha nepokrývá stranu válce přivrácenou k síle“</b> – vybrána je jen část díry. Vyberte celou díru filtrem Díra.</li>
+<li><b>„Stav '…': nejvýše jedno pole teploty z tepelného stavu“</b> / <b>„Čas … s je za koncem přechodového stavu (… s).“</b> – na stav je povoleno jedno pole; čas snímku musí ležet v době přechodového stavu.</li>
+<li><b>„Zatěžovací stav '…' už existuje – zvolte jiný název.“</b> – názvy stavů musí být jedinečné; „Předpětí šroubů“ je vyhrazeno.</li>
+<li><b>„Stav '…': reakce nejsou v rovnováze se zatížením … Výsledek je neplatný – zkuste jiný řešič.“</b> – řešič vrátil nepřesné řešení. V kroku Řešení zvolte jiný řešič soustavy (SPOOLES / PASTIX), nebo jinou úlohu.</li>
+</ul>

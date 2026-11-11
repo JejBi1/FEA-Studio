@@ -1,0 +1,146 @@
+<h1>Ovládání a klávesy</h1>
+<p class="lead">Rozložení okna, interaktivní nápověda (Co je to?, průvodce nastavením simulace), ovládání myši ve 3D okně (stejně jako v Onshape),
+výběr ploch a dílů, řez, pohledy, zpět a znovu a ukládání. Na konci je přehled všech klávesových zkratek.</p>
+
+<h2>Rozložení okna</h2>
+<ul>
+<li><b>Nahoře</b> – jediný řádek záhlaví: nabídky <b>Soubor</b> (Otevřít, Uložit, Uložit jako, Protokol, Nahradit geometrii), <b>Úpravy</b> (Zpět, Znovu), <b>Zobrazit</b> (Přizpůsobit, směr pohledu, volitelné kroky, Vzhled – systémový / světlý / tmavý, Jazyk), <b>Nástroje</b> a <b>Nápověda</b> (F1 nápověda, Co je to? Shift+F1, Jak nastavit simulaci, průvodce ukázkou, příručky). Uprostřed jsou <b>karty fází</b> Model, Sestava, Podmínky, Výpočet, Výsledky; vpravo název studie a souboru, tlačítko fáze (Model: <b>Nahradit geometrii…</b>; Sestava: <b>Rozpoznat spoje…</b>; Výpočet: <b>Konvergence sítě…</b>; Výsledky: <b>Export CSV / VTU</b> a <b>Vytvořit protokol</b>) a <b>Spustit výpočet</b> (F5 – otevře Řešení a spustí výpočet). Karta fáze otevře krok, který se v ní použil naposledy. V úzkém okně zmizí nejdřív název dokumentu, pak tlačítko Nahradit geometrii (zůstane v nabídce Soubor).</li>
+<li><b>Nad 3D oknem</b> – lišta pohledu: vlevo popis podle kroku (zatěžovací stav, počet spojů, síť, zobrazená veličina), legenda barev materiálů a co dělá klik; vpravo tlačítka podle fáze: Model <b>Barva</b> (díl / materiál), Sestava <b>Průhledně</b>, Podmínky <b>Stínované</b> (s hranami, bez hran, drátový model), Síť <b>Zobrazit: Síť / Díly</b> a <b>Barva: kvalita prvků</b> (1 = pravidelný čtyřstěn), Výsledky <b>Veličina</b> a <b>Hrany sítě</b>; dále <b>Vybírat</b> (Plocha P, Těleso B, Díra H, Hrana E, Bod V), <b>Pohled</b> (izometrický, zepředu, shora, zprava), <b>Řez</b> (rovina kolmá k ose nebo k vybrané ploše, posuvník polohy, přetočení) a <b>Přizpůsobit</b> (F).</li>
+<li><b>Vlevo</b> – <b>police nástrojů</b>: příkazy aktuálního kroku ve skupinách s nadpisy (např. Model: GEOMETRIE Načíst, Nahradit, Kontrola; DÍLY Zobrazit, Izolovat, Skrýt, Vynechat; Zatížení: ZATÍŽENÍ Síla, Tlak, Moment, Ložisko, Tíha, Přidat; STAVY Nový stav, Kombinace; Výsledky: Podél čáry, Izoplocha, Silová reakce řezu, Animovat, Export; Teplo: Teplota, Tok, Konvekce, Sálání; Kontakty: Najít, Přidat pár; Pruty: Uzel, Prut, Průřez, Z drátu; Pohyb: Těleso, Kloub, Pohon, Přehrát). V nízkém okně zbydou jen ikony, názvy jsou v bublinách.</li>
+<li><b>Uprostřed</b> – 3D okno.</li>
+<li><b>Vpravo</b> – nahoře strom <b>Studie</b> (díly s materiálem, 3D tisk, spoje, kontakty, pruty, vazby, mechanismus, teplo, zatěžovací stavy, dynamika a přidaná hmota, síť, výsledky, únava). Klik na položku přepne na její krok a vybere ji. Pod stromem jsou <b>karty kroků</b> fáze s barevnou tečkou: zelená = hotovo, oranžová = varování nebo nedokončeno, červená = chyba nebo chybí vstup, šedá = nepoužito. Nová studie z STEP má jen osm povinných kroků (Model, Materiály, Spoje, Vazby, Zatížení, Síť, Řešení, Výsledky); <b>volitelné kroky</b> (3D tisk, Kontakty, Pruty, Pohyb, Teplo, Dynamika, Únava) se objeví, až je studie použije, nebo je připnete tlačítkem <b>+</b> na konci karet (také Zobrazit → Volitelné kroky). <span class="key">Ctrl+PgDown</span> / <span class="key">Ctrl+PgUp</span> přepínají kroky. Pod kartami je karta <b>Vlastnosti – vybraná položka</b> (díl: objem, hmotnost, Zobrazit / Analyzovat, materiál s E, ν, ρ, Re, Rm; šroub: označení, předpětí, sevřené díly, využití; vazba a zatížení: kde působí, plocha, hodnota; Síť a Řešení: stav výpočtu s dobou každé fáze, řešič, velikost, kvalita, rovnováha). U šroubu lze změnit velikost, třídu a předpětí, u síly složky X / Y / Z, u válcové vazby zamezené směry. Pod tím je panel aktuálního kroku; dělicí čáru mezi stromem a panelem lze posouvat.</li>
+<li><b>Dole</b> – <b>tabulky</b> podle kroku v záložkách s počtem řádků: Model – Díly (Zobrazit, Analyzovat a Materiál lze měnit přímo), Materiály studie, Kontrola geometrie, Souřadné systémy; Spoje – Šrouby, Svary, Spojené díly, Vynechané díly; Vazby a Zatížení – matice zatížení × stavy, Zatěžovací stavy, Kombinace; Teplo, Kontakty, Pruty, Pohyb, Dynamika; Síť – Síť po dílech, Zjemnění; Výsledky – Výsledky stavů, Nejvyšší napětí, Bezpečnost po dílech, Reakce, Spoje – využití. V tabulkách lze přímo měnit: u dílů Zobrazit, Analyzovat a Materiál, u šroubů velikost, třídu pevnosti a režim předpětí, u zatížení složky Fx / Fy / Fz (dvojklik) a matici stavů (zaškrtnutí zkopíruje zatížení do stavu, odškrtnutí v jeho vlastním stavu jej smaže); <b>+ Řádek</b> přidá zatížení na vybrané plochy nebo šroub do vybrané díry. Vpravo od řady záložek jsou akce (Zobrazit vše, Izolovat, Filtr, Přiřadit materiál…, Duplikovat, Smazat, Ukázat v modelu, <b>Kopírovat do Excelu</b>). Dále dok <b>Zprávy</b> (chyby, varování a informace; dvojklik přepne na krok), panely <b>Log řešiče</b> (vše, co program hlásí, včetně výstupu CalculiXu) a <b>Spoje – využití</b>.</li>
+<li><b>Stavový řádek</b> – vlevo hodnota sondy, popis hrany nebo vybrané díly; vpravo „Vybrané plochy: n   A = … mm²“ (součet ploch výběru) a souhrn modelu: výsledek kontroly připravenosti, rovnováha výsledků (✓ zeleně, když nesoulad zatížení a reakcí je pod limitem), počet prvků sítě, čas posledního výpočtu a jednotky (mm · N · MPa).</li>
+</ul>
+
+<h2>Interaktivní nápověda</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td>Bubliny nápovědy (najetí myší)</td><td>Každé tlačítko, pole, nabídka a seznam má jednořádkovou bublinu: co dělá; podrobnosti (jednotky, typické hodnoty, meze) jsou ve druhé úrovni nápovědy.</td><td>Popisek řádku formuláře ukazuje popis svého pole; <span class="key">F1</span> nad prvkem nebo tlačítko ⓘ v záhlaví oddílu otevře podrobnosti.</td></tr>
+<tr><td>Oddíly panelů</td><td>Panely kroků mají sbalitelné oddíly se záhlavím (šipka, nadpis, šedé shrnutí). Klik na záhlaví oddíl sbalí nebo rozbalí; pravé tlačítko nabídne <i>Rozbalit vše</i> / <i>Sbalit vše</i>.</td><td>Oddíl se zaškrtnutím <i>počítat</i> se po zaškrtnutí rozbalí; průvodce a režim Co je to? sbalené oddíly rozbalí samy.</td></tr>
+<tr><td><b>Co je to?</b> <span class="key">Shift+F1</span></td><td>Režim vysvětlení: prvek pod myší je orámován; klik ukáže bublinu s podrobným popisem a odkazem na stránku nápovědy kroku. Kliky se do prvků nepředávají.</td><td><span class="key">Esc</span>, pravé tlačítko nebo znovu <span class="key">Shift+F1</span> = konec</td></tr>
+<tr><td><b>Jak nastavit simulaci</b></td><td>Průvodce nastavením <i>vaší</i> simulace krok za krokem: přepne krok postupu, zvýrazní ovládací prvky čísly ①②③ a dole ukáže, co je v kroku hotovo a co chybí (po každé změně se obnoví).</td><td><a href="fea:nastaveni">Spustit průvodce</a> · „Ukaž v programu“ zvýraznění zopakuje</td></tr>
+<tr><td><b>Průvodce ukázkou</b></td><td>Otevře hotový projekt a provede vás jím.</td><td><a href="ukazky.html">Ukázky</a></td></tr>
+</table>
+
+<h2>Myš ve 3D okně</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Levé tlačítko – klik</td><td>Výběr: plocha / díl / díra / hrana podle kroku a filtru výběru; ve Výsledcích sonda (hodnota v bodě).</td><td>Klik na prázdné místo zruší výběr ploch.</td></tr>
+<tr><td>Pravé tlačítko – klik bez tažení</td><td>Kontextová nabídka: Zobrazit vše, Přiblížit na výběr, Zrušit výběr, Pohled, 3D myš…</td><td></td></tr>
+<tr><td>Levý dvojklik</td><td>Vybere plochu / díl a přiblíží na výběr.</td><td>Ve Výsledcích pohled nemění.</td></tr>
+<tr><td>Pravé tlačítko – tažení</td><td>Otáčení kolem bodu modelu pod kurzorem.</td><td>Mimo model kolem středu pohledu.</td></tr>
+<tr><td>Prostřední tlačítko – tažení, nebo <span class="key">Ctrl</span> + pravé tlačítko</td><td>Posun pohledu.</td><td></td></tr>
+<tr><td>Kolečko</td><td>Přiblížení / oddálení k bodu pod kurzorem.</td><td>Jeden zářez = 1,2×</td></tr>
+<tr><td>Kostka pohledu (vpravo nahoře)</td><td>Klik na stěnu, hranu nebo roh otočí pohled.</td><td>Stěny Zepředu, Zezadu, Shora, Zdola, Zleva, Zprava (osa Z nahoru)</td></tr>
+<tr><td>Šipky / <span class="key">Shift</span>+šipky</td><td>Otočí pohled o 15° / 90°.</td><td>Jen když má 3D okno fokus (klikněte do něj).</td></tr>
+</table>
+<p>Vlevo dole je <b>měřítko</b> (pravítko v mm), které se mění s přiblížením.</p>
+
+<h2>Výběr</h2>
+<p>Co klik vybere, závisí na kroku:</p>
+<ul>
+<li><b>Kroky Model, Materiály, 3D tisk, Řešení, Únava</b> – celé díly. <span class="key">Ctrl</span>+klik díl přidá / odebere. V kroku Materiály jsou vybrané díly označené i v seznamu.</li>
+<li><b>Kroky Spoje, Kontakty, Pruty, Vazby, Pohyb, Teplo, Zatížení, Dynamika, Síť</b> – plochy. Klik plochu přidá, druhý klik ji odebere (<span class="key">Ctrl</span> není třeba); klik na prázdné místo zruší celý výběr. Plocha pod kurzorem je světle modrá, vybrané plochy oranžové. Výběr se přenáší mezi kroky Vazby, Zatížení a Síť.</li>
+<li><b>Výsledky</b> – klik na model ukáže hodnotu zobrazené veličiny (sonda) a značku ve 3D.</li>
+</ul>
+
+<h3>Filtr výběru</h3>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Plocha</b> <span class="key">P</span></td><td>Klik přidá / odebere jednu plochu.</td><td>Výchozí</td></tr>
+<tr><td><b>Těleso</b> <span class="key">B</span></td><td>Klik přidá / odebere všechny plochy dílu.</td><td>např. konvekce z celého povrchu</td></tr>
+<tr><td><b>Díra</b> <span class="key">H</span></td><td>Klik na válcovou plochu vybere celou díru nebo čep – všechny souosé válcové plochy stejného poloměru.</td><td>Přepnutí na Díra také rozšíří už vybrané válce na celé díry (dříve tlačítko „Celá díra“).</td></tr>
+<tr><td><b>Hrana</b> <span class="key">E</span></td><td>Klik na hranu ukáže typ, délku a u kružnice poloměr, střed a osu v stavovém řádku i v logu; v krocích s výběrem ploch ji přidá / odebere z výběru hran (síla na hranu). Klik na prázdné místo zruší výběr hran; výběr ploch se nemění.</td><td>tlačítko <b>Použít střed kružnice</b> / <b>Použít střed hrany</b> ve stavovém řádku</td></tr>
+<tr><td><b>Bod</b> <span class="key">V</span></td><td>Klik na vrchol (přesně), nebo na plochu (bod promítnutý na plochu CADu) přidá / odebere bod (síla v bodě); klik na prázdné místo zruší výběr bodů.</td><td>souřadnice ve stavovém řádku</td></tr>
+</table>
+<p><b>Použít střed kružnice</b> zkopíruje střed do schránky a zapíše ho do pole <b>Bod [mm]</b> otevřeného formuláře (zatížení „Síla ve vzdáleném bodě“, „Moment (vzdálený bod)“) a zruší volbu „střed plochy“. Tak lze zadat bod na ose díry bez přepisování souřadnic.</p>
+
+<h2>Pohledy</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Vše</b> <span class="key">F</span></td><td>Zobrazí celý model.</td><td></td></tr>
+<tr><td><b>Pohled</b>: Izometrický, Zepředu, Shora, Zprava</td><td>Standardní pohledy (osa Z nahoru) a zobrazení celého modelu.</td><td>Ostatní strany přes kostku pohledu.</td></tr>
+</table>
+
+<h2>Řez</h2>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Řez:</b> vypnuto / X / Y / Z</td><td>Řez rovinou kolmou k ose.</td><td></td></tr>
+<tr><td><b>Řez:</b> plocha</td><td>Řez rovinou první vybrané plochy (normála a poloha z plochy).</td><td>Nejdřív vyberte plochu (např. ve Vazbách), pak zvolte „plocha“.</td></tr>
+<tr><td>Posuvník</td><td>Poloha roviny v obálce modelu.</td><td></td></tr>
+<tr><td><b>přetočit</b></td><td>Ukáže druhou polovinu modelu.</td><td></td></tr>
+</table>
+<p>V krocích zadání řez přeruší zobrazení geometrie. Ve <a href="vysledky.html">Výsledcích</a> se zobrazí barevný řez <b>vnitřkem sítě</b> s obrysem; sonda funguje i na ploše řezu.</p>
+
+<h2>3D myš (3Dconnexion)</h2>
+<p>SpaceMouse, SpaceNavigator a další zařízení 3Dconnexion čte program přímo z Windows (ovladač 3DxWare může běžet současně). Model se pohybuje jako čepice: tlak doprava = model doprava, tah k sobě = přiblížení, kroucení a naklápění = otáčení kolem bodu modelu uprostřed okna. Tlačítko Přizpůsobit ukáže celý model; na SpaceMouse Pro / Enterprise fungují i tlačítka pohledů a Roll. Levé tlačítko (Menu) obsluhuje ovladač.</p>
+<p>Pravým klikem v 3D okně otevřete dialog <b>3D myš (3Dconnexion)</b>: <b>Ovládat pohled 3D myší</b>, <b>Rychlost</b> (0,25× až 4×), <b>Otáčení</b>, <b>Posun a zoom</b>, <b>Jen převažující pohyb (dominantní osa)</b> a obrácení jednotlivých os. Lišty ukazují výchylku čepice živě – užitečné pro ověření, že zařízení komunikuje.</p>
+
+<h2>Nabídka Nástroje</h2>
+<table class="grid">
+<tr><th>Položka</th><th>Co dělá</th><th>Poznámka</th></tr>
+<tr><td><b>Kalkulačka nosníků…</b></td><td>Uzavřené vzorce nosníků, zakřivený prut, vzpěr, kontrola podle EN 1993.</td><td>viz <a href="pruty.html">Pruty</a></td></tr>
+<tr><td><b>Kalkulačky (tření, Hertz, lis, zacvaknutí)…</b></td><td>Výpočty bez MKP pro rychlý odhad a kontrolu výsledku – záložky níže.</td><td>výchozí hodnoty = ověřovací příklady</td></tr>
+<tr><td><b>Nová prutová soustava (bez CAD)</b></td><td>Studie složená jen z prutů.</td><td><a href="pruty.html">Pruty</a></td></tr>
+<tr><td><b>Konvergence sítě…</b></td><td>Série výpočtů na zjemněných sítích, Richardson a GCI.</td><td><a href="vysledky.html#konvergence">Výsledky</a></td></tr>
+<tr><td><b>Moduly programu…</b></td><td>Co je nainstalováno; instalace a odebrání volitelných částí (pohyb – kinematika mechanismů, chrono – kontakt v mechanismu, hypre – řešič pro velké modely).</td><td><a href="automatizace.html">Automatizace</a></td></tr>
+</table>
+<h3>Kalkulačky</h3>
+<table class="grid">
+<tr><th>Záložka</th><th>Co počítá</th></tr>
+<tr><td>Zacvaknutí</td><td>Zacvakávací háček obdélníkového průřezu (Bayer), i kuželový: síla při montáži a demontáži, kontrola přetvoření.</td></tr>
+<tr><td>Lisovaný spoj</td><td>Hřídel + náboj (Lamé, rovinná napjatost): tlak, napětí, posuvy, přenášený moment a síla, ohřev pro montáž.</td></tr>
+<tr><td>Hertz</td><td>Hertzův kontakt: koule, válec, ozubení (ISO 6336-2), vačka s válečkem, náraz koule.</td></tr>
+<tr><td>Tření strojních prvků</td><td>Tření ve spojích a strojních prvcích – moment, samosvornost, účinnost.</td></tr>
+<tr><td>Knihovna tření</td><td>Součinitele tření dvojic materiálů se zdroji (μ_min / μ_max podle účelu), vlastní naměřené hodnoty – viz <a href="treni.html">Tření a tlumení</a>.</td></tr>
+<tr><td>Mechanismy</td><td>Analytické referenční úlohy: klika, čtyřkloubový mechanismus, vačka, kyvadlo, doběh, stick-slip, valení, pohon osy.</td></tr>
+<tr><td>Tlumení z měření</td><td>Součinitel tlumení z šířky pásma −3 dB nebo logaritmického dekrementu, Rayleighovo α, β, převody ζ ↔ Q ↔ η.</td></tr>
+<tr><td>Pád</td><td>Pád jako ekvivalentní poloviční sinusový pulz zrychlení (vstup pro ráz v kroku <a href="dynamika.html">Dynamika</a>).</td></tr>
+</table>
+<p>Jednotky kalkulaček: mm, N, MPa, t, s (g = 9810 mm/s²). Výsledek uvádí vzorec a zdroj.</p>
+
+<h2>Zpět / znovu</h2>
+<p><span class="key">Ctrl+Z</span> vrátí poslední změnu studie (materiál, vazba, zatížení, síť, nastavení tisku, spoje, únava…), <span class="key">Ctrl+Y</span> ji znovu provede. Pamatuje se až 200 kroků; historie se vymaže při otevření jiného souboru. Pohled, výběr ploch a řez se do historie nezapisují.</p>
+<p class="warn"><b>Pozor:</b> vrácení změny vstupů zahodí výsledky (a síť, týká-li se geometrie, výběrů, spojů nebo tisku). Změna nastavení únavy zachovává statické výsledky.</p>
+
+<h2>Soubory</h2>
+<ul>
+<li><b>Otevřít…</b> <span class="key">Ctrl+O</span> – STEP (.step, .stp) = nová studie, nebo projekt .fea. Projekt lze otevřít i argumentem <code>python -m fea_gui soubor.fea</code>.</li>
+<li><b>Uložit</b> <span class="key">Ctrl+S</span> – projekt .fea obsahuje model STEP, vstupy i výsledky (lze jej přenést na jiný počítač). U nové studie se zeptá na název.</li>
+<li><b>Uložit jako…</b> <span class="key">Ctrl+Shift+S</span>.</li>
+<li>Neuložené změny značí hvězdička v titulku okna; při zavření nebo otevření jiného souboru se program zeptá.</li>
+</ul>
+
+<h2>Klávesové zkratky</h2>
+<table class="grid">
+<tr><th>Klávesa</th><th>Akce</th><th>Poznámka</th></tr>
+<tr><td><span class="key">Ctrl+O</span></td><td>Otevřít STEP nebo projekt .fea</td><td></td></tr>
+<tr><td><span class="key">Ctrl+S</span></td><td>Uložit projekt</td><td></td></tr>
+<tr><td><span class="key">Ctrl+Shift+S</span></td><td>Uložit jako…</td><td></td></tr>
+<tr><td><span class="key">Ctrl+P</span></td><td>Protokol do Wordu</td><td><a href="protokol.html">Protokol</a></td></tr>
+<tr><td><span class="key">Ctrl+Z</span> / <span class="key">Ctrl+Y</span></td><td>Zpět / Znovu</td><td></td></tr>
+<tr><td><span class="key">F</span></td><td>Zobrazit celý model</td><td></td></tr>
+<tr><td><span class="key">P</span> <span class="key">B</span> <span class="key">H</span> <span class="key">E</span> <span class="key">V</span></td><td>Filtr výběru Plocha / Těleso / Díra / Hrana / Bod</td><td></td></tr>
+<tr><td>šipky, <span class="key">Shift</span>+šipky</td><td>Otočit pohled o 15° / 90°</td><td>3D okno musí mít fokus.</td></tr>
+<tr><td><span class="key">Ctrl+PgDown</span> / <span class="key">Ctrl+PgUp</span></td><td>Další / předchozí zobrazený krok</td><td></td></tr>
+<tr><td><span class="key">F1</span></td><td>Podrobnosti prvku pod myší, jinak nápověda aktuálního kroku</td><td>V okně nápovědy: <span class="key">Ctrl+F</span> hledání, <span class="key">Alt+←</span> / <span class="key">Alt+→</span> zpět / vpřed</td></tr>
+<tr><td><span class="key">Shift+F1</span></td><td>Co je to? – vysvětlení prvku po kliku</td><td>Konec klávesou <span class="key">Esc</span></td></tr>
+</table>
+<p class="tip"><b>Tip:</b> jednopísmenné zkratky nefungují, když píšete do textového nebo číselného pole – nejdřív klikněte do 3D okna.</p>
+
+<h2>V ukázkách</h2>
+<ul>
+<li><b>Ukázka 1 – tištěný držák:</b> v kroku Vazby zapněte filtr <b>Díra</b> (<span class="key">H</span>) a klikněte na díru pro vrut – vybere se celá díra Ø5. Řez <b>Y</b> v polovině (rovina y = 20 mm) prochází osami obou děr, okem Ø8 a žebrem; ve Výsledcích je stejný řez obarven napětím uvnitř dílu.</li>
+<li><b>Ukázka 2 – sestava:</b> filtr <b>Hrana</b> (<span class="key">E</span>) a klik na hranu oka ramene ukáže kružnici R 5 mm se středem na ose oka; <b>Použít střed kružnice</b> ji zapíše jako bod vzdálené síly. Řez <b>Y</b> osou šroubu ukáže sevřený svazek ramene a patky s podložkami a maticí; ve Výsledcích řez <b>Y</b> přes sloupek ukáže trojúhelníkové průřezy obou koutových svarů a napětí v nich.</li>
+</ul>
+
+<h2>Časté potíže</h2>
+<ul>
+<li><b>Šipky a písmenné zkratky nereagují</b> – fokus je v poli formuláře. Klikněte do 3D okna.</li>
+<li><b>„Pro řez podle roviny plochy nejdřív vyberte plochu (např. v kroku Vazby) a pak zvolte „plocha“.“</b> – v krocích Model a Materiály se vybírají díly, ne plochy. Přejděte do Vazeb, vyberte plochu a teprve pak zvolte řez „plocha“.</li>
+<li><b>„Filtr Díra: klikněte na válcovou plochu díry nebo čepu.“</b> – klikli jste na rovinnou plochu, nebo na zaoblení, které není válec (kužel, torus). Klikněte na válcovou stěnu díry.</li>
+<li><b>Panel „Log řešiče“ nebo „Zprávy“ zmizel</b> (zavřený křížkem) – klikněte pravým tlačítkem na lištu a panel znovu zobrazte.</li>
+<li><b>„Probíhá síťování, výpočet nebo tvorba protokolu – počkejte na dokončení nebo zrušte výpočet (krok Řešení / Síť).“</b> – soubor nejde otevřít během výpočtu. Počkejte, nebo stiskněte <b>Zrušit</b>.</li>
+<li><b>Výsledky zmizely po <span class="key">Ctrl+Z</span></b> („Studie změněna – výsledky zahozeny, je nutný nový výpočet.“) – výsledky patří původním vstupům. Spusťte výpočet znovu; <span class="key">Ctrl+Y</span> změnu obnoví, výsledky ale nevrátí.</li>
+</ul>

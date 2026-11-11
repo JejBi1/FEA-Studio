@@ -1,0 +1,95 @@
+<h1>Supports</h1>
+<p class="lead">Restraints of the model: fixed support, prescribed displacement (including symmetry and nonzero displacement), cylindrical support of a hole or pin,
+remote support and elastic support (foundation, springs). Supports apply in all load cases and must prevent all six rigid-body motions.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Select faces in 3D (filter <b>Face</b> <span class="key">P</span>; holes: <b>Hole</b> <span class="key">H</span>). A click on empty space clears the selection.</li>
+<li>Click the button of the support. A selection “Fixed support 1”, “Displacement 1”, “Cylindrical support 1”… is created; the support appears in the list and in blue in 3D.</li>
+<li>Clicking a row highlights its faces in 3D and loads its values into the form.</li>
+</ol>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Support list</td><td>All supports of the study.</td><td>“Displacement 1: ux = 0 mm”, “Cylindrical support 1: cylindrical – radially, tangentially, axially”</td></tr>
+<tr><td><b>Fixed support from selection</b></td><td>ux = uy = uz = 0 on the selected faces.</td><td></td></tr>
+<tr><td><b>Prescribed displacement</b>: <b>ux</b>, <b>uy</b>, <b>uz</b></td><td>A checked component has the prescribed value [mm]; an unchecked one is free.</td><td>Default: all checked, 0 mm (= fixed support)</td></tr>
+<tr><td><b>Displacement from selection (checked components)</b></td><td>Creates a prescribed displacement on the selected faces.</td><td></td></tr>
+<tr><td><b>Save changes to the selected displacement</b></td><td>Overwrites the components of the listed item; faces stay.</td><td></td></tr>
+<tr><td><b>Cylindrical support (hole / pin)</b>: <b>radially</b>, <b>tangentially (rotation)</b>, <b>axially</b></td><td>A checked component is zero in the cylinder axes.</td><td>Default: all three</td></tr>
+<tr><td><b>Cylindrical support from selection</b> / <b>Save changes</b></td><td>Creates / overwrites a cylindrical support; the selected faces must be cylindrical.</td><td></td></tr>
+<tr><td><b>Elastic support (foundation, springs)</b> – expand: <b>Stiffness</b>, unit, <b>Direction</b></td><td>Stiffness k [N/mm³] per area, or total K [N/mm]; normal to the face or in all directions.</td><td>Concrete ~0.05–0.2 N/mm³; 5 mm rubber pad ~1–10 N/mm³</td></tr>
+<tr><td><b>From selection</b> / <b>Save changes</b> (elastic)</td><td>New elastic support on the selected faces / overwrites stiffness and direction.</td><td>Green springs in 3D</td></tr>
+<tr><td><b>Faces from selection</b></td><td>Replaces the faces of the selected support.</td><td>Discards the mesh</td></tr>
+<tr><td><b>Delete</b></td><td>Deletes the listed support.</td><td><span class="key">Ctrl+Z</span> restores it</td></tr>
+</table>
+
+<h2>Support types</h2>
+<h3>Fixed support</h3>
+<p>The face cannot move in any direction – the stiffest restraint; a real flange, bolts and base are compliant. <b>Singularities</b> therefore appear at the edges of a fixed face (stress grows with refinement); the maxima table marks them “singularity – fixed support edge”. Evaluate stress 2–3 elements away from the edge.</p>
+
+<h3>Prescribed displacement and symmetry</h3>
+<ul>
+<li><b>One component = 0</b>: the face may move in the other directions – a frictionless support on a plane or a <b>symmetry plane</b> (for a plane normal to X, check only ux = 0). Half the model then carries half the load (enter half the force). Zero displacement normal to a planar face is not a singularity.</li>
+<li><b>Nonzero displacement</b> [mm]: imposed deformation (assembly offset, forced deflection); the reaction gives the force needed.</li>
+<li>Components are in <b>global axes</b> X, Y, Z; an inclined symmetry plane cannot be defined this way.</li>
+</ul>
+<p class="warn"><b>Note:</b> the support acts in both directions – a “bearing” ux = 0 holds the part in tension too (like glue). Check the sign of the reaction: if the support pulls the part toward the base, the part would actually lift off. A nonzero displacement applies in <b>every</b> load case, so in superposition and fatigue it multiplies with the load (fatigue warns).</p>
+<p class="tip"><b>Compression-only support</b> (a bearing that can lift off) is set in <a href="kontakty.html">Contacts</a>: type <b>Compression only (support)</b> with an empty side B. The analysis becomes nonlinear (no superposition); contact status 0 shows where the face lifted off.</p>
+
+<h3>Cylindrical support (hole / pin)</h3>
+<p>Restraint in the cylinder axes (like Cylindrical Support in Ansys); the axis is found from the selected faces.</p>
+<table class="grid">
+<tr><th>Component</th><th>What it prevents</th><th>Typical use</th></tr>
+<tr><td><b>radially</b></td><td>Movement of the face normal to the axis (the hole neither moves nor becomes oval).</td><td>Pin in a hole without clearance, plain bearing; rotation and axial motion stay free.</td></tr>
+<tr><td><b>tangentially (rotation)</b></td><td>Rotation of the face about the axis.</td><td>Pin secured against rotation, shaft with a key.</td></tr>
+<tr><td><b>axially</b></td><td>Motion along the axis.</td><td>Axial stop, shoulder.</td></tr>
+</table>
+<ul>
+<li>All three components = the hole is held rigidly (as a fixed support); the reaction is reported in hole axes.</li>
+<li><b>Several holes in one selection</b> (e.g. all holes of a flange): the selection is split into contiguous parts, each hole gets its own axis (coaxial parts of equal diameter are merged, e.g. a hole split in two halves), and the support applies in each axis. One reaction is reported for the whole selection (sum); for individual reactions use separate supports. The <b>Hole</b> filter <span class="key">H</span> selects a whole hole.</li>
+<li>Zero displacements only. Always solved by CalculiX (the automatic solver choice takes care of it).</li>
+<li>The cylindrical support face must not share nodes with a remote force / moment or a bolt connection.</li>
+</ul>
+
+<h3>Remote support</h3>
+<p>Restraint of a face through a remote point (like Remote Displacement): group <b>Remote support (point off the face)</b> – point, constrained displacements ux, uy, uz and rotations rx, ry, rz about the point, rigid or distributing (RBE3) connection. Displacements only = hinge. The reaction includes the moment about the point.</p>
+<ul>
+<li><b>Prescribed motion:</b> a rigid remote support can be translated or rotated by a time history in a nonlinear step sequence (<a href="kontakty.html">Contacts</a>). Displacement control (snap-fit, pressing in) converges better than force control and gives a force–travel curve.</li>
+<li><b>Transfer from a mechanism</b> (<a href="pohyb.html">Motion</a> → Transfer to FEA…) creates a distributing remote support at the grounding joint; its reaction should equal the MBD joint reaction (support check).</li>
+</ul>
+
+<h3>Elastic support (foundation, springs)</h3>
+<p>A face on an elastic base (Winkler foundation, like Elastic Support in Ansys). Each node gets a spring to ground in proportion to its share of the face area:</p>
+<ul>
+<li><b>N/mm³ (per area)</b>: foundation stiffness k – pressure [MPa] per 1 mm of compression. Concrete ~0.05–0.2 N/mm³; a rubber pad of thickness t with modulus E ≈ E/t (rubber E ≈ 5 MPa, t = 5 mm → 1 N/mm³).</li>
+<li><b>N/mm (total)</b>: total stiffness K of all selected faces (catalogue stiffness of a silent block), distributed by area.</li>
+<li><b>Direction normal to face</b>: springs only normal; the face can slide, so the model must also be restrained in the plane (else the rigid-body check reports a free displacement). <b>In all directions</b>: the same stiffness in x, y, z.</li>
+</ul>
+<p>The support is <b>linear</b>: it carries tension and compression (the foundation does not lift off) – a warning says so. The reaction (sum of spring forces) appears under the selection name (“Elastic support 1”). Springs are drawn green in 3D.</p>
+
+<h2>Rigid-body motion check</h2>
+<p>In <a href="reseni.html">Solve</a> the program verifies that the supports prevent the three translations and three rotations of the whole model. If not, it lists the free motions, e.g. “The supports do not prevent rigid-body motion of the model – free: translation in direction (1, 0, 0); rotation about the axis (0, 0, 1) through point (35, 20, 0) mm”, and the analysis does not start. Without a mesh the check uses face points; after meshing it uses the nodes.</p>
+<p>After meshing, <b>every part</b> must also connect to a support (by contact, bolt or weld). A heat-only study needs no supports.</p>
+
+<h2>Reactions</h2>
+<p>In <a href="vysledky.html">Results</a> each case has a <b>Reactions [N]</b> block: one row per support, named after the selection (“Fixed support 1: Fx …, Fy …, Fz …”). A cylindrical support reports only its constrained directions. Sum of reactions and loads is checked (equilibrium; imbalance above 0.1 % is an error).</p>
+<p class="tip"><b>Tip:</b> a selection named by its purpose (“Fixed support 1”) appears in the study tree under Supports; clicking it switches to this step and shows the faces.</p>
+
+<h2>In the examples</h2>
+<ul>
+<li><b>Example 1 – printed bracket:</b> “Horní vrut” and “Dolní vrut” – cylindrical supports of the Ø5 holes with all three components (the screws hold the part in all directions). “Zadní plocha” – ux = 0 only: the plate rests against a wall. In the results check its reaction: Fx &gt; 0 means the wall pushes. At the upper edge the support may locally pull (a real plate would lift away there and the screws would carry more) – a support without contact is a simplification.</li>
+<li><b>Example 2 – assembly:</b> the Ø9 anchor holes of the base plate have a cylindrical support in all components (anchors into the floor). The bottom face is not constrained: the plate hangs on the anchors only.</li>
+</ul>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“The study has no support”</b> – add at least one (not needed for heat-only studies).</li>
+<li><b>“The supports do not prevent rigid-body motion of the model – free: …”</b> – add a support in the listed direction. Typical: a cylindrical support with only radial restraint on one hole leaves rotation about and motion along the axis free; ux = 0 on a plane leaves in-plane displacements free.</li>
+<li><b>“Select only the cylindrical faces of the hole or pin (the Hole selection filter, H, selects the whole hole).”</b> – the selection contains a planar face or a chamfer. Clear it and select the hole with the Hole filter.</li>
+<li><b>“Selection '…' is neither a cylindrical face nor a group of cylindrical holes: part k of n (near point …) …”</b> – besides holes the selection has a planar or other non-cylindrical face (chamfer, end face). Select only cylindrical faces (<span class="key">H</span>).</li>
+<li><b>“Selection '…' is not a single cylindrical face … – select coaxial cylinders of the same radius”</b> (bearing load) – a bearing load needs a single axis: create a separate selection and load for each hole.</li>
+<li><b>“The cylindrical support shares nodes with face '…' (remote load / support, bolt) – ccx does not allow two constraint equations on one node.”</b> – reduce one of the selections so the faces do not touch.</li>
+<li><b>“Some parts are not connected to a support (free bodies …)”</b> – add a joint or exclude the part (<a href="spoje.html">Joints</a>).</li>
+</ul>

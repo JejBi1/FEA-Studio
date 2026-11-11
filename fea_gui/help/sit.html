@@ -1,0 +1,113 @@
+<h1>Mesh</h1>
+<p class="lead">Gmsh generates quadratic tetrahedra tet10 (C3D10 in CalculiX). Mesh fineness sets the stress accuracy and the analysis time.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Enter the <b>Element size</b> (largest element edge, mm).</li>
+<li>Where stresses matter (eye, notch, weld), add <b>Local refinement</b>: select faces in 3D, click <b>Refine selection</b>.</li>
+<li>Click <b>Generate mesh</b>; check the node and element counts and the min. scaled Jacobian below the button and in the log.</li>
+</ol>
+<p>The Solve step meshes by itself; generating here is only for checking. <b>Any change</b> of geometry, selections, materials, joints, print settings or mesh discards the mesh (orange dot) and the results.</p>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Element size</td><td>Global maximum element size [mm].</td><td>Default 5 mm. Example 1: 2.5 mm, Example 2: 4 mm.</td></tr>
+<tr><td>Min. size</td><td>Lower limit of the element size [mm].</td><td><i>auto</i> = 1/20 of the element size (0.25 mm at 5 mm). Increase it if small details inflate the mesh.</td></tr>
+<tr><td>Elements on circle</td><td>Elements around the full circumference (2π) of a curved face.</td><td>Default 12, range 0–72, 0 = <i>off</i>. At 12: Ø5 hole ≈ 1.3 mm, Ø10 ≈ 2.6 mm elements. For a stress concentration at a hole, 16–24.</td></tr>
+<tr><td>Local refinement – list</td><td>Refined selections as “name: size mm”. Click a row to highlight its faces.</td><td>Turquoise in 3D.</td></tr>
+<tr><td>Size field + Refine selection</td><td>Smaller elements on the selected faces; creates “Refinement 1”, “Refinement 2”…</td><td>Usually 1/3–1/2 of the global size; grows smoothly to the global value at 4× the global element size.</td></tr>
+<tr><td>Delete refinement</td><td>Removes the selected row (faces and spheres).</td><td></td></tr>
+<tr><td><b>Refine around point (sphere)</b>: Center, R, element</td><td>Refinement inside a sphere, also in the volume (stress maximum, weld root, notch).</td>
+<td>Enter the centre, or pick a point with the <b>Point</b> filter <span class="key">V</span> and press <b>Point from selection</b>
+(else the edge centre or face centroid), or Edge filter → “Use center”. R = 2–5× the detail size. Turquoise circles.</td></tr>
+<tr><td>Generate mesh / Cancel</td><td>Runs Gmsh in a separate process in the background; Cancel terminates it.</td><td></td></tr>
+<tr><td>Text below the buttons</td><td>“N nodes, M elements C3D10, min. scaled Jacobian X”.</td><td>DOF = 3 × nodes.</td></tr>
+</table>
+<p class="tip"><b>Tip:</b> turn off <b>Show mesh</b> to select faces on the parts (selections carry over from Supports and Loads). The <span class="key">H</span> filter selects a whole hole.</p>
+
+<h3>Settings not in the panel</h3>
+<p>The <code>mesh</code> section of <code>study.json</code> (in the .fea project) has more items; do not change them normally:</p>
+<ul>
+<li><code>order</code> = 2 – quadratic tet10 (tet4 is much too stiff in bending).</li>
+<li><code>optimize_high_order</code> = true – optimizes curved elements only when min. scaled Jacobian is below 0.2 (otherwise up to 70 % of the meshing time).</li>
+<li><code>algorithm3d</code> = 10 – HXT (about 2× faster than Delaunay); on failure Delaunay (1) is used with a warning.</li>
+<li><code>threads</code> = 0 – one Gmsh thread, so the mesh is repeatable. Higher values are faster but the mesh differs between runs.</li>
+</ul>
+
+<h2>Mesh convergence</h2>
+<p>In <a href="vysledky.html#konvergence">Results</a>: <b>Mesh convergence…</b> (finer meshes, Richardson, GCI) and the <b>Stress error estimate</b> quantity (above ~10 % refine there).
+For 3D printing use the refinement button in <a href="tisk.html">3D printing</a>.</p>
+
+<h2>Separately meshed parts (*TIE)</h2>
+<p>Parts touching along a face share nodes. If that fails (tangent contact, “PLC Error: segment and facet intersect”) or a part needs its own mesh,
+list it in <a href="spoje.html">Joints</a> → <b>Parts meshed separately</b>; it is tied to its neighbours by *TIE (listed in the table below the list and in Messages).</p>
+
+<h2>Mesh quality</h2>
+<p>The <b>scaled Jacobian</b> (SJ): 1 = ideal, 0 = flat, negative = inverted (unusable).</p>
+<ul>
+<li><b>min. SJ ≥ 0.2</b> – fine.</li>
+<li><b>0 &lt; min. SJ &lt; 0.2</b> – curved elements are optimized (log warning “Curved elements min. SJ … – higher-order optimization”).</li>
+<li><b>min. SJ ≤ 0</b> after optimization – the mesh is regenerated <b>with straight edges</b>; holes and pins become facets and their stresses are less accurate. Reduce the element size or increase Elements on circle.</li>
+</ul>
+
+<h2>How to choose the element size</h2>
+<ul>
+<li><b>At least 2, preferably 3 tet10 elements through a bent wall</b> (6 mm plate → 2–3 mm). Fewer elements underestimate bending stress.</li>
+<li><b>At the evaluated location</b> (fillet, hole, notch): at least 3–4 elements per fillet radius, by local refinement.</li>
+<li><b>Convergence:</b> refine the decisive location 2× and compare; a change below 5 % is sufficient. If stress keeps growing, it is a singularity (sharp corner, support edge) – see <a href="vysledky.html">Results</a>.</li>
+<li><b>Size:</b> halving the element size means about 8× more elements and DOF (DOF ≈ 5 × tet10 elements).</li>
+</ul>
+
+<h3>Printed parts</h3>
+<p>A printed part has a stiff shell (perimeters, solid layers) and an infill core. The shell fraction is computed per element, so the mesh need not follow the shell.
+Shell thickness = perimeters × line width (3 × 0.42 = 1.26 mm) and solid layers × layer height (3 × 0.2 = 0.6 mm).</p>
+<ul>
+<li>A surface element larger than 3× the thinnest shell triggers the warning “3D printing '…': elements at the surface (…) are much larger than the shell…”. Stiffness is fine, shell stress depends on the mesh.</li>
+<li>Solution: <b>local refinement</b> only at critical places (eye, arm root) to 1–1.5 mm. Do not refine the whole surface: an 80×20×12 mm bracket with 0.6 mm elements had 507 thousand nodes and needed 15 GB in CalculiX.</li>
+</ul>
+
+<h2>Assemblies: common (conforming) mesh</h2>
+<p>Parts touching along a face in CAD are <b>rigidly connected</b> (as if glued); common nodes are created on their contact faces.</p>
+<ul>
+<li>A gap (even 0.01 mm) means no connection. Without a bolt, weld or support, the parts are free bodies and the analysis fails.</li>
+<li>Parts touching only along an edge or point share a few nodes – unrealistic. Check <b>Connected parts (shared mesh)</b> in <a href="spoje.html">Joints</a>.</li>
+<li>Bolts are not meshed (a beam replaces them); bearing faces under head and nut are refined to 0.25 × d (M6 → 1.5 mm). A weld is meshed with element size a (if smaller than the global size).</li>
+<li>Parts excluded in Joints are not meshed.</li>
+<li><b>Contact pairs</b> (<a href="kontakty.html">Contacts</a>) are meshed <b>separately</b> (non-conforming, needed for interference), or conformally with a <b>split interface</b> (bolted joints). No *TIE is created. Changing pairs, sides or interface meshing needs a new mesh; changing μ, K, λ or interference does not.</li>
+</ul>
+
+<h2>Time and memory (indicative, 8-core / 16-thread laptop)</h2>
+<table class="grid">
+<tr><th>Model</th><th>Mesh (Gmsh)</th><th>Analysis</th></tr>
+<tr><td>44 thousand tet10 elements, 213 thousand DOF</td><td>about 4 s</td><td>CalculiX PARDISO about 20 s</td></tr>
+<tr><td>197 thousand DOF, 3 load cases</td><td>about 2 s</td><td>CalculiX about 34 s</td></tr>
+<tr><td>706 thousand DOF</td><td>–</td><td>CalculiX about 130 s and 6.8 GB RAM</td></tr>
+<tr><td>1.4 million DOF</td><td>Gmsh about 0.3 GB</td><td>CalculiX over 10 GB → <a href="reseni.html">solver for large models</a></td></tr>
+</table>
+
+<h2>In the examples</h2>
+<h3>Example 1 – printed bracket</h3>
+<ul>
+<li>Element size <b>2.5 mm</b>, no local refinement, Elements on circle 12 (Ø5 screw holes ≈ 1.3 mm, Ø8 eye ≈ 2.1 mm).</li>
+<li>The 6 mm plate has 2–3 elements through the thickness, the 8 mm arm about 3.</li>
+<li>The thinnest shell layer is 0.6 mm (bottom layers), so a 2.5 mm element triggers the coarse-mesh warning. Refine the eye and arm root to 1–1.5 mm and compare the print safety factor.</li>
+</ul>
+<h3>Example 2 – assembly</h3>
+<ul>
+<li>Element size <b>4 mm</b>, local refinement <b>Arm eye: 1.5 mm</b>.</li>
+<li>Base plate 10 mm and arm flange 8 mm have 2–3 elements through the thickness.</li>
+<li>Under the M6 bolt heads and nuts the mesh is refined to 1.5 mm automatically; the a4 welds keep the 4 mm global element.</li>
+<li>Base plate, post, welds and arm share one mesh; bolts and welds provide the connection.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<table class="grid">
+<tr><th>Message / symptom</th><th>Cause and solution</th></tr>
+<tr><td>“The volume mesh was not generated – the geometry probably self-intersects or parts touch tangentially … Gmsh: …”</td><td>Overlapping or tangent parts (pin in a slot, cylinder on a plane). Fix the geometry (clearance or a clear face contact), or exclude the part in <a href="spoje.html">Joints</a>.</td></tr>
+<tr><td>“Parts 'A' and 'B' overlap (volume …); overlap assigned to part 'A'”</td><td>Interference in CAD (bolt without a hole, pressed-in pin). The analysis runs, but the common volume belongs to one part. Fix the model.</td></tr>
+<tr><td>“Selection '…': after fragmentation found X of Y mm²” or “Some selected faces were not found”</td><td>The face was split when joining, or hidden under another part. Select the free part of the face, or restore it with <b>Faces from selection</b> in Supports / Loads.</td></tr>
+<tr><td>“Selection '…': face is not on the body surface”</td><td>A contact face of two parts is now inside the assembly. Put the support or load on an outer face.</td></tr>
+<tr><td>“Curved elements with a non-positive Jacobian…; mesh regenerated with straight edges”</td><td>Elements too large on small radii. Reduce Element size, increase Elements on circle or refine locally.</td></tr>
+<tr><td>Hundreds of thousands of elements</td><td>Small chamfers, threads, logos refine the mesh. Increase Min. size, decrease Elements on circle, or remove the details in CAD.</td></tr>
+</table>

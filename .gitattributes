@@ -1,0 +1,13 @@
+# spouštěče: .bat musí mít CRLF, shell skripty LF (jinak „bad interpreter“ na Linuxu)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sh text eol=lf
+fea-studio text eol=lf
+installer/fea_setup.py text eol=lf
+*.ps1 text eol=crlf
+# makra CAD: import do editoru VBA (SOLIDWORKS) potřebuje CRLF – ukládat bez převodu konců řádků, aby CRLF zůstalo
+# i v balíčku z gitu (make_package --ref) a v klonu s jiným core.autocrlf
+*.bas -text
+*.iLogicVb -text
+# texty licencí třetích stran se ukládají bajtově (SHA-256 v installer/license_texts/SOURCES.md)
+installer/license_texts/** -text

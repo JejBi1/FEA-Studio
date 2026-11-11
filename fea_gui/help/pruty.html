@@ -1,0 +1,60 @@
+<h1>Members (frames, trusses, beams)</h1>
+<p class="lead">The Beams step defines a frame: nodes, members (straight, arched, truss), cross-sections (EN library, parametric, custom from a CAD
+face), supports and springs, connection of a member to a solid face, and EN 1993-1-1 check inputs. A frame can stand alone
+(a study <b>without CAD</b>) or be part of a model with solids.</p>
+
+<h2>Procedure</h2>
+<ol>
+<li>Study without CAD: <a href="model.html">Model</a> step → <b>New frame (no CAD)</b> (also in <b>Tools</b>). With CAD go to the Members step.</li>
+<li><b>Cross-sections</b> tab: library profile (series, or search “IPE 200”, “HEB200”, “L50x5”, “CHS 60.3x4”), parametric shape or
+planar CAD face → <b>Add cross-section</b>.</li>
+<li><b>Nodes</b> tab: name and coordinates → <b>Add node</b>.</li>
+<li><b>Members</b> tab: start and end node, cross-section, material, kind, orientation, hinges → <b>Add member</b>.</li>
+<li><b>Support</b> tab: node and restrained components (fixed, hinge) or springs.</li>
+<li>Member loads in <a href="zatizeni.html">Loads</a> (node force / moment, distributed member load, gravity). Material in
+<a href="materialy.html">Materials</a>; without CAD, <b>Assign to all</b> sets the default.</li>
+</ol>
+<p class="tip"><b>Tip:</b> a click on a node or member in 3D selects its table row (on Support / Connection it inserts the node into
+the form; in Loads it selects the target of the member load).</p>
+
+<h2>Controls</h2>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Note</th></tr>
+<tr><td><b>Members from STEP wireframe…</b></td><td>free STEP edges (lines, arcs, curves outside solids) → nodes and members with the cross-section selected on the Members tab</td><td>end points within 0.001 mm merge</td></tr>
+<tr><td><b>Replace part with member</b></td><td>replaces the part of the selected face (bar, profile): cross-section from the end face (library profile if it matches), nodes at end-face centroids, connection to touching faces</td><td>part left out of the mesh; straight prismatic solids only</td></tr>
+<tr><td><b>Nodes</b> tab</td><td>node table, form (name, x, y, z), Add / Save changes / Delete</td><td>renaming carries over references; a node with members cannot be deleted</td></tr>
+<tr><td><b>Members</b> tab</td><td>nodes, cross-section, material (“default” = study default), kind (beam / truss), section z axis (automatic, vector, arc normal, toward the arc centre), rotation [°], arc through a point, elements (automatic 20 per beam), hinges N Vy Vz T My Mz at both ends</td><td>“hinge at start”, “hinges at both ends” (My + Mz), “no hinges”</td></tr>
+<tr><td><b>Cross-sections</b> tab</td><td>study sections, new section (library / parametric / CAD face), Preview (outline, A, I_y, I_z, I_t, I_w, W_el, W_pl, A_v), Add, Delete</td><td>a section from a face is computed by FEA of the section (sectionproperties, ~3 s)</td></tr>
+<tr><td><b>Support</b> tab</td><td>restrained ux uy uz rx ry rz (global), springs [N/mm, N·mm/rad]</td><td>presets fixed, hinge, sliding hinge</td></tr>
+<tr><td><b>Connection to body</b> tab</td><td>member node rigidly tied to faces of a solid selected in 3D (like a bolt)</td><td>mixed members + solids</td></tr>
+<tr><td><b>EN 1993 check</b> tab</td><td>steel (S235…S460), γ_M0, γ_M1, member subdivision, shear deformation; per member: L_cr,y, L_cr,z, L_LT, C1, z_g, lateral restraint, sway joints, fabrication</td><td>changing them keeps FEA results</td></tr>
+</table>
+
+<h2>Member axes and signs</h2>
+<p>Local <b>x</b> runs from start to end node. <b>z</b> = “up” of the section (web of an I profile). <b>y</b> = z × x (strong axis of an I profile:
+bending by My, deflection in z). Automatic: z = projection of global Z (vertical member: global X). N > 0 = tension.</p>
+
+<h2>Analysis and results</h2>
+<ul>
+<li>Frame alone: <b>built-in solver</b>, exact Timoshenko element (double precision, one element per member; diagrams N, V, T, M and displacements integrated analytically), with node and reaction equilibrium check. Members with a solid run in CalculiX (element U1); the built-in solver can be switched to CalculiX U1 for comparison.</li>
+<li><b>Natural frequencies</b> (Solve step; consistent mass; truss members also vibrate locally) and <b>linear buckling</b> of a frame alone: built-in solver (geometric stiffness from axial forces, Engesser shear correction – α_cr per EN 1993-1-1, 5.2.1). Buckling of members with solids is not available yet.</li>
+<li><a href="vysledky.html#pruty">Results</a>: <b>Members – σ_eq, displacement, N, Vy, Vz, T, My, Mz, EN 1993 utilization</b> (diagrams perpendicular to the member), <b>Members</b> tab (extremes and check per member), mode and buckling shapes, reactions.</li>
+<li>EN 1993-1-1 check: section class, resistance (6.2), buckling, lateral-torsional buckling and interaction (6.3, Annex B) in all load cases. Arches with R/h &lt; 10: Winkler–Bach shown for information.</li>
+<li><b>Member temperature</b> (uniform ΔT, gradient across the section): built-in solver, entered via MCP (<code>fea_frame_load_temperature</code>); restrained expansion N = −E·A·α·ΔT.</li>
+</ul>
+
+<h2>Beam calculator</h2>
+<p><b>Tools → Beam calculator…</b>: closed-form formulas without FEA – simply supported / fixed / cantilever / continuous beam (V, M, w, reactions, extremes, stress M/W), curved member (Winkler–Bach), Euler buckling, EN 1993-1-1 member check with entered forces.
+Load and deflection positive downward; M positive = tension at the bottom.</p>
+
+<h2>In the examples</h2>
+<p><b>Example 6 – hall frame</b> (<code>examples/example6_hall_frame.fea</code>): two frames HEA 260 / IPE 300, purlins UPE 160 with hinges,
+CHS bracing (truss members), snow, wind, self-weight, frequencies, buckling, check.</p>
+
+<h2>Common problems</h2>
+<ul>
+<li><b>“Member … has no material”</b> – set the study default (Materials → Assign to all) or the member's material.</li>
+<li><b>“The frame structure has no supports”</b> – add a support or a connection to a body.</li>
+<li><b>Mechanism</b> (singular) – hinges at both ends in torsion, or a node whose members are all hinged with no rotation support.</li>
+<li><b>Buckling without result</b> – no compression in the reference state. Linear buckling uses only axial force (no warping or lateral-torsional buckling); assess stability by EN 1993-1-1.</li>
+</ul>

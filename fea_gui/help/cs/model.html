@@ -1,0 +1,101 @@
+<h1>1. Model</h1>
+<p class="lead">Načte STEP nebo projekt .fea, zkontroluje geometrii a ukáže díly. Další kroky odkazují na díly názvem a na plochy tvarem a polohou.</p>
+<p class="tip">Příprava modelu v CAD → <a href="cad.html">Export z CAD</a> (nastavení STEP, tlačítko „Odeslat do
+FEA Studia“ pro Fusion, SOLIDWORKS a Inventor, materiály z CAD).</p>
+
+<h2>Otevření modelu</h2>
+<table class="grid">
+<tr><th>Ovládání</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td><b>Otevřít STEP / projekt…</b> (panel)<br><b>Otevřít…</b> <span class="key">Ctrl+O</span></td>
+<td>soubor STEP (.step, .stp) založí novou studii, soubor .fea otevře uložený projekt s výsledky</td><td>poté se otevře Materiály (projekt s výsledky otevře Výsledky)</td></tr>
+<tr><td>Přetažení souboru do okna</td><td>soubor .step, .stp nebo .fea přetažený z Průzkumníka (také na zástupce nebo přes <b>Odeslat do → FEA Studio</b>) se otevře jako Otevřít</td><td>neuložené změny: program nabídne uložení</td></tr>
+<tr><td>Přehled modelu (panel)</td><td>název souboru, počet těles, tabulka <b>Zobrazit</b> / <b>Počítat</b> / <b>Díl</b> / <b>Stav</b> / <b>Objem [cm³]</b> / <b>Materiál</b></td><td>jednotky: mm, N, MPa, t, s</td></tr>
+</table>
+<p>Nová studie ze STEP dostane:</p>
+<ul>
+<li>materiál <b>Ocel S235</b> pro všechny díly (změna v <a href="materialy.html">Materiály</a>); metadata CAD (<code>&lt;stejný název&gt;.json</code>) vedle STEP dají dílům materiál z CAD, je-li v knihovně (<a href="cad.html">Export z CAD</a>);</li>
+<li>velikost prvku ≈ úhlopříčka modelu / 30, zaokrouhlená dolů na 1 / 2 / 2,5 / 5 × 10ⁿ mm (model 240 mm → 5 mm);</li>
+<li>prázdný <b>Zatěžovací stav 1</b>.</li>
+</ul>
+
+<h3>Prutová soustava bez CAD</h3>
+<p><b>Nový rám (bez CAD)</b> (také v <b>Nástroje</b>) založí studii jen z prutů (rám, příhradovina, nosník). Kroky 3D tisk, Spoje, Podpory, Teplo a Síť jsou vypnuté;
+konstrukci definujte v <a href="pruty.html">Pruty</a>. Projekt .fea bez STEP se otevře jako každý jiný (ukázka 6).</p>
+
+<h2>Co má soubor STEP obsahovat</h2>
+<ul>
+<li><b>Plná tělesa</b>: plochy a skořepiny bez objemu se ignorují.</li>
+<li><b>Sestavu s názvy dílů</b>: název z instance nebo komponenty (Fusion: „Deska:1“; více těles „Deska:1_1“, „Deska:1_2“). Obecné názvy („SOLID“, „Body1“…) nahradí název komponenty; duplicity dostanou „ (2)“, „ (3)“.</li>
+<li><b>Jednotky</b>: převedou se na mm.</li>
+<li>Šrouby, matice, podložky se standardním názvem („ISO 4017 - M8 x 30 - 8.8“) se stanou <a href="spoje.html">Spoji</a>. Svary jako samostatná tělesa (název „Svar…“, barva nebo vrstva).</li>
+<li>Skrytá tělesa se z Fusionu neexportují.</li>
+</ul>
+
+<h2>Kontrola geometrie</h2>
+<p>Kontroluje se při načtení; problémy se ukážou v okně a v logu („Kontrola geometrie: …“). Analýzu to neblokuje, ale může selhat nebo být nepřesná.</p>
+<table class="grid">
+<tr><th>Hlášení</th><th>Význam</th><th>Co dělat</th></tr>
+<tr><td>Soubor STEP obsahuje plochy nebo skořepiny bez objemu (ignorovány…)</td><td>plochy, které nejsou tělesem (např. povrch z importu)</td><td>v CAD slít do tělesa, nebo nechat – neanalyzují se</td></tr>
+<tr><td>Díl '…': těleso není topologicky platné (BRepCheck)</td><td>vadné hrany nebo plochy</td><td>opravit v CAD (heal), exportovat znovu; síťování může selhat</td></tr>
+<tr><td>Díl '…': nulový nebo záporný objem</td><td>obrácené plochy nebo otevřené těleso</td><td>opravit v CAD</td></tr>
+<tr><td>Soubor STEP neobsahuje těleso (solid)</td><td>exportovány jen plochy</td><td>exportovat tělesa, ne plochy</td></tr>
+</table>
+
+<h2>Díly ve stromu studie</h2>
+<p>Větev <b>Díly</b> ukazuje všechny díly; sloupec Info materiál nebo stav:</p>
+<ul>
+<li><b>šroub (prut)</b> – šroub, matice nebo podložka: nesíťuje se, nahrazuje ho prut (Spoje),</li>
+<li><b>vyloučený</b> – vyřazen z analýzy,</li>
+<li><b>bez materiálu</b> (červeně).</li>
+</ul>
+
+<h3>Sestavy: dotýkající se díly jsou slepené (bez dvojice kontaktu)</h3>
+<p>Síť je spojitá: díly dotýkající se plochou sdílejí uzly a jsou <b>tuhě spojené</b> (bez tření, bez mezery). Tabulka
+<b>Spojené díly (sdílená síť)</b> v kroku Spoje je vypisuje (Díl A / Díl B / Kontakt [mm²]). Díly dotýkající se jen hranou nebo bodem nejsou spolehlivě spojeny – zkontrolujte je.</p>
+<p>Pro oddělení, tření, lisovaný spoj nebo jen tlak definujte dvojici v <a href="kontakty.html">Kontakty</a> (<b>Najít dotýkající se díly</b> prohledá sestavu); díly dvojice se sítují odděleně a analýza je nelineární. Rozhraní šroubových spojů: políčko <b>rozhraní šroubového spoje jako kontakt</b> (Kontakty).</p>
+
+<h3 id="telesa">Zapínání a vypínání těles: Zobrazit / Počítat</h3>
+<ul>
+<li><b>Zobrazit</b> – viditelné ve 3D. Jen zobrazení (analýza, síť, výsledky se nemění); skryté těleso nelze vybrat (k odkrytí vnitřních dílů). Ukládá se do projektu; Ctrl+Z vrací.</li>
+<li><b>Počítat</b> – v analýze. Vypnuté těleso (magnet, čep, kabel, koupený díl) se nesíťuje ani nepočítá a je ve 3D průhledné. Zruší síť; výběry, podpory a zatížení ostatních těles zůstanou.</li>
+</ul>
+<p>Zaškrtnutí ve vybraném řádku platí pro všechny vybrané řádky. Pravý klik v tabulce: skrýt / zobrazit, <b>Zobrazit jen vybraná tělesa</b>, <b>Zobrazit vše</b>, <b>Zahrnout vše do výpočtu</b>, <b>Podle názvu</b> (např. <i>šroub</i>, <i>M6*</i>, <i>*magnet*</i>; bez hvězdičky stačí část názvu). Totéž dělají tlačítka pod tabulkou a pravý klik na díl ve stromu.</p>
+<p>Tělesa skrytá v CAD (sestava Fusion z .f3d / .f3z, metadata <code>"hidden": true</code>) se načtou skrytá a vyřazená z výpočtu. Díly lze vyřadit i v <a href="spoje.html">Spoje</a> (skupina <b>Díly vynechané z výpočtu</b>).</p>
+
+<h2>Výběr ploch a selektory</h2>
+<p>Podpory, zatížení, tepelné podmínky a zjemnění používají <b>výběry ploch</b>. Výběr pamatuje <b>selektor</b> (název dílu, typ plochy, plocha, těžiště, bod s normálou, obálka), ne číslo plochy, takže projekt přežije nový export téhož modelu.</p>
+<ul>
+<li>Názvy podle účelu a pořadí: „Pevná vazba 1“, „Posuv 2“, „Válcová podpora 1“, „Síla 3“, „Tlak 1“, „Ložiskové zatížení 1“, „Zjemnění 1“… Pod nimi se řadí reakce ve výsledcích.</li>
+<li>Plocha se najde jen při téměř přesné shodě (plocha, těžiště, obálka do 0,01 % velikosti plochy); změněná plocha (velikost, poloha, rozdělení) se nenajde.</li>
+<li>Plochy existující podpory nebo zatížení nahraďte tlačítkem <b>Plochy z výběru</b> v jeho kroku.</li>
+</ul>
+
+<h2>Barvy ve 3D</h2>
+<table class="grid">
+<tr><th>Barva</th><th>Význam</th><th>Poznámka</th></tr>
+<tr><td>světle střídavé barvy</td><td>díly</td><td>barvy z CAD se čtou jen pro detekci svarů (Spoje)</td></tr>
+<tr><td>světle modrá</td><td>plocha / díl pod kurzorem</td><td></td></tr>
+<tr><td>oranžová</td><td>vybrané plochy</td><td></td></tr>
+<tr><td>modrá s popiskem</td><td>podpory (u válcové podpory i osa)</td><td>Podpory, Zatížení, Řešení</td></tr>
+<tr><td>červená se šipkami</td><td>síly (složky, ložisko, vzdálené)</td><td>aktuální stav</td></tr>
+<tr><td>fialová</td><td>tlak</td><td></td></tr>
+<tr><td>tyrkysová</td><td>místní zjemnění sítě</td><td>Síť</td></tr>
+<tr><td>purpurová</td><td>vybraná hrana (filtr hran)</td><td></td></tr>
+<tr><td>průhledná</td><td>díly vyřazené z analýzy</td><td></td></tr>
+</table>
+
+<h2>V ukázkách</h2>
+<ul>
+<li><b>Ukázka 1 – tištěný držák:</b> jeden díl „Drzak (tisk PLA)“ – stěnová deska 60×40×6 mm s dírami Ø5 pro šrouby, rameno s okem Ø8, žebro. Kontrola geometrie nic nehlásí.</li>
+<li><b>Ukázka 2 – sestava:</b> 13 dílů – Patka (základová deska), Sloupek, Svar a4 vlevo, Svar a4 vpravo, Rameno (tisk PLA), dva šrouby „ISO 4017 - M6 x 30 - 8.8:1/:2“, čtyři podložky „ISO 7089 - 6 - 200 HV“, dvě matice „ISO 4032 - M6 - 8“. Šrouby, podložky a matice mají „šroub (prut)“ a nesíťují se. Rameno přilehá přírubou k desce a je v síti slepené (tabulka Spojené díly); svary jsou samostatná tělesa.</li>
+</ul>
+
+<h2>Časté problémy</h2>
+<ul>
+<li><b>„Soubor nelze otevřít: Cannot read STEP …“</b> – neplatný nebo poškozený STEP; exportujte znovu (AP214 / AP242).</li>
+<li><b>„Některé vybrané plochy nebyly v modelu nalezeny (nezměnil se model?)“</b> – plochy se změnily (velikost, rozdělení, přejmenovaný díl). Vyberte znovu a stiskněte u položky <b>Plochy z výběru</b>. Při výpočtu zní „Některé vybrané plochy, hrany nebo body nebyly nalezeny“.</li>
+<li><b>Přejmenovaný díl dostal jiný materiál</b> – materiály se řídí názvem dílu; nový název dostane výchozí. Zkontrolujte sloupec Materiál, přiřaďte v Materiály.</li>
+<li><b>„Objemová síť nebyla vytvořena – geometrie se pravděpodobně protíná nebo se díly dotýkají tečně (válec v drážce, splývající plochy).“</b> – díly se překrývají nebo dotýkají podél čáry (čep v drážce). Odstraňte překryv v CAD nebo díl vyřaďte.</li>
+<li><b>„Některé díly nejsou připojeny k podpoře (volná tělesa – úloha by byla singulární)“</b> – díl se plochou ničeho nedotýká a není sešroubovaný ani svařený. Program nabídne vyřazení; jinak upravte geometrii nebo přidejte spoj.</li>
+<li><b>„Výběr '…': díl '…' je vyřazen (nesíťován)“</b> – podpora nebo zatížení leží na vyřazeném dílu (nebo šroubu). Přesuňte je na nosný díl nebo díl vraťte.</li>
+</ul>

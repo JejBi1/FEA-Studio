@@ -1,0 +1,218 @@
+<h1>Testování programu</h1>
+<p class="lead">Deset testovacích úloh se známým výsledkem (analytické řešení nebo normový výpočet) a průvodce ukázkami. Každá má postup a tabulku očekávaných hodnot.</p>
+
+<h2>Příprava</h2>
+<ul>
+<li>Spuštění: zástupce <b>FEA Studio</b> na ploše nebo <code>FEA Studio.bat</code> ve složce programu.</li>
+<li>Testovací modely: složka <code>examples\user_tests</code> v instalaci (<code>T1_…step</code> až <code>T10_…step</code>); znovu je vytvoří <code>.venv\Scripts\python.exe -m examples.user_tests</code>.</li>
+<li>Ukázky s průvodcem: <b>Nápověda → Průvodce ukázkou</b> (viz <a href="ukazky.html">Ukázky a průvodce</a>).</li>
+<li>Kontrolní výpočty celého programu bez GUI (asi 10 minut): <code>.venv\Scripts\python.exe -m verification.run_all</code>. Výsledek musí končit řádkem <b>VÝSLEDEK: všechny kontroly prošly</b>.</li>
+</ul>
+<p class="tip"><b>Tip:</b> hodnoty z MKP se od analytických liší o síť; tolerance je u každé hodnoty. Posuvy do ~3 %, napětí mimo singularity do ~5 %. Větší odchylka = chyba (pošlete projekt .fea a popis).</p>
+
+<h2>Doporučené pořadí</h2>
+<ol>
+<li><b>Průvodce ukázkou 1</b> (tištěný držák), výpočet ~1 min.</li>
+<li><b>Průvodce ukázkou 2</b> (sestava: šrouby, svary, teplo, únava), výpočet ~3 min.</li>
+<li>Testy T1–T7, každý 5–10 minut včetně zadání.</li>
+<li>Dynamika, kontakty a mechanismy: průvodci 7–9 a testy T8–T10.</li>
+<li>Vlastní model z CADu (STEP) – postupujte lištou kroků; nápověda <span class="key">F1</span>.</li>
+<li>Protokol Word (<span class="key">Ctrl+P</span>) a příručka (Nápověda → Průvodce ukázkou → Příručka).</li>
+</ol>
+
+<h2>T1 – konzola: statika, průhyb a napětí</h2>
+<p>Ocelový nosník 200 × 20 × 10 mm, vetknutý na jednom konci; na druhém síla 100 N kolmo na výšku 10 mm.</p>
+<p><img src="model_t1_cantilever.png" alt="Model T1 – Konzola"></p>
+<ol>
+<li><span class="key">Ctrl+O</span> → <code>T1_cantilever.step</code>.</li>
+<li>Materiál dílu Konzola: <b>Ocel S235</b> (E = 210 000 MPa, ν = 0,3).</li>
+<li>Vazby: čelo x = 0 (klik na plochu) → <b>Vetknutí</b>.</li>
+<li>Zatížení: čelo x = 200 → <b>Síla</b> (0; 0; −100) N.</li>
+<li>Síť: velikost prvku 2,5 mm → Vytvořit síť; Řešení → Spustit výpočet.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th><th>Kde odečíst</th></tr>
+<tr><td>Průhyb konce (posuv Z)</td><td>0,763 mm (Timoshenko), MKP ~0,76 mm (±3 %)</td><td>Výsledky → Posuv Z, souhrn</td></tr>
+<tr><td>σx v polovině délky na horní / dolní ploše</td><td>+30 / −30 MPa (±5 %)</td><td>Napětí σx, klik do modelu v x = 100</td></tr>
+<tr><td>Reakce ve vetknutí Fz</td><td>100 N</td><td>souhrn výsledků – reakce</td></tr>
+<tr><td>Max. von Mises</td><td>u vetknutí, označeno jako singularita (hrana vazby)</td><td>tabulka Nejvyšší napětí</td></tr>
+</table>
+<p><b>Únava na stejném modelu:</b> krok Únava → kanál stavu se silou: sinus, střed 0, amplituda 1, 1000 kmitů v bloku, 100 bloků, znaménkový von Mises, vlastní S-N pro ocel: SD = 20 MPa, ND = 10⁶, k = 5, k2 = 0. V uzlu na horní ploše v x = 100: amplituda 30 MPa (±5 %), poškození za 100 bloků ≈ 0,74, bezpečnost ≈ 1,06.</p>
+
+<h2>T2 – deska s otvorem: koncentrace napětí a symetrie</h2>
+<p>Osmina desky (šířka 100, tloušťka 5 mm, otvor Ø10, tah 100 MPa): model 150 × 50 × 2,5 mm se čtvrtinou otvoru v rohu.</p>
+<p><img src="model_t2_plate_with_hole_eighth.png" alt="Model T2 – Deska s otvorem"></p>
+<ol>
+<li>Otevřít <code>T2_plate_with_hole_eighth.step</code>, Ocel S235.</li>
+<li>Vazby symetrie (<b>Předepsaný posuv</b> jedné složky): plocha x = 0 → ux = 0; plocha y = 0 → uy = 0; spodní plocha z = 0 → uz = 0.</li>
+<li>Zatížení: čelo x = 150 → <b>Tlak</b> −100 MPa (záporný tlak = tah).</li>
+<li>Síť 4 mm, místní zjemnění plochy otvoru (filtr Díra <span class="key">H</span>) na 0,35 mm.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th><th>Kde odečíst</th></tr>
+<tr><td>σx max na okraji otvoru (x = 0, y = 5)</td><td>≈ 303 MPa (Kt,n = 2,729 × 111,1 MPa, ±5 %)</td><td>Napětí σx</td></tr>
+<tr><td>Reakce Fx v rovině x = 0</td><td>12 500 N (100 MPa × 50 × 2,5)</td><td>souhrn – reakce</td></tr>
+<tr><td>Klasifikace maxima</td><td>skutečné místo (ne singularita)</td><td>Nejvyšší napětí</td></tr>
+</table>
+
+<h2>T3 – tlustostěnná trubka: Lamé, teplo a teplotní napětí</h2>
+<p>Čtvrtina prstence ri = 20, ro = 40 mm, výška 10 mm.</p>
+<p><img src="model_t3_pipe_quarter.png" alt="Model T3 – Tlustostěnná trubka"></p>
+<ol>
+<li>Otevřít <code>T3_pipe_quarter.step</code>, Ocel S235.</li>
+<li>Vazby: plocha x = 0 → ux = 0; plocha y = 0 → uy = 0; spodní plocha z = 0 → uz = 0.</li>
+<li>Zatížení: vnitřní válcová plocha (R 20) → Tlak 100 MPa. Síť 2,5 mm, výpočet.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th></tr>
+<tr><td>σθ (obvodové) na ri / ro</td><td>166,7 / 66,7 MPa (±5 %)</td></tr>
+<tr><td>von Mises na ri</td><td>233,3 MPa (±5 %)</td></tr>
+<tr><td>Radiální posuv vnitřní plochy</td><td>0,01873 mm (±3 %)</td></tr>
+</table>
+<p><b>Teplo na stejném modelu:</b> krok Teplo → nový ustálený stav: vnitřní plocha <b>Teplota</b> 100 °C, vnější plocha (R 40) 20 °C. Výsledky (stav „Teplo: …“), S235, λ = 53,3 W/(m·K):</p>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th></tr>
+<tr><td>Teplota v r = 30 mm</td><td>53,2 °C (logaritmický průběh)</td></tr>
+<tr><td>Tepelný tok |q| v r = 30 mm</td><td>≈ 205 000 W/m²</td></tr>
+<tr><td>Teplo vnitřní plochou</td><td>≈ 96,6 W (tabulka tepla okrajových podmínek), bilance do 0,1 %</td></tr>
+</table>
+
+<h2>T4 – hřídel: krut přes vzdálený bod</h2>
+<p>Hřídel Ø20 × 200 mm, vetknutá na x = 0, na druhém čele krouticí moment 100 N·m.</p>
+<p><img src="model_t4_shaft.png" alt="Model T4 – Hřídel namáhaná krutem"></p>
+<ol>
+<li>Otevřít <code>T4_shaft.step</code>, Ocel S235; vetknutí čela x = 0.</li>
+<li>Zatížení: čelo x = 200 → <b>Vzdálená síla / moment</b>, bod (200; 0; 0), moment Mx = 100 000 N·mm, vazba distribuční.</li>
+<li>Síť 2,5 mm, výpočet.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th></tr>
+<tr><td>Smykové napětí na povrchu (τ = T/Wk)</td><td>63,66 MPa; von Mises na povrchu ≈ √3 · 63,66 = 110 MPa</td></tr>
+<tr><td>Zkroucení konce</td><td>0,903° (posuv na obvodu konce ≈ 0,158 mm)</td></tr>
+<tr><td>Reakční moment ve vetknutí</td><td>100 000 N·mm</td></tr>
+</table>
+
+<h2>T5 – šroubový spoj M10: rozpoznání, předpětí, posudky</h2>
+<p>Dvě přeplátované desky 10 mm, šroub ISO 4017 M10 8.8 s podložkami a maticí (názvy z CADu).</p>
+<p><img src="model_t5_joint_m10.png" alt="Model T5 – Šroubový spoj M10"></p>
+<ol>
+<li>Otevřít <code>T5_joint_M10.step</code>, desky Ocel S235.</li>
+<li>Spoje → <b>Rozpoznat spoje…</b> → potvrdit šroub (M10 8.8, s maticí, podložkami).</li>
+<li>Vazby: čelo desky B na x = 160 → Vetknutí. Zatížení: čelo desky A na x = 0 → Síla (−10 000; 0; 0) N.</li>
+<li>Síť 5 mm, výpočet (CalculiX – šrouby jiný řešič nepodporuje).</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th><th>Kde</th></tr>
+<tr><td>Stav Předpětí šroubů – síla ve šroubu</td><td>F_V = 19 760 N</td><td>dok Spoje – využití</td></tr>
+<tr><td>VDI 2230 F_M,zul (μ_G = 0,12)</td><td>29 603 N</td><td>posudek šroubu</td></tr>
+<tr><td>EN 1993-1-8 F_v,Rd (střih v závitu)</td><td>22 268 N</td><td>posudek šroubu</td></tr>
+<tr><td>EN 1993-1-8 F_b,Rd (otlačení, e1 = e2 = 20)</td><td>43 636 N</td><td>posudek šroubu</td></tr>
+<tr><td>Smyk přenesený spárou + šroubem</td><td>10 000 N</td><td>síly ve spoji</td></tr>
+</table>
+
+<h2>T6 – T-spoj s koutovými svary a5</h2>
+<p>Pásnice 10 mm, stojina 10 × 100 mm, dva koutové svary a5 délky 100 mm (tělesa „Svar …“).</p>
+<p><img src="model_t6_t_joint_welds_a5.png" alt="Model T6 – T-spoj se svary"></p>
+<ol>
+<li>Otevřít <code>T6_t_joint_welds_a5.step</code>, Ocel S235. Spoje → Rozpoznat spoje… → potvrdit 2 svary.</li>
+<li>Vazby: spodní plocha pásnice (z = −10) → Vetknutí.</li>
+<li>Dva zatěžovací stavy: „Tah“: horní plocha stojiny (z = 100) → Síla (0; 0; 20 000) N; „Podélný smyk“: tatáž plocha → Vzdálená síla v bodě (0; 50; 0), síla (0; 10 000; 0) N.</li>
+<li>Síť 5 mm, výpočet.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th></tr>
+<tr><td>Účinná výška a / délka svaru ze sítě</td><td>5,0 mm / 100 mm</td></tr>
+<tr><td>Tah: součet sil úseků obou svarů</td><td>20 000 N</td></tr>
+<tr><td>Podélný smyk: průměrné τ∥ = F / (2·a·L)</td><td>10 MPa</td></tr>
+</table>
+
+<h2>T7 – 3D tisk: ortotropie podle směru stavby</h2>
+<p>Dvě tyče 100 × 10 × 10 mm z PLA: jedna tištěná nastojato (vrstvy kolmo na délku), druhá naležato.</p>
+<p><img src="model_t7_printed_bars.png" alt="Model T7 – 3D tisk tyčí"></p>
+<ol>
+<li>Otevřít <code>T7_printed_bars.step</code>. Materiál obou dílů <b>Tisk PLA Bambu Basic</b>.</li>
+<li>Krok 3D tisk: díl „Tyc nastojato“ – směr stavby <b>+X</b>, „Tyc nalezato“ – <b>+Z</b>; u obou vypnout „skořepina + výplň“ (celý díl plný) → Použít na vybrané díly. Kritérium porušení <b>Tsai-Hill</b>.</li>
+<li>Vazby (posuvné uložení): čela x = 0 → ux = 0; boky y = 0 a y = 20 → uy = 0; spodní plochy z = 0 → uz = 0.</li>
+<li>Zatížení: obě čela x = 100 → Tlak −10 MPa. Síť 3 mm, výpočet.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th></tr>
+<tr><td>Prodloužení tyče nastojato (tah kolmo na vrstvy)</td><td>σL/E_z = 0,4630 mm</td></tr>
+<tr><td>Prodloužení tyče naležato (tah v rovině vrstvy)</td><td>σL/E_xy = 0,3731 mm</td></tr>
+<tr><td>3D tisk – bezpečnost (Tsai-Hill)</td><td>nastojato 3,50 (Rm_z/σ), naležato 3,90 (Rm/σ)</td></tr>
+<tr><td>Reakce Fx</td><td>2 000 N</td></tr>
+</table>
+<p>Pak zapněte „skořepina + výplň“ (3 perimetry, výplň 20 %): tuhost i bezpečnost klesnou; v řezu Skořepina / jádro uvidíte podíl plné skořepiny.</p>
+
+<h2>T8 – konzola: vlastní frekvence a harmonická odezva</h2>
+<p>Ocelový nosník 100 × 10 × 10 mm vetknutý na jednom konci, na volném konci harmonická síla 100 N (ověřovací úloha Y2).</p>
+<p><img src="model_t8_cantilever_10x10x100.png" alt="Model T8 – Dynamická konzola"></p>
+<ol>
+<li>Otevřít <code>T8_cantilever_10x10x100.step</code>, Ocel S235.</li>
+<li>Vazby: čelo x = 0 → <b>Vetknutí</b>. Zatížení: čelo x = 100 → <b>Síla</b> (0; 100; 0) N, stav pojmenujte „Síla Y 100 N“.</li>
+<li>Krok <b>Dynamika</b>: <b>počítat dynamiku</b>, 10 módů; modální tlumení ζ = 2 %; <b>počítat harmonickou odezvu</b>, 10–2 000 Hz; buzení <b>síla</b> – stav Síla Y 100 N (Přidat buzení); sonda v bodě (100; 5; 5).</li>
+<li>Síť 2,5 mm, výpočet (asi 20 s).</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th><th>Kde odečíst</th></tr>
+<tr><td>1. a 2. vlastní frekvence (ohyb v y a z)</td><td>833 Hz (Euler–Bernoulli 835,5 Hz, Timoshenko o 0,3 % méně; ±1 %)</td><td>karta Dynamika – tabulka módů</td></tr>
+<tr><td>Součet efektivních hmot obou módů ve směru y</td><td>61 % (E–B 61,3 %); u čtvercového průřezu se může rozdělit mezi oba módy</td><td>tabulka módů</td></tr>
+<tr><td>3. a 4. mód (2. ohybový), 5. mód (krut), 6. mód (podélný)</td><td>≈ 5 000 Hz (E–B 5 236 Hz), ≈ 7 390 Hz, ≈ 12 970 Hz</td><td>tabulka módů</td></tr>
+<tr><td>Statický průhyb konce (stav Síla Y 100 N)</td><td>0,190 mm (E–B FL³/3EI = 0,1905 mm)</td><td>Posuv Y, souhrn</td></tr>
+<tr><td>Špička |u<sub>y</sub>| v sondě (rezonance)</td><td>4,62 mm = 24,2 × statický průhyb (E–B 0,9707/(2ζ) = 24,27; ±2 %)</td><td>karta Dynamika – graf FRF, sonda</td></tr>
+<tr><td>|u<sub>y</sub>| při 10 Hz</td><td>0,190 mm (kvazistaticky = statický průhyb)</td><td>graf FRF</td></tr>
+</table>
+<p>Pro ζ = 1 % se špička zdvojnásobí (odezva v rezonanci je nepřímo úměrná tlumení).</p>
+
+<h2>T9 – kontakt dvou kvádrů: tlak ve styku</h2>
+<p>Dva ocelové kvádry 20 × 20 × 10 mm na sobě, na horní ploše tlak 10 MPa, styk bez tření (ověřovací úloha K1 – „patch test“).</p>
+<p><img src="model_t9_contact_blocks.png" alt="Model T9 – Kontakt dvou kvádrů"></p>
+<ol>
+<li>Otevřít <code>T9_contact_blocks.step</code>, Ocel S235.</li>
+<li>Vazby (posuvné uložení): spodní plocha z = 0 → uz = 0; plochy x = 0 (oba kvádry) → ux = 0; plochy y = 0 → uy = 0.</li>
+<li>Zatížení: horní plocha z = 20 → <b>Tlak</b> 10 MPa.</li>
+<li>Krok <b>Kontakty</b>: <b>Najít dotyky</b> → pár Kvadr A – Kvadr B, typ <b>Styk bez tření</b> → Přidat. Výpočet je nelineární (CalculiX).</li>
+<li>Síť 2,5 mm, výpočet (asi 20 s).</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina</th><th>Očekávaná hodnota</th><th>Kde odečíst</th></tr>
+<tr><td>Kontakt – tlak</td><td>10,0 MPa rovnoměrně (±0,5 %)</td><td>veličina Kontakt – tlak</td></tr>
+<tr><td>Normálová síla páru</td><td>4 000 N (10 MPa × 400 mm²)</td><td>karta Kontakty</td></tr>
+<tr><td>Posuv horní plochy</td><td>−0,000953 mm (2ph/E + p/K, K = 50·E)</td><td>Posuv Z</td></tr>
+<tr><td>Kontakt – rozevření, stav styku</td><td>0 mm, celá plocha ve styku</td><td>veličiny kontaktu</td></tr>
+</table>
+<p><img src="model_t9b_press_fit_eighth.png" alt="Model T9b – Lisovaný spoj"></p>
+<p><b>T9b – lisovaný spoj</b> (<code>T9b_press_fit_eighth.step</code>, ověřovací úloha K4): osmina hřídele Ø20 v náboji Ø20/40, délka 2 × 10 mm. Vazby symetrie: x = 0 → ux = 0, y = 0 → uy = 0, z = 0 → uz = 0. Prázdný zatěžovací stav „Lis“. Kontakty: pár Hridel – Naboj, typ <b>Přesah (lisovaný spoj)</b>, přesah −0,01 mm (Δd = 0,02 mm). Síť 1,25 mm (výpočet asi 1 min). Očekávané hodnoty (Lamé): tlak ve spoji 78,75 MPa (MKP průměr ~80 MPa), obvodové napětí náboje na vnitřním povrchu 131,3 MPa, radiální posuv vnitřního povrchu náboje +7,4 µm, hřídele −2,6 µm.</p>
+
+<h2>T10 – klikový mechanismus: kinematika a moment pohonu</h2>
+<p>Klika r = 20 mm, ojnice l = 80 mm, píst; klika se otáčí stálou úhlovou rychlostí 100 rad/s, na píst působí síla 1 000 N proti směru X (ověřovací úloha MB1).</p>
+<p><img src="model_t10_crank_r20_l80.png" alt="Model T10 – Klikový mechanismus"></p>
+<ol>
+<li>Otevřít <code>T10_crank_r20_l80.step</code>, materiál všech dílů Ocel S235.</li>
+<li>Krok <b>Pohyb</b>, karta <b>Tělesa</b>: <b>Těleso za každý díl</b> (první díl Ram = rám).</li>
+<li>Karta <b>Klouby</b>: <b>Navrhnout z geometrie</b> → přijmout 3 rotační klouby (rám–klika, klika–ojnice, ojnice–píst). Přidat kloub <b>Posuvný</b> rám – píst, počátek (100; 0; 13), osa (1; 0; 0).</li>
+<li>Karta <b>Pohony a síly</b>: pohon kloubu rám–klika, <b>úhlová rychlost</b> konstantní 100 rad/s; zatížení tělesa Pist síla (−1 000; 0; 0) N v bodě (100; 0; 13); tíhu vypnout.</li>
+<li>Karta <b>Výpočet</b>: kinematická úloha, doba 0,0628319 s (jedna otáčka), 360 výstupů → <b>Kontrola volnosti</b> (volnost s pohony 0, 3 redundantní vazby) → <b>Spustit pohyb</b>.</li>
+</ol>
+<table class="grid">
+<tr><th>Veličina v čase t = 0,010472 s (klika 60°)</th><th>Očekávaná hodnota</th></tr>
+<tr><td>Poloha pístu x (těžiště = osa čepu)</td><td>88,102 mm (r·cos φ + √(l² − r²·sin² φ))</td></tr>
+<tr><td>Rychlost pístu v<sub>x</sub></td><td>−1 953,8 mm/s</td></tr>
+<tr><td>Zrychlení pístu a<sub>x</sub></td><td>−75 022 mm/s²</td></tr>
+<tr><td>Moment pohonu bez setrvačnosti (tělesům ručně hmotnost 0,001 kg a nulová setrvačnost)</td><td>|M| = F·|v|/ω = 19 538 N·mm</td></tr>
+<tr><td>Moment pohonu s hmotností z CAD (ocel)</td><td>|M| ≈ 19 250 N·mm (setrvačné síly ojnice a pístu)</td></tr>
+<tr><td>Rovnováha těles, výkonová bilance</td><td>≈ 0 (souhrn výsledku pohybu)</td></tr>
+</table>
+<p>Znaménko rychlosti a momentu závisí na směru osy kloubu kliky (+z = proti směru hodinových ručiček při pohledu shora). Pak zkuste <b>Převést do MKP…</b> pro ojnici (okamžik maxima reakce v čepu pístu), jako v ukázce 8.</p>
+
+<h2>Co dalšího vyzkoušet</h2>
+<ul>
+<li><b>Řešiče:</b> krok Řešení → oddíl Řešič: CalculiX / NGSolve + PARDISO / NGSolve + hypre; výsledky se mají shodovat (T1 posuv na 4 platné číslice). Řešiče NGSolve má jen profil <b>Úplná</b> (moduly ngsolve, hypre a ve Windows Microsoft MPI); ve standardní instalaci jsou zašedlé s poznámkou „není nainstalováno“ – doinstalujte je tlačítkem <b>Doinstalovat řešiče…</b> (Nástroje → Moduly programu…) a restartujte program, nebo test přeskočte.</li>
+<li><b>Zpět / znovu</b> (<span class="key">Ctrl+Z</span> / <span class="key">Ctrl+Y</span>), uložení <span class="key">Ctrl+S</span> a znovuotevření (výsledky se uloží s projektem).</li>
+<li><b>Protokol Word</b> (<span class="key">Ctrl+P</span>) z libovolného testu – čísla porovnejte s tabulkami.</li>
+<li><b>Řez</b> ve výsledcích (lišta nahoře: Řez → osa a posuvník) a <b>sonda</b> klikem do modelu.</li>
+<li><b>Automatizace:</b> <a href="automatizace.html">příkazová řádka, MCP, REST</a>, např. <code>python -m fea_core run study.json</code>.</li>
+</ul>
+
+<h2>Hlášení chyb</h2>
+<p>Pošlete uložený projekt <code>.fea</code> (Ctrl+S), text z doku <b>Log řešiče</b> (Ctrl+A, Ctrl+C), co jste čekali a co program udělal. U pádu i obsah okna příkazové řádky, pokud bylo otevřené.</p>

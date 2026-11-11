@@ -1,0 +1,194 @@
+<h1>Export z CADu (SolidWorks, Inventor, Fusion…)</h1>
+<p class="lead">Jak dostat model z CADu do FEA Studia: export do STEP s správným nastavením, nebo u Fusionu, SOLIDWORKS a Inventoru tlačítko <b>Odeslat do FEA Studia</b>, které přenese i materiály dílů.</p>
+
+<h2>Rychlý přehled</h2>
+<table class="grid">
+<tr><th>CAD</th><th>Nejsnazší cesta</th><th>Přenesou se materiály?</th></tr>
+<tr><td>Autodesk Fusion</td><td>doplněk – tlačítko <b>Odeslat do FEA Studia</b> v panelu FEA STUDIO</td><td>ano</td></tr>
+<tr><td>SOLIDWORKS 2020–2025</td><td>makro <b>FEAStudio_Export</b> (tlačítko na panelu)</td><td>ano</td></tr>
+<tr><td>Autodesk Inventor 2021–2026</td><td>pravidlo iLogic <b>FEAStudio_Export</b> (tlačítko na pásu od 2023)</td><td>ano</td></tr>
+<tr><td>ostatní (Solid Edge, Creo, CATIA, NX, Onshape, FreeCAD, Rhino…)</td><td>ruční export STEP AP214 → přetáhněte na okno FEA Studia, nebo <b>Odeslat do → FEA Studio</b></td><td>ne – přiřaďte je v kroku <a href="materialy.html">Materiály</a></td></tr>
+</table>
+<p class="warn">Makro SOLIDWORKS a pravidlo Inventoru zatím nebyla vyzkoušena v ostrém SOLIDWORKS ani Inventoru (ověřena byla jen jejich logika mimo CAD). Při prvním použití zkontrolujte, že se soubor STEP uložil a FEA Studio se otevřelo; jinak použijte ruční export.</p>
+
+<h2>Co FEA Studio potřebuje</h2>
+<table class="grid">
+<tr><th>Požadavek</th><th>Poznámka</th></tr>
+<tr><td><b>STEP</b> (.step, .stp), protokol <b>AP214</b> nebo AP242</td><td>AP203 funguje, ale nenese barvy. AP242 jen s přesnou geometrií (B-rep), ne „tesselated“ (trojúhelníková síť). Jiné formáty se neotevřou.</td></tr>
+<tr><td><b>Plná tělesa</b>, ne plochy ani drátový model</td><td>MKP počítá objem. STEP jen z ploch vytvoří <a href="shell.html">model skořepin</a> (tloušťku zadáte).</td></tr>
+<tr><td><b>Celá sestava v jednom souboru</b>, díly na skutečných pozicích</td><td>Vypněte „každý díl do vlastního souboru STEP“.</td></tr>
+<tr><td><b>Názvy dílů</b></td><td>Materiály, šrouby a výběry ploch jsou vázány na název dílu; přejmenovaný díl je pro studii jiný díl.</td></tr>
+<tr><td><b>Šrouby</b>, matice a podložky s normovaným názvem</td><td>Např. „ISO 4017 - M8 x 30 - 8.8“, „ISO 4762 M6 x 20:1“, „ISO 4032 - M8“, „DIN 125-1 A 8,4“ (podložka M8). Díly z knihoven (Toolbox, Content Center) je obvykle mají. Krok <a href="spoje.html">Spoje</a> → <b>Rozpoznat spoje…</b></td></tr>
+<tr><td><b>Svary</b> jako samostatná tělesa</td><td>Název „Svar…“ / „Weld…“, vrstva nebo atribut se slovem svar / weld, nebo jednotná barva (pole <b>Barva svarů v CAD</b> v kroku Spoje).</td></tr>
+<tr><td><b>Jen díly k analýze</b></td><td>Nepotřebné díly v CADu <b>potlačte</b> – skrytí nestačí. Fusion a Onshape skryté díly neexportují; Inventor a SOLIDWORKS je podle verze mohou zapsat do STEP a FEA Studio by je síťovalo. Jinak je vynechte v Spojích → <b>Díly vynechané z výpočtu</b>.</td></tr>
+<tr><td>Libovolné <b>jednotky</b></td><td>Při načtení se převedou na mm (palce, metry). Doporučeno mm; zkontrolujte objemy dílů v přehledu modelu.</td></tr>
+<tr><td><b>Žádné interference</b></td><td>Dotýkající se díly se v síti spojí. Překrývající se díly buď nelze síťovat, nebo společný objem patří jednomu dílu (varování „Díly … se překrývají“ v kroku <a href="sit.html">Síť</a>) – výpočet pak běží na špatné geometrii. Odstraňte interference v CADu.</td></tr>
+</table>
+<p>Podrobnosti o názvech dílů a kontrole geometrie: <a href="model.html">1. Model</a>.</p>
+
+<h2>Jak otevřít STEP ve FEA Studiu</h2>
+<table class="grid">
+<tr><th>Způsob</th><th>Postup</th></tr>
+<tr><td>Otevřít</td><td>Krok Model → <b>Otevřít STEP / projekt…</b>, nebo <span class="key">Ctrl+O</span></td></tr>
+<tr><td>Přetažení</td><td>Přetáhněte soubor .step / .stp (nebo .fea) z Průzkumníka na okno FEA Studia – kamkoli, i do 3D pohledu – nebo na zástupce <b>FEA Studio</b>.</td></tr>
+<tr><td>Odeslat do</td><td>Pravý klik na STEP → <b>Odeslat do → FEA Studio</b> (Windows 11: nejdřív <b>Zobrazit další možnosti</b>, nebo <span class="key">Shift</span> + pravý klik). Instalátor zástupce vytvoří.</td></tr>
+</table>
+<ul>
+<li>Spuštění zástupcem, přes Odeslat do nebo makrem vždy otevře <b>nové okno</b>. Přetažení na otevřené okno nahradí model v něm (neuložené změny → dotaz, zda uložit).</li>
+<li>Při přetažení více souborů se otevře jen první. Během výpočtu se nic neotevře.</li>
+</ul>
+
+<h2 id="nativni">Díly a sestavy Inventoru a návrhy Fusionu bez exportu STEP (modul native)</h2>
+<p>S volitelným modulem <b>native</b> (Nástroje → Moduly programu…) otevřete díl Inventoru <b>.ipt</b>, sestavu <b>.iam</b> a návrh Fusionu <b>.f3d</b> / <b>.f3z</b> přímo – bez CADu na počítači a bez exportu STEP (Otevřít, přetažení na okno, Nahradit geometrii). Program čte přesnou geometrii jádra ShapeManager a převede ji na tělesa; pro analýzu a projekt se uloží jako STEP v mezipaměti, takže vše ostatní funguje stejně.</p>
+<ul>
+<li>Každé těleso se kontroluje (správná topologie, kladný objem). Co nejde spolehlivě převést (závity bez uložené aproximace, eliptický válec), zastaví otevření s vysvětlením – pak použijte STEP.</li>
+<li><b>Sestavy Inventoru .iam</b> nesou jen odkazy a pozice: soubory .ipt (a podsestavy .iam) musí ležet vedle sestavy ve stejné složkové struktuře jako v Inventoru (stačí zkopírovat celou složku projektu). Díly se umístí na pozice výskytů včetně podsestav; názvy těles jako v Inventoru (<i>Deska:2</i>, díl s více tělesy <i>Deska:2_1</i>…). Pozice se kontrolují proti sestavě a grafice uložené Inventorem. Ověřeno na sestavě 21 výskytů s podsestavou (bez průniku, objemy = STL z Inventoru na 0,05 %). Šrouby, matice a podložky (podle názvu, včetně Content Center) se nenačítají, nahradí se <b>virtuálními šrouby</b> s posudkem spoje – viz <a href="spoje.html#virtualni">Spoje</a>. Zatím nepodporováno: přejmenované a potlačené výskyty (jasná chyba); skryté výskyty se načtou jako viditelné.</li>
+<li><b>Sestavy Fusionu</b> (.f3d s komponentami, .f3z s vnořenými dokumenty): sestaví se strom komponent, pozice a viditelnost. Tělesa skrytá ve Fusionu (žárovka vypnutá) se načtou jako <b>skrytá a vynechaná z výpočtu</b> – zapněte je v kroku <i>Model</i> sloupci <i>Zobrazit</i> / <i>Počítat</i>. Názvy jako ve Fusionu / STEP (<i>Deska:1</i>, <i>Deska:1_1</i>…). Ověřeno proti exportu STEP z Fusionu (vnořený dokument, pootočené výskyty, skrytá tělesa: pozice a objemy na 1e-14). Nelze-li strom přečíst, program varuje a načte tělesa v souřadnicích komponent.</li>
+<li>Materiály z CADu se z nativních souborů nepřenášejí (doplněk Fusionu je posílá v metadatech).</li>
+<li>Je to neoficiální čtení formátů Autodesku: u důležitých modelů výsledek porovnejte s exportem STEP (objem, rozměry).</li>
+</ul>
+
+<h2>Materiály z CADu – soubor JSON vedle STEP</h2>
+<p>STEP materiál dílu nepřenáší. Doplněk Fusionu a makra SOLIDWORKS a Inventoru proto zapíší vedle STEP soubor se <b>stejným názvem a příponou .json</b> (např. <code>Drzak_20261015_101500.step</code> + <code>Drzak_20261015_101500.json</code>). Když FEA Studio STEP otevře (kterýmkoli způsobem), JSON najde a:</p>
+<ol>
+<li přiřadí díly k záznamům podle názvu (velikost písmen a přípony výskytů „:1“, „&lt;1&gt;“, „ (2)“, „_2“, SOLIDWORKS „-1“ nejsou podstatné);</li>
+<li přiřadí materiál <b>jen když je v knihovně</b>: přesný název (i z vlastní knihovny), nebo stejný stupeň podle převodníku. Stav materiálu uvedený v názvu z CADu (T6, O, +QT…) musí sedět;</li>
+<li ostatní díly ponechá na výchozím materiálu <b>Ocel S235</b> a ohlásí je.</li>
+</ol>
+<p>Shrnutí je v dokumentu <b>Zprávy</b> (zdroj „Import z CAD“; dvojklik otevře Materiály) a v <b>Logu řešiče</b> (řádek pro každé přiřazení). Nic se neblokuje a žádné okno se neotevře.</p>
+<table class="grid">
+<tr><th>Materiál v CADu</th><th>Ve FEA Studiu</th></tr>
+<tr><td>S235JR, St 37-2, 1.0038</td><td>Ocel S235</td></tr>
+<tr><td>AISI 304, 1.4301:X5CrNi18-10 / AISI 316L</td><td>Nerez 1.4301 / Nerez 1.4404</td></tr>
+<tr><td>6061-T6 (SS), Aluminum 6061</td><td>Hliník EN AW-6061 T6</td></tr>
+<tr><td>42CrMo4, C45</td><td>Ocel 42CrMo4 +QT, Ocel C45 +N</td></tr>
+<tr><td>EN AW-5083 O/H111, 5083-O</td><td>Hliník EN AW-5083 H111 (O a H111 je jeden stav)</td></tr>
+<tr><td>6061 Alloy (SOLIDWORKS – žíhaný stav)</td><td>nepřiřazeno: jiný stav než T6</td></tr>
+<tr><td>1060 Alloy, 1060-H12 (SOLIDWORKS – hliník 1060)</td><td>nepřiřazeno: hliník 1060 není v knihovně (číslo se nepletete s ocelí AISI 1060)</td></tr>
+<tr><td>Steel, Plain Carbon Steel, Ocel, měkká, ABS, PLA</td><td>nepřiřazeno: obecný název bez stupně</td></tr>
+</table>
+<p class="tip">Materiál, který v CADu používáte často, uložte v kroku Materiály tlačítkem <b>Uložit do mé knihovny materiálů</b> pod <b>stejným názvem jako v CADu</b> (např. „Plain Carbon Steel“). Příště se přiřadí automaticky.</p>
+<h3>Vlastní JSON (jiný CAD, skript)</h3>
+<p>Soubor může zapsat i jiný program. Kódování UTF-8, povinný je jen seznam <code>parts</code>; <code>names</code> = další názvy pro shodu; <code>material_props</code> (<code>Re_MPa</code>, <code>Rm_MPa</code>) volitelně potvrdí stav materiálu:</p>
+<pre>{"source": "My CAD", "document": "Bracket", "units": "mm",
+ "parts": [{"name": "Plate", "material": "S235JR"},
+           {"name": "Console-1", "names": ["Console"], "material": "AISI 304"}]}</pre>
+<p>JSON se čte jen pro novou studii ze STEP (projekt .fea má materiály uložené). Barvy a jednotky z JSON se nepoužijí – platí soubor STEP.</p>
+
+<h2>Autodesk Fusion</h2>
+<h3>Doplněk „Odeslat do FEA Studia“ (doporučeno)</h3>
+<ol>
+<li><b>Instalace:</b> instalátor FEA Studia doplněk nainstaluje, je-li Fusion v počítači. Jinak ve složce FEA Studia: <code>.venv\Scripts\python.exe installer\fea_setup.py fusion</code> (odebrání <code>fusion --remove</code>). Pak Fusion restartujte.</li>
+<li>V pracovním prostoru Design mají karty SOLID, SURFACE, SHEET METAL… panel <b>FEA STUDIO</b> (mezi VLOŽIT a VYBRAT) s tlačítkem <b>Odeslat do FEA Studia</b>; také v UTILITIES → ADD-INS.</li>
+<li>V dialogu zvolte <b>Co odeslat</b>: <b>Celý design</b>, nebo <b>Vybrané díly / podsestavy</b> (vyberte předem; výběr se předvyplní). Díly si zachovají pozici v sestavě.</li>
+<li>Doplněk uloží STEP + JSON do <code>%TEMP%\FEAStudio\export</code> a otevře FEA Studio; běží-li REST server FEA Studia, pošle soubory přes něj (viz <a href="automatizace.html">Automatizace</a>).</li>
+</ol>
+<ul>
+<li>Díly se jmenují podle výskytu („Deska:1“); více těles jedné komponenty „Deska:1_1“, „Deska:1_2“.</li>
+<li>Skrytá tělesa se neexportují – co má být analyzováno, zviditelněte.</li>
+<li>Tělesa T-Spline (Form) a síťová tělesa se do STEP nezapisují – převeďte je na plná tělesa.</li>
+<li>Volba <b>Vybrané díly / podsestavy</b> zatím nebyla vyzkoušena v ostrém Fusionu.</li>
+</ul>
+<h3>Ruční export</h3>
+<p><b>Soubor → Exportovat</b> → typ <b>STEP Files (*.stp, *.step)</b> → umístění → <b>Exportovat</b>. Soubor STEP otevřete ve FEA Studiu. Materiály se tímto způsobem nepřenesou.</p>
+
+<h2>SOLIDWORKS</h2>
+<h3>Ruční export</h3>
+<ol>
+<li><b>Soubor → Uložit jako</b> (3DEXPERIENCE: <b>Uložit do tohoto PC</b>) → typ <b>STEP AP214 (*.step; *.stp)</b> → <b>Možnosti…</b>.</li>
+<li>Nastavte možnosti podle tabulky → OK → <b>Uložit</b>.</li>
+</ol>
+<table class="grid">
+<tr><th>Možnost</th><th>Nastavení</th></tr>
+<tr><td>Výstup jako: geometrie tělesa / plochy</td><td>ano</td></tr>
+<tr><td>Exportovat vlastnosti ploch/hran</td><td>ano (barvy)</td></tr>
+<tr><td>Exportovat vzhledy (od 2023)</td><td>ano (barvy)</td></tr>
+<tr><td>Rozdělit periodické plochy</td><td>ne (díra zůstane jednou plochou)</td></tr>
+<tr><td>Exportovat prvky 3D křivek</td><td>ne</td></tr>
+<tr><td>Exportovat komponenty sestavy jako samostatné soubory STEP (od 2023)</td><td><b>ne</b> – jinak vznikne více souborů</td></tr>
+<tr><td>Výstupní souřadný systém</td><td>výchozí</td></tr>
+</table>
+<p>SOLIDWORKS zapisuje AP242 jen s doplňkem SOLIDWORKS MBD, pro analýzu nepotřebné. Výchozí hodnoty možností: <b>Nástroje → Možnosti → Možnosti systému → Export</b>.</p>
+<h3>Makro FEAStudio_Export (tlačítko)</h3>
+<p>Soubor makra: <code>adapters\solidworks\FEAStudio_Export.bas</code> ve složce FEA Studia. Instalace (jednou):</p>
+<ol>
+<li><b>Nástroje → Makro → Nové</b> → název <code>FEAStudio.swp</code> (jiný než FEAStudio_Export) ve složce <code>adapters\solidworks</code> → Uložit. Otevře se editor VBA.</li>
+<li>V editoru <b>Soubor → Importovat soubor…</b> (<span class="key">Ctrl+M</span>) → <code>FEAStudio_Export.bas</code>.</li>
+<li>Odstraňte prázdný výchozí modul (pravý klik → <b>Odebrat…</b> → Ne).</li>
+<li><b>Ladění → Zkompilovat VBAProject</b>, uložte (<span class="key">Ctrl+S</span>) a zavřete editor.</li>
+<li><b>Tlačítko:</b> <b>Nástroje → Přizpůsobit → Příkazy</b> → kategorie <b>Makro</b> → přetáhněte <b>Nové tlačítko makra</b> na panel. Makro: <code>FEAStudio.swp</code>, Metoda: <code>FEAStudio_Export.main</code>, obrázek <code>FEAStudio_Export.bmp</code>.</li>
+</ol>
+<p>Po kliknutí makro nastaví pro export AP214, geometrii tělesa / ploch, vlastnosti ploch a hran, nerozdělené periodické plochy a bez 3D křivek (pak je vrátí), uloží STEP + JSON (materiál, konfiguraci, výskyty) do <code>%TEMP%\FEAStudio\export</code> a spustí FEA Studio. Možnosti přidané v roce 2023 – <b>samostatné soubory STEP</b> (vypnuto), <b>Exportovat vzhledy</b> (zapnuto, kvůli barvám) a <b>Výstupní souřadný systém</b> (výchozí) – zkontrolujte jednou ručně; makro je nemění.</p>
+<ul>
+<li>STEP ze SOLIDWORKS nemá názvy výskytů („Deska-1“): díly se jmenují podle souboru dílu („Deska“, „Deska (2)“), u nevýchozí konfigurace „Deska_Konfigurace“. JSON je přesto přiřadí.</li>
+<li>Diakritiku v názvech zapíše SOLIDWORKS do STEP správně až od verze 2024 SP02; u starších použijte názvy bez diakritiky.</li>
+<li>Podrobný popis (česky): <code>adapters\solidworks\README.md</code>.</li>
+</ul>
+
+<h2>Autodesk Inventor</h2>
+<h3>Ruční export</h3>
+<p><b>Soubor → Exportovat → Formát CAD</b> → typ <b>STEP Files</b> → <b>Možnosti…</b>: protokol <b>214</b> (AP242 jen pro díly, ne sestavy), vypněte <b>Zahrnout náčrty</b> → Uložit.</p>
+<h3>Pravidlo iLogic FEAStudio_Export</h3>
+<p>Soubor pravidla: <code>adapters\inventor\FEAStudio_Export.iLogicVb</code> ve složce FEA Studia. Instalace (jednou):</p>
+<ol>
+<li><b>Nástroje → Možnosti → Konfigurace iLogic</b> → <b>Externí adresáře pravidel</b> → <b>+</b> → složka <code>adapters\inventor</code> → OK.</li>
+<li>Spuštění: <b>Správa → iLogic → Prohlížeč iLogic</b> → karta <b>Externí pravidla</b> → pravý klik na <b>FEAStudio_Export</b> → <b>Spustit pravidlo</b>.</li>
+<li><b>Tlačítko</b> (Inventor 2023 a novější): pravý klik na pás → <b>Přizpůsobit uživatelské příkazy</b> → karta <b>Pás</b> → filtr <b>iLogic pravidla</b> → přidejte FEAStudio_Export (Díl a Sestava zvlášť). Inventor 2021–2022 nemá tlačítko pro pravidlo – spusťte je z Prohlížeče iLogic.</li>
+<li>Inventor 2025 a novější může při prvním spuštění žádat o bezpečnost (pravidlo spouští jiný program) – povolte.</li>
+</ol>
+<p>Pravidlo uloží STEP AP214 bez náčrtů + JSON do <code>%TEMP%\FEAStudio\export</code> a spustí FEA Studio.</p>
+<ul>
+<li>Názvy materiálů z knihovny Inventoru jsou obecné a lokalizované („Steel, Mild“, „Ocel, měkká“) a nepřiřazují se; označení jako „1.4301“ nebo „S235JR“ ano.</li>
+<li>Podle verze může Inventor do STEP zapsat skryté komponenty – nepotřebné díly raději potlačte (stav modelu).</li>
+<li>Inventor zapisuje do hlavičky STEP přihlašovací jméno Windows – mějte to na paměti při sdílení souboru.</li>
+<li>Podrobný popis (česky): <code>adapters\inventor\README.md</code>.</li>
+</ul>
+
+<h3>Kde makro a pravidlo najdou FEA Studio</h3>
+<p>Hledají v tomto pořadí: proměnná prostředí <code>FEA_STUDIO_HOME</code> → soubor <code>%APPDATA%\FEAStudio\install.json</code> (zapíše instalátor) → výchozí složka <code>%LOCALAPPDATA%\Programs\FEA Studio</code> → konstanta na začátku makra. Nenajdou-li složku, ukážou hlášení s cestou k uloženému STEP – přetáhněte jej na okno FEA Studia. Proměnnou nastavíte přes Start → „Upravit proměnné prostředí pro váš účet“ → <b>Nová…</b>: název <code>FEA_STUDIO_HOME</code>, hodnota = složka FEA Studia (např. <code>D:\Programy\FEA Studio</code>).</p>
+
+<h2>Ostatní CADy</h2>
+<p>STEP exportujte ručně a otevřete (Otevřít, přetažení, Odeslat do). Materiály přiřaďte v kroku Materiály. Postupy vycházejí z dokumentace výrobců; FEA Studio nebylo vyzkoušeno v těchto systémech a názvy se mohou lišit podle verze.</p>
+<table class="grid">
+<tr><th>CAD</th><th>Postup</th><th>Pozor na</th></tr>
+<tr><td>Siemens Solid Edge</td><td>Uložit jako → typ STEP (*.stp) → Možnosti: Export AP214, Plná tělesa → Export do: <b>Class VI Manifold Solids</b>, jednotky Export: milimetry</td><td>nastavení se pamatuje – nesmí zůstat Plošné modely ani Drátový model</td></tr>
+<tr><td>PTC Creo Parametric</td><td>Soubor → Uložit jako → Uložit kopii → typ STEP → Možnosti: protokol <b>ap214_is</b>; sestava jako jeden soubor</td><td>výchozí ap203_is nemá barvy; ap242 s anotacemi zapisuje díly jako trojúhelníkovou síť</td></tr>
+<tr><td>CATIA V5</td><td>jednou Nástroje → Možnosti → Obecné → Kompatibilita → STEP → Export: <b>AP214</b>; pak Soubor → Uložit jako → typ stp</td><td>vyžaduje licenci ST1; sestavu načtěte celou (ne jen režim zobrazení)</td></tr>
+<tr><td>CATIA 3DEXPERIENCE</td><td>Export → formát <b>STEP</b> (AP214 nebo AP242)</td><td>jeden soubor; umístění možností STEP se liší podle verze</td></tr>
+<tr><td>Siemens NX</td><td>Soubor → Export → STEP: Export z <b>Zobrazeného dílu</b>, Export jako <b>AP214</b> (nebo AP242), Data k exportu <b>Celý díl</b>, přesná geometrie</td><td>AP242 bere jen viditelné vrstvy; výběr jednotlivých těles sestavu zploští a ztratí názvy dílů</td></tr>
+<tr><td>Onshape</td><td>pravý klik na kartu Part Studio / Assembly → Export → formát <b>STEP</b>, Použít vlastní jednotky: <b>Milimetr</b>, nechte nezaškrtnuté „Exportovat jedinečné díly jako samostatné soubory“ → Stáhnout</td><td>potlačené díly se neexportují, skryté jen s „Zahrnout skryté instance do exportu“; bez volby jednotek je soubor v metrech (převede se)</td></tr>
+<tr><td>FreeCAD 0.21 / 1.0</td><td>jednou Úpravy → Předvolby → Import-Export → STEP: Jednotky <b>Milimetr</b>, Schéma <b>AP214</b>, vypněte „Exportovat neviditelné objekty“; vyberte jen konečné <b>Body</b> / <b>Part</b> → Soubor → Exportovat (<span class="key">Ctrl+E</span>) → STEP</td><td>Vybrat vše (<span class="key">Ctrl+A</span>) vybere i vnitřní prvky Body → zdvojená tělesa</td></tr>
+<tr><td>Rhino 7 / 8</td><td>ShowEdges / SelOpenPolysrf – žádné otevřené polyplochy (uzavřete příkazy Join, Cap); vyberte tělesa → Exportovat vybrané → STEP → schéma <b>AP214AutomotiveDesign</b></td><td>otevřená polyplocha se zapíše jako plocha, ne jako těleso</td></tr>
+</table>
+
+<h2>Nevhodné formáty a nástroje</h2>
+<ul>
+<li><b>STL, OBJ, 3MF, PLY</b> – trojúhelníková síť bez přesných ploch (STL i bez jednotek). FEA Studio je neotevře.</li>
+<li><b>Převod sítě na těleso</b> (FreeCAD „Convert to solid“, převodníky STL → STEP) dá fasetované těleso s plochou na každý trojúhelník: síťování je pomalé, díry a válce nejdou vybrat a na hranách fasetů vzniknou falešné špičky napětí. Jen jako poslední možnost – lepší je díl předělat.</li>
+<li><b>IGES</b> obvykle nese jen plochy a FEA Studio jej neotevře. Nativní soubory CADu (.sldprt, .ipt, .f3d…), Parasolid ani ACIS také ne – exportujte vždy STEP.</li>
+<li><b>SketchUp, Blender</b> a další polygonové modeláře nemají přesná tělesa ani export STEP.</li>
+</ul>
+
+<h2>Řešení problémů</h2>
+<table class="grid">
+<tr><th>Problém</th><th>Příčina</th><th>Co dělat</th></tr>
+<tr><td>Díly se jmenují „SOLID“, „Teleso“, „Body2“ nebo podobně</td><td>CAD nezapsal názvy dílů nebo výskytů (FEA Studio obecné názvy těles nahradí názvem komponenty)</td><td>Pojmenujte díly v CADu; díl z více tělesy rozdělte na samostatné díly</td></tr>
+<tr><td>„Soubor STEP obsahuje plochy nebo skořepiny bez objemu“, „Soubor STEP neobsahuje těleso“</td><td>exportovaly se plochy nebo otevřená tělesa</td><td>Exportujte tělesa (Solid / Manifold Solids), v CADu je uzavřete nebo spojte; STEP jen z ploch lze spočítat jako skořepinu</td></tr>
+<tr><td>„Materiál z CADu … není v knihovně“</td><td>obecný název nebo jiný stav (např. žíhaný)</td><td>Přiřaďte materiál v kroku Materiály; natrvalo: uložte do vlastní knihovny pod názvem z CADu</td></tr>
+<tr><td>„Díly bez záznamu v metadatech CADu“</td><td>název dílu v STEP neodpovídá JSON (přejmenování, diakritika u starších SOLIDWORKS, STEP a JSON z různých exportů)</td><td>Exportujte znovu tlačítkem; používejte názvy souborů bez diakritiky</td></tr>
+<tr><td>Chybí přehled „Metadata CADu“</td><td>vedle STEP není JSON (ruční export), nebo má jiný název</td><td>STEP a JSON vždy pojmenujte stejně, nebo materiály přiřaďte ručně</td></tr>
+<tr><td>Šroub nebyl rozpoznán</td><td>název nemá normu a rozměr („Sroub-1“, číslo položky)</td><td>Krok Spoje → <b>Rozpoznat spoje…</b> nabídne díly podle tvaru k potvrzení; nebo přejmenujte v CADu na „ISO 4017 - M8 x 30 - 8.8“</td></tr>
+<tr><td>Díl byl označen jako svar</td><td>název obsahuje „weld“ / „svar“ (např. díl „Weldment…“)</td><td>Přejmenujte v CADu, nebo odškrtněte v dialogu Rozpoznat spoje…</td></tr>
+<tr><td>Skrytý díl se počítá</td><td>podle verze mohou Inventor a SOLIDWORKS zapsat i skryté díly</td><td>Potlačte jej v CADu, nebo v kroku Spoje → <b>Díly vynechané z výpočtu</b></td></tr>
+<tr><td>Rozměry jsou 25,4× nebo 1000× jinak</td><td>špatné jednotky v hlavičce STEP</td><td>Exportujte znovu v mm; zkontrolujte objem v přehledu modelu</td></tr>
+<tr><td>Síťování trvá dlouho nebo selže</td><td>zbytečné detaily, interference dílů</td><td>Zjednodušte model (níže), odstraňte interference v CADu</td></tr>
+<tr><td>Makro / pravidlo nespustilo FEA Studio</td><td>nenašlo složku programu</td><td>Nastavte <code>FEA_STUDIO_HOME</code>, nebo přetáhněte STEP z hlášení na okno FEA Studia</td></tr>
+<tr><td>Přetažení nefunguje</td><td>FEA Studio běží jako správce (Windows nepovolí přetažení z Průzkumníka bez práv správce), jiná přípona, nebo běží výpočet</td><td>Spusťte FEA Studio normálně; přetahujte jen .step, .stp, .fea</td></tr>
+</table>
+<h3>Zjednodušení velkého modelu</h3>
+<ul>
+<li>Potlačte díly bez zatížení (kabely, elektronika, kryty, štítky).</li>
+<li>Vypněte modelované závity (šroubovice); odstraňte kosmetické závity, loga a texty.</li>
+<li>Odstraňte malé zaoblení, sražení a díry daleko od namáhaných míst – zbytečně zjemňují síť.</li>
+<li>Využijte symetrii (polovina nebo čtvrtina modelu s vazbami v rovině symetrie, <a href="vazby.html">Vazby</a>).</li>
+</ul>
