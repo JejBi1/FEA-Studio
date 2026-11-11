@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import numpy as np
-import pytest
 
 from fea_core import config
 from fea_core.solve import run_study

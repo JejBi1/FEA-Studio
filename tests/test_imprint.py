@@ -1,10 +1,9 @@
 import math
-from pathlib import Path
 import numpy as np
 import pytest
 
 from fea_core.imprint import Imprint
-from fea_core.study import Study, MeshSettings, Fixed, Pressure, LoadCase, Material
+from fea_core.study import Study, MeshSettings, Fixed, Pressure, LoadCase
 from fea_core.geometry import Part, write_step
 from fea_core.mesh import tri_areas
 from fea_core.selectors import find_faces

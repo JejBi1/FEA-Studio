@@ -103,7 +103,6 @@ SUPPORT_CASES["V17"] = Case("V17", "Samostatně síťovaný díl spojený *TIE (
 # ------------------------------------------------------------------ V18 progress along a line and stress linearisation
 def v18_build(wd: Path):
     """Quarter of a thick-walled tube V4 (ri 20, ro 40, p = 100 MPa) + cantilever V1 (bending) shifted to x = 100."""
-    import math as _m
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut
     from verification.cases import cyl, solid, RI, RO, V4_H, P4
     from fea_core.study import Fixed

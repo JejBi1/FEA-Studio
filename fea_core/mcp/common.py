@@ -320,6 +320,9 @@ def selection_users(st, name: str) -> list[tuple[str, object]]:
         u += [(f"mechanism force element '{f.name}'", f) for f in mech.forces
               if name in (f.selection_a, f.selection_b)]
         u += [(f"mechanism load '{l.name}'", l) for l in mech.loads if l.selection == name]
+    cyc = getattr(st, "cyclic", None)
+    if cyc is not None and name in (cyc.left, cyc.right):
+        u.append(("cyclic symmetry (cut face)", cyc))
     return u
 
 

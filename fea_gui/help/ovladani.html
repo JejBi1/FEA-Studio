@@ -112,6 +112,18 @@ section view, views, undo/redo and saving. At the end: all keyboard shortcuts.</
 <li>Unsaved changes show as an asterisk in the title; closing or opening another file asks first.</li>
 </ul>
 
+<h3><a name="nedavne"></a>Recent files and autosave</h3>
+<p><b>File → Recent files</b> lists the last opened or saved projects and models (only files that still exist).
+While a project has unsaved changes, FEA Studio saves a copy every 5 minutes to the user data folder
+(<code>FEAStudio/autosave</code>; results larger than 200 MB are left out – the study only). Saving or a normal exit removes the
+copy. If the program ended abnormally, the next start offers to <b>restore</b> it; the restored project keeps its original file
+name, save it to keep the changes.</p>
+<h3><a name="konzole"></a>Python console</h3>
+<p><b>Show → Python console</b> opens a dock where you can run Python code over the open model: <code>study</code>,
+<code>mesh</code>, <code>results</code>, <code>window</code>, <code>fea_core</code>, <code>np</code> (Ctrl+Enter runs). The code
+runs inside the program with full access to your files – run only code you trust. The console is not available to MCP / LLM
+agents or the REST API.</p>
+
 <h2>Keyboard shortcuts</h2>
 <table class="grid">
 <tr><th>Key</th><th>Action</th><th>Note</th></tr>

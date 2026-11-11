@@ -34,7 +34,7 @@ Panely mají sbalitelné sekce. Tečka kroku: <b>zelená</b> = hotovo, <b>oranž
 <tr><td><a href="pruty.html">6. Pruty</a></td><td>uzly, pruty (Timošenko), průřezy EN, podpory, kontrola EN 1993-1-1 (volitelné; i bez CAD)</td></tr>
 <tr><td><a href="vazby.html">7. Podpory</a></td><td>pevná, posuv, symetrie, válcová, vzdálená, pružná (podpora jen pro tlak je v Kontakty)</td></tr>
 <tr><td><a href="pohyb.html">8. Pohyb</a></td><td>tělesa, klouby (i z geometrie), pohony, animace, reakce kloubů, přenos do MKP (volitelné)</td></tr>
-<tr><td><a href="teplo.html">9. Teplo</a></td><td>ustálené / přechodové vedení tepla, sálání do okolí (volitelné)</td></tr>
+<tr><td><a href="teplo.html">9. Teplo</a></td><td>ustálené / přechodové vedení tepla, sálání do okolí a v dutinách, kontaktní vodivost rozhraní (volitelné)</td></tr>
 <tr><td><a href="zatizeni.html">10. Zatížení</a></td><td>zatěžovací stavy: síla, tlak, tíha, vzdálená síla, ložiskové zatížení, teplota, otáčení, setrvačnost z mechanismu, zatížení prutů, kombinace EN 1990</td></tr>
 <tr><td><a href="dynamika.html">11. Dynamika</a></td><td>tlumení, harmonická a přechodová odezva, náhodné kmitání (ASD), ráz, přidaná hmota (volitelné)</td></tr>
 <tr><td><a href="sit.html">12. Síť</a></td><td>velikost prvku, místní zjemnění, kvalita sítě</td></tr>
@@ -48,25 +48,26 @@ Panely mají sbalitelné sekce. Tečka kroku: <b>zelená</b> = hotovo, <b>oranž
 <h2>Co program počítá a co ne</h2>
 <ul>
 <li><b>Lineárně:</b> pružnost (malé deformace, izotropní i ortotropní / tištěný materiál), superpozice stavů, únava, vedení tepla a teplotní
-napětí, šrouby jako předepnuté nosníky, svary jako tělesa, prutové soustavy (Timošenko), 2D řez, skořepiny, vlastní frekvence, lineární vzpěr,
+napětí, šrouby jako předepnuté nosníky, svary jako tělesa, prutové soustavy (Timošenko), 2D řez, skořepiny, vlastní frekvence, lineární i nelineární vzpěr (imperfekce, GNIA / GMNIA),
 kombinace EN 1990 (STR/GEO, EQU, MSP).</li>
 <li><b>Nelineárně a pokročile</b> (bez superpozice; vždy CalculiX): <a href="kontakty.html">kontakt</a> (oddělení, tření, přesah, jen tlak; dokonalé vedení tepla přes uzavřené páry),
 rozhraní šroubových spojů jako kontakt (otevření, skluz), velké deformace, optimalizace topologie (BESO s filtrem citlivosti a penalizací),
-posloupnost kroků s předepsaným pohybem (křivka síla–dráha).</li>
+posloupnost kroků s předepsaným pohybem (křivka síla–dráha), <a href="materialy.html#plasticity">plasticita kovů</a> (bilineární, vícelineární tabulka,
+Ramberg-Osgood, Hollomon; izotropní / kinematické zpevnění) s ekvivalentním plastickým přetvořením PEEQ, zbytkovým napětím po odlehčení
+a <a href="vysledky.html#plasticity">posouzením podle EN 1993-1-5 přílohy C / ASME VIII-2</a>.</li>
 <li><b>Dynamika:</b> <a href="dynamika.html">harmonická a přechodová odezva, náhodné kmitání, ráz, únava sinusovým přejezdem a spektrální únava</a>
 modální superpozicí (lineární model, bez kontaktu), přidaná hmota.</li>
 <li><b>Mechanismy:</b> <a href="pohyb.html">kinematika a dynamika tuhých těles</a> (Exudyn) – reakce kloubů, pohony, tření, animace,
 přenos okamžiku nebo celého průběhu do MKP; volitelně poddajná tělesa (Craig–Bampton) a kontakt těles (modul Chrono).</li>
+<li><b>Submodel:</b> <a href="vysledky.html#submodel">jemnější místní model kritické oblasti</a> (kvádr nebo koule) řízený
+globálním posuvem na řezu, s kontrolou řezu – krok Výsledky, tlačítko Submodel… (také MCP <code>fea_submodel_run</code>).</li>
 <li><b>Kalkulačky bez MKP</b> (nabídka Nástroje): nosníky, tření, Hertzův kontakt, lisovaný spoj, západka, mechanismy, tlumení z měření, pád – viz <a href="ovladani.html">Ovládání</a>.</li>
-<li id="api-only"><b>Jen přes MCP server / Python API</b> (ne v tomto okně): plasticita materiálu (bilineární a vícelineární zpevnění – vlastnost
-materiálu <code>plastic</code>, např. <code>custom_props</code> nástroje <code>fea_materials_assign</code>) a její posouzení (plastické přetvoření podle EN 1993-1-5
-příloha C, lokální porušení podle ASME VIII-2 – <code>fea_plasticity_assess</code>); submodelování (<code>fea_core.submodel</code>, jen Python API); tepelná vodivost
-kontaktu (<code>ContactPair.conductance</code>) a sálání mezi plochami v dutině (<code>CavityRadiation</code>) – jen Python API / soubor studie;
+<li id="api-only"><b>Jen přes MCP server / Python API</b> (ne v tomto okně):
 naměřené parametry ε-N (<code>FatigueSettings.en_params</code>); implicitní dynamika posloupnosti kroků s kontaktem (<code>LoadStep.dynamic</code>, jen Python API /
 soubor studie). Viz <a href="automatizace.html">Automatizace</a>.</li>
 <li><b>Ne:</b> modální dynamika (superpozicí) s kontaktem, rychlostně závislé tření v kontaktu MKP (jen Coulomb), gyroskopické jevy a změkčení vřetenem v Campbellově diagramu.</li>
 </ul>
-<p class="warn"><b>Poznámka:</b> napětí nad mezí kluzu v lineární analýze není skutečné – znamená jen začátek tečení (skutečná plastická deformace vyžaduje plastický materiál – <a href="#api-only">MCP / Python API</a>).
+<p class="warn"><b>Poznámka:</b> napětí nad mezí kluzu v lineární analýze není skutečné – znamená jen začátek tečení (skutečná plastická deformace vyžaduje plastický materiál – <a href="materialy.html#plasticity">Materiály → Plasticita</a>).
 Špičky v ostrých vnitřních rozích, na okrajích pevných podpor a pod bodovými silami jsou singularity (rostou se zjemněním; tabulka maxim je označuje).
 Tuhost kontaktu K a tření μ jsou odhady, tlumení má citlivost ±50 %: výsledky ověřte citlivostí.</p>
 

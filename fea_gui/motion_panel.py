@@ -14,14 +14,13 @@ from __future__ import annotations
 
 from html import escape
 import json
-import math
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox,
                                QPushButton, QSlider, QSpinBox, QStackedWidget, QTabWidget, QTableWidgetItem,
-                               QTextBrowser, QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget)
 
 from fea_core.motion.model import (JOINT_KINDS, JOINT_LABELS, Body, Driver, ForceElement, JointFriction, MotionJoint,
                                    MotionLoad)

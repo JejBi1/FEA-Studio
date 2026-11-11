@@ -1,7 +1,6 @@
 """Tools: update of the geometry keeping the settings of the study (a new STEP from the CAD) and the iterations of the geometry."""
 from __future__ import annotations
 
-from pathlib import Path
 
 from .common import out
 from .session import FeaError, Session, user_path

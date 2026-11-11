@@ -118,6 +118,20 @@ Each load case is a separate analysis with the same supports.</p>
 </ul>
 <p>In 3D, member loads are red arrows (size by value).</p>
 
+<h2><a name="otisk"></a>Imprint on a face (split face)</h2>
+<p>A load, a support or a contact often acts on only a part of a CAD face (punch, foot, pad). <b>Imprint on face…</b>
+(button in the Loads step) splits a planar face of a part by an outline; the new face becomes a selection with the imprint
+name and is meshed with the body (conforming mesh). Shapes:</p>
+<ul>
+<li><b>Circular</b> – centre, face normal, radius R.</li>
+<li><b>Rectangular</b> – centre, normal, dx × dy along the axes of the face frame (x' = n × X, or n × Y when the normal is close
+to X; y' = n × x').</li>
+<li><b>Polygon</b> – outline points, one per line, at least 3, without self-intersection: <i>u, v</i> in the face frame around
+the centre, or <i>x, y, z</i> global points (all projected onto their common plane – centre and normal then come from the
+points). The edges are straight, so the imprinted area equals the polygon area exactly (verification IM2).</li>
+</ul>
+<p>MCP: <code>fea_imprint_add(shape="polygon", points=[[u, v], …])</code> or with 3D points.</p>
+
 <h2>Display and editing</h2>
 <ul>
 <li>Load faces are red (pressure purple) with a label; a tensile force arrow starts on the face, a compressive one ends on it. A remote force has its arrow at the remote point, a moment a double arrow. Loaded edges are magenta with arrows; points carry a cross; a cylindrical force has arrows at points far from the axis. The rotation axis is a magenta segment.</li>

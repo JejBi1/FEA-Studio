@@ -69,6 +69,18 @@ remote support and elastic support (foundation, springs). Supports apply in all 
 </ul>
 <p>The support is <b>linear</b>: it carries tension and compression (the foundation does not lift off) – a warning says so. The reaction (sum of spring forces) appears under the selection name (“Elastic support 1”). Springs are drawn green in 3D.</p>
 
+<h3><a name="cyklicka"></a>Cyclic symmetry (sector)</h3>
+<p>For a rotationally periodic part (flange with N holes, impeller, disc, pulley) model only <b>one sector</b> – the CAD part cut by two half-planes through the axis. Section <b>Cyclic symmetry (sector)</b>: tick <i>model is one sector</i>, choose the two cut faces (or select them in 3D → <i>From selected faces</i>) and press <b>Axis and N from the cut faces</b> – the axis is the intersection of the two cut planes, N = 360° / sector angle. Cut face 2 must be cut face 1 rotated by +360°/N; the axis direction is set so automatically.</p>
+<ul>
+<li><b>Mesh:</b> the two cut faces get the same (rotated) mesh, so the nodes match exactly.</li>
+<li><b>Statics:</b> the cut faces are tied by constraint equations in global axes (u on face 1 = Rᵀ·u on face 2); nodes on the axis cannot move perpendicular to it. Loads and supports must be the <b>same on every sector</b> (rotation about the symmetry axis, pressure, axial gravity). A support touching the cut faces must be the same on both sides.</li>
+<li><b>Reactions are per sector</b>; the axial reaction of the whole part is N × the sector value. The forces transmitted across the cut faces are part of the equilibrium check.</li>
+<li><b>Natural frequencies</b> (Solve step) are computed per <b>nodal diameter</b> ND (number of waves around the circumference; 0 … N/2, or the list in <i>Nodal diameters</i>). A frequency with 0 &lt; ND &lt; N/2 is a pair of equal modes of the whole part.</li>
+<li>The rigid-body check counts the cyclic equations: the supports must only stop the axial translation and the rotation about the axis.</li>
+<li>Not available with dynamics, contacts / nonlinear analysis, 2D, shells and beams; heat conduction treats the cut faces as insulated (warning). Remote supports, elastic supports, bolts and added masses must not touch the cut faces.</li>
+</ul>
+<p>Results can be shown as the full 360° model – see <a href="vysledky.html#cyklicka">Results</a>. Verification: CY1 (sector = full 360° model on the same mesh, rotating disc against Lamé), CY2 (frequencies by nodal diameter = full model, thin ring).</p>
+
 <h2>Rigid-body motion check</h2>
 <p>In <a href="reseni.html">Solve</a> the program verifies that the supports prevent the three translations and three rotations of the whole model. If not, it lists the free motions, e.g. “The supports do not prevent rigid-body motion of the model – free: translation in direction (1, 0, 0); rotation about the axis (0, 0, 1) through point (35, 20, 0) mm”, and the analysis does not start. Without a mesh the check uses face points; after meshing it uses the nodes.</p>
 <p>After meshing, <b>every part</b> must also connect to a support (by contact, bolt or weld). A heat-only study needs no supports.</p>

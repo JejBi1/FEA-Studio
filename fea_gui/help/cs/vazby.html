@@ -69,6 +69,18 @@ a pružné uložení (podloží, pružiny). Vazby platí ve všech zatěžovací
 </ul>
 <p>Uložení je <b>lineární</b>: přenáší tah i tlak (podloží se nezvedne) – na to upozorní varování. Reakce (součet sil pružin) je ve výsledcích pod názvem výběru („Pružné uložení 1“). Pružiny se ve 3D kreslí zeleně.</p>
 
+<h3><a name="cyklicka"></a>Cyklická symetrie (sektor)</h3>
+<p>U rotačně periodického dílu (příruba s N otvory, oběžné kolo, kotouč, řemenice) stačí modelovat <b>jeden sektor</b> – díl z CAD rozříznutý dvěma polorovinami procházejícími osou. Sekce <b>Cyklická symetrie (sektor)</b>: zaškrtněte <i>model je jeden sektor</i>, zvolte obě řezné plochy (nebo je vyberte ve 3D → <i>Z vybraných ploch</i>) a stiskněte <b>Osa a N z řezných ploch</b> – osa je průsečnice obou rovin řezu, N = 360° / úhel sektoru. Řezná plocha 2 musí být plocha 1 pootočená o +360°/N; směr osy se tak nastaví sám.</p>
+<ul>
+<li><b>Síť:</b> obě řezné plochy dostanou stejnou (pootočenou) síť, uzly se přesně kryjí.</li>
+<li><b>Statika:</b> řezné plochy jsou svázány vazbovými rovnicemi v globálních osách (u na ploše 1 = Rᵀ·u na ploše 2); uzly na ose se nemohou posunout kolmo k ní. Zatížení a vazby musí být <b>stejné na každém sektoru</b> (otáčení kolem osy symetrie, tlak, tíže ve směru osy). Vazba, která se dotýká řezných ploch, musí být na obou stranách stejná.</li>
+<li><b>Reakce jsou na jeden sektor</b>; osová reakce celého dílu je N × hodnota sektoru. Síly přenášené přes řezné plochy jsou součástí kontroly rovnováhy.</li>
+<li><b>Vlastní frekvence</b> (krok Řešení) se počítají po <b>uzlových průměrech</b> ND (počet vln po obvodu; 0 … N/2, nebo seznam v poli <i>Uzlové průměry</i>). Frekvence s 0 &lt; ND &lt; N/2 je dvojice stejných tvarů celého dílu.</li>
+<li>Kontrola tuhých pohybů počítá s cyklickými rovnicemi: vazby musí zabránit jen posuvu ve směru osy a otočení kolem osy.</li>
+<li>Není dostupné s dynamikou, kontakty / nelineárním výpočtem, 2D, skořepinami a pruty; vedení tepla bere řezné plochy jako izolované (varování). Vzdálená vazba, pružné uložení, šrouby a přidané hmoty se nesmí dotýkat řezných ploch.</li>
+</ul>
+<p>Výsledky lze zobrazit jako celý model 360° – viz <a href="vysledky.html#cyklicka">Výsledky</a>. Ověření: CY1 (sektor = celý model 360° na stejné síti, rotující kotouč proti Lamého řešení), CY2 (frekvence po uzlových průměrech = celý model, tenký prstenec).</p>
+
 <h2>Kontrola tuhých pohybů</h2>
 <p>V kroku <a href="reseni.html">Řešení</a> program ověří, že vazby brání třem posuvům a třem natočením celého modelu. Pokud ne, vypíše volné pohyby, např. „Vazby nezamezí tuhému pohybu modelu – volné: posuv ve směru (1, 0, 0); otočení kolem osy (0, 0, 1) procházející bodem (35, 20, 0) mm“, a výpočet nespustí. Bez sítě kontrola používá body ploch; po vytvoření sítě používá přímo uzly.</p>
 <p>Po síťování se navíc ověří, že je <b>každý díl</b> připojen k nějaké vazbě (stykem, šroubem nebo svarem). Studie jen s tepelným vedením vazby nepotřebuje.</p>

@@ -1,7 +1,6 @@
 """Tests of the feedback of the topology optimisation into the FEM: element stiffnesses in the .inp, element energies from the displacements, filter,
 the loop `TopologyOptimizer.run()` (without ccx through a substitute run_study, with ccx on a small cantilever).
 """
-import io
 import re
 import time
 

@@ -52,6 +52,8 @@ def unsupported(study: Study) -> list[str]:
         out.append("point mass (rigid coupling / ccx constraint equations)")
     if study.is_nonlinear():
         out.append("contact / nonlinear analysis (ccx only)")
+    if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:
+        out.append("cyclic symmetry (ccx constraint equations)")
     return out
 
 

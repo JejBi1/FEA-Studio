@@ -14,8 +14,10 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QHBoxLayout, Q
 
 from fea_core.study import ThermalLoad
 from fea_core.thermal.model import (ThermalCase, FixedTemperature, HeatFlux, HeatFlow, Convection, Radiation,
-                                    HeatGeneration, ABSOLUTE_ZERO)
+                                    HeatGeneration, CavityRadiation, ContactConductance, ABSOLUTE_ZERO)
 
+from .thermal_extras import (ConductanceBox, cavity_from_values, cavity_names, cavity_values, describe_cavity,
+                             is_cavity_bc, sync_cavity)
 from .widgets import Section, dspin, fit_rows, fmt_dash as fmt, help_tip, panel_header, scroll_body, set_placeholder
 
 APP = "FEA Studio"
@@ -26,17 +28,22 @@ BC_TYPES = {
     "heat_flow": ("Heat power [W]", "Power", "Q [W]", 10.0, (215, 30, 110)),
     "convection": ("Heat transfer – convection", "Convection", "h [W/(m²·K)]", 10.0, (20, 150, 210)),
     "radiation": ("Radiation to surroundings", "Radiation", "ε [–]", 0.9, (215, 170, 0)),
+    "cavity_radiation": ("Cavity radiation (between faces)", "Cavity", "ε [–]", 0.9, (190, 140, 0)),
     "heat_generation": ("Heat generation in part", None, "P [W]", 10.0, (160, 60, 200)),
 }
+# conditions without a form (older files: contact conductance in a case) – shown, edited elsewhere
+OTHER_COLORS = {"contact_conductance": (150, 95, 40)}
 # short names of the kinds for the flux table in the results
 KIND_SHORT = {"fixed_temperature": "prescribed temperature", "heat_flux": "heat flux", "heat_flow": "heat power",
-              "convection": "convection", "radiation": "radiation", "heat_generation": "heat generation"}
+              "convection": "convection", "radiation": "radiation", "heat_generation": "heat generation",
+              "cavity_radiation": "cavity radiation", "contact_conductance": "contact conductance"}
 HINTS = {
     "fixed_temperature": "The face has a constant temperature (contact with a heat sink, bath, heater…).",
     "heat_flux": "Flux through the face: positive = heat enters the body (heating), negative = removal.",
     "heat_flow": "Total power distributed uniformly over the area of the selected faces; positive = into the body.",
     "convection": "q = h·(T ambient − T). Typical values: natural air convection 5–25, forced 25–250, water 500–10 000 W/(m²·K).",
     "radiation": "Radiation to the surroundings without mutual irradiation of faces (the problem is nonlinear). Typical ε: polished aluminum ~0.05, oxidized steel and anodized ~0.8, black paint ~0.95.",
+    "cavity_radiation": "Faces with the same cavity name radiate to each other (view factors by CalculiX, nonlinear). Add each face group with its own ε. Closed cavity = fully enclosed (no heat leaves); open = the opening sees the ambient temperature.",
     "heat_generation": "Power uniformly in the part volume (winding losses, resistance, electronics). Select the part in the list or by clicking its face in 3D.",
 }
 # label of the value field by the kind of condition (changes with the type, on_bc_type)
@@ -46,6 +53,7 @@ VALUE_TIPS = {
     "heat_flow": "Total heat power Q [W] distributed uniformly over the area of the selected faces;\npositive = into the body, negative = removal",
     "convection": "Heat transfer coefficient h [W/(m²·K)] > 0. Typical values: natural air convection 5–25,\nforced 25–250, water 500–10 000",
     "radiation": "Surface emissivity ε in the range (0; 1]: polished aluminum ~0.05, oxidized steel and anodized ~0.8,\nblack paint ~0.95",
+    "cavity_radiation": "Emissivity ε of the selected cavity faces in the range (0; 1]; other faces of the same cavity\ncan have their own ε (add them as separate conditions with the same cavity name)",
     "heat_generation": "Heat power P [W] generated uniformly in the volume of the selected part (losses, resistance…)",
 }
 
@@ -56,11 +64,16 @@ VALUE_SHORT = {
     "heat_flow": "Total heat power Q [W] (positive = into the body)",
     "convection": "Heat transfer coefficient h [W/(m²·K)]",
     "radiation": "Surface emissivity ε in the interval (0; 1]",
+    "cavity_radiation": "Emissivity ε of the selected cavity faces (0; 1]",
     "heat_generation": "Heat power P [W] in the volume of the selected part",
 }
 
 
 def describe_bc(bc) -> str:
+    if is_cavity_bc(bc):
+        return describe_cavity(bc)
+    if isinstance(bc, ContactConductance):
+        return f"{bc.selection}: contact conductance h_c = {fmt(bc.conductance)} W/(m²·K) to {bc.master}"
     if isinstance(bc, FixedTemperature):
         return f"{bc.selection}: T = {fmt(bc.value)} °C"
     if isinstance(bc, HeatFlux):
@@ -179,6 +192,18 @@ class ThermalPanel(QWidget):
                  "Part in which heat is generated (power uniformly in its volume);\ncan also be selected by clicking a face of the part in 3D")
         self.bc_part_lbl = QLabel("Part")
         f.addRow(self.bc_part_lbl, self.bc_part)
+        self.bc_cavity = QComboBox()                       # cavity radiation: name of the cavity (faces of one cavity see each other)
+        self.bc_cavity.setEditable(True)
+        self.bc_cavity.setProperty("_i18n_done", True)
+        help_tip(self.bc_cavity, "Cavity name – faces with the same name radiate to each other",
+                 "Name of the cavity. All faces with the same cavity name exchange heat by radiation (view factors computed by CalculiX); different names = separate cavities.")
+        self.bc_cavity_lbl = QLabel("Cavity")
+        f.addRow(self.bc_cavity_lbl, self.bc_cavity)
+        self.bc_closed = QCheckBox("closed cavity (no opening)")
+        help_tip(self.bc_closed, "Closed = fully enclosed; open = the opening sees T ambient",
+                 "Closed cavity: the faces enclose it completely, the view factors are normalised to 1 and no heat leaves to the surroundings (the case still needs a heat sink elsewhere). Open cavity: the part of the view not covered by the faces sees the ambient temperature. One setting per cavity – it is copied to its other faces.")
+        self.bc_closed.toggled.connect(lambda *_: self._cavity_amb())
+        f.addRow(self.bc_closed)
         hb = QHBoxLayout()
         b = QPushButton("Add from selection")
         b.setToolTip("Boundary condition on the faces selected in 3D (heat generation on the part chosen in the list)")
@@ -203,6 +228,14 @@ class ThermalPanel(QWidget):
         b.clicked.connect(lambda: self.win.delete_item(self.bc_list, "thermal"))
         h.addWidget(b)
         lay.addLayout(h)
+
+        # ---------------------------------------------------------- contact conductance of interfaces (all thermal cases)
+        g = Section("Contact conductance (all thermal cases)", key="thermal.conductance", collapsed=True,
+                    tip="Temperature jump at the interface of two parts (h_c).",
+                    help="<b>Thermal contact conductance</b><p>Interfaces between two parts with a contact conductance h_c [W/(m²·K)]: heat flux q = h_c·ΔT across the interface. Without it touching parts are in perfect thermal contact. One of the two parts is meshed separately (two sets of nodes) and stays tied mechanically by *TIE. The heat through each interface is listed in the results and the report.</p>")
+        self.conductance = ConductanceBox(self)
+        QHBoxLayout(g.body).addWidget(self.conductance)
+        lay.addWidget(g)
 
         # ---------------------------------------------------------- teploty studie
         g = Section("Study temperatures", key="thermal.temperatures", collapsed=True,
@@ -273,6 +306,12 @@ class ThermalPanel(QWidget):
             self.bc_part.addItems([p.name for p in self.win.parts])
             if part:
                 self.bc_part.setCurrentText(part)
+            cav = self.bc_cavity.currentText()
+            self.bc_cavity.clear()
+            self.bc_cavity.addItems((cavity_names(st) if st is not None else []) or ["Cavity 1"])
+            if cav:
+                self.bc_cavity.setCurrentText(cav)
+            self.conductance.refresh()
             if st is not None:
                 th = st.thermal
                 self.t_ref.setValue(th.reference_temperature)
@@ -321,7 +360,7 @@ class ThermalPanel(QWidget):
             for e in errors:
                 rows.append(f"<span style='color:#d23b3b'>● {escape(e)}</span>")
             for w in warnings:
-                if w.startswith("Thermal case"):
+                if w.startswith(("Thermal case", "Contact conductance")):
                     rows.append(f"<span style='color:#b36b00'>● {escape(w)}</span>")
         rows.append("<small>Thermal units: °C, W, W/m², W/(m²·K); material λ [W/(m·K)], α [1/K], c_p [J/(kg·K)] (Materials step).</small>")
         self.info.setText("<br>".join(rows))
@@ -430,17 +469,26 @@ class ThermalPanel(QWidget):
         self.bc_val_lbl.setText(qty)
         for w in (self.bc_val, self.bc_val_lbl):
             help_tip(w, VALUE_SHORT[kind], VALUE_TIPS[kind])
-        amb = kind in ("convection", "radiation")
+        cav = kind == "cavity_radiation"
+        amb = kind in ("convection", "radiation") or (cav and not self.bc_closed.isChecked())
         for w in (self.bc_amb, self.bc_amb_lbl):
             w.setVisible(amb)
+        for w in (self.bc_cavity, self.bc_cavity_lbl, self.bc_closed):
+            w.setVisible(cav)
         self.btn_calc_h.setVisible(kind == "convection")
         gen = kind == "heat_generation"
         for w in (self.bc_part, self.bc_part_lbl):
             w.setVisible(gen)
-        self.bc_val.setDecimals(3 if kind == "radiation" else 4)
+        self.bc_val.setDecimals(3 if kind in ("radiation", "cavity_radiation") else 4)
         if not self._filling:
             self.bc_val.setValue(default)
         self.bc_hint.setText(f"<small>{HINTS[kind]}</small>")
+
+    def _cavity_amb(self):
+        """Open cavity: the ambient temperature of the opening is shown."""
+        if self.bc_type.currentData() == "cavity_radiation":
+            for w in (self.bc_amb, self.bc_amb_lbl):
+                w.setVisible(not self.bc_closed.isChecked())
 
     def open_convection_calc(self):
         from .calc_dialog import CalcDialog
@@ -475,6 +523,13 @@ class ThermalPanel(QWidget):
                 QMessageBox.warning(self, APP, "Emissivity ε must be in the range (0; 1].")
                 return None
             return Radiation(selection, v, self.bc_amb.value())
+        if kind == "cavity_radiation":
+            try:
+                return cavity_from_values(selection, v, self.bc_amb.value(), self.bc_cavity.currentText(),
+                                          self.bc_closed.isChecked())
+            except ValueError as e:
+                QMessageBox.warning(self, APP, str(e))
+                return None
         part = self.bc_part.currentText()
         if not part:
             QMessageBox.warning(self, APP, "Select the part with the heat source.")
@@ -507,7 +562,14 @@ class ThermalPanel(QWidget):
             bc.selection = self.win.new_selection(BC_TYPES[kind][1], sels)
             self.win.view.set_selected_faces([])
         c.loads.append(bc)
+        self._sync_cavity(c, bc)
         self.win.changed()
+
+    def _sync_cavity(self, case, bc):
+        if isinstance(bc, CavityRadiation):
+            changed = sync_cavity(case, bc)
+            if changed:
+                self.win.log_msg(f"Cavity '{bc.cavity_name}': closed / ambient temperature also set on {', '.join(changed)}")
 
     def update_bc(self):
         c = self.current_case()
@@ -525,6 +587,7 @@ class ThermalPanel(QWidget):
         if bc is None:
             return
         c.loads[row] = bc
+        self._sync_cavity(c, bc)
         self.win.changed()
         self.bc_list.setCurrentRow(row)
 
@@ -534,12 +597,23 @@ class ThermalPanel(QWidget):
             return
         bc = c.loads[row]
         sel = getattr(bc, "selection", None)
+        sel = sel if isinstance(sel, str) else None
         self.win.view.set_selected_faces(self.win.sel_faces.get(sel, []) if sel else [])
+        if bc.kind not in BC_TYPES and not is_cavity_bc(bc):
+            return                                    # contact conductance in a case (older file) – no form
         self._filling = True
         try:
-            self.bc_type.setCurrentIndex(max(0, self.bc_type.findData(bc.kind)))
+            kind = "cavity_radiation" if is_cavity_bc(bc) else bc.kind
+            self.bc_type.setCurrentIndex(max(0, self.bc_type.findData(kind)))
+            if kind == "cavity_radiation":
+                v = cavity_values(bc)
+                self.bc_cavity.setCurrentText(v["name"])
+                self.bc_closed.setChecked(v["closed"])
             self.on_bc_type()
-            if isinstance(bc, Convection):
+            if is_cavity_bc(bc):
+                self.bc_val.setValue(bc.emissivity)
+                self.bc_amb.setValue(bc.ambient)
+            elif isinstance(bc, Convection):
                 self.bc_val.setValue(bc.h)
                 self.bc_amb.setValue(bc.ambient)
             elif isinstance(bc, Radiation):
@@ -563,16 +637,27 @@ class ThermalPanel(QWidget):
             return
         L = 0.12 * v.model_size()
         names = [p.name for p in win.parts]
+        self.conductance.show_3d()                     # interfaces with h_c (all thermal cases)
         for k, bc in enumerate(c.loads):
-            col = BC_TYPES[bc.kind][4]
+            kind = "cavity_radiation" if is_cavity_bc(bc) else bc.kind
+            col = BC_TYPES[kind][4] if kind in BC_TYPES else OTHER_COLORS.get(kind, (128, 128, 128))
+            if isinstance(bc, ContactConductance):
+                for side in (bc.selection, bc.master):
+                    if side in win.sel_faces:
+                        v.set_face_set(f"t:{k}:{side}", win.sel_faces[side], col, label=describe_bc(bc))
+                continue
             if isinstance(bc, HeatGeneration):
                 if bc.part in names:
                     pi = names.index(bc.part)
                     v.set_face_set(f"t:{k}:{bc.part}", [(pi, fi) for fi in range(len(v.part_faces[pi]))], col,
                                    label=describe_bc(bc), transparency=0.6)
                 continue
-            faces = win.sel_faces.get(bc.selection, [])
-            key = f"t:{bc.selection}"
+            if isinstance(bc.selection, list):            # cavity with several selections (MCP / older files)
+                faces = [f for s in bc.selection for f in win.sel_faces.get(s, [])]
+                key = f"t:{k}:" + ",".join(bc.selection)
+            else:
+                faces = win.sel_faces.get(bc.selection, [])
+                key = f"t:{bc.selection}"
             v.set_face_set(key, faces, col, label=describe_bc(bc))
             if isinstance(bc, (HeatFlux, HeatFlow)) and bc.value != 0:
                 s = float(np.sign(bc.value))          # a positive flux points into the body (against the outward normal)

@@ -233,6 +233,70 @@ def cmd_report(a) -> int:
     return 0
 
 
+def cmd_export(a) -> int:
+    """Results of a solved .fea project (or results.npz + study.json) → VTU (.vtu + .pvd) and / or CSV."""
+    import tempfile
+    from .export_vtu import export_results_vtu, safe_name
+    from .export_csv import export_results_csv
+    from .results import Results
+    from .study import Study
+    src = Path(a.source)
+    if src.suffix.lower() == ".fea":
+        from .project import load_project
+        tmp = Path(tempfile.mkdtemp(prefix="fea_export_"))
+        st, _, res = load_project(src, tmp)
+    else:
+        st = Study.load(src)
+        res = Results.load(a.results) if a.results else None
+    if res is None:
+        print("ERROR: the project has no results – solve it first (python -m fea_core solve-project)", file=sys.stderr)
+        return 1
+    if not len(res.mesh.nodes):
+        print("ERROR: the results have no 3D mesh (frame, 2D or shell model) – VTU / CSV export is for solid results",
+              file=sys.stderr)
+        return 1
+    out = Path(a.out) if a.out else src.parent / f"{src.stem}_export"
+    out.mkdir(parents=True, exist_ok=True)
+    base = safe_name(st.name or src.stem)
+    warn: list[str] = []
+    files: list[Path] = []
+    if a.format in ("vtu", "all"):
+        files += export_results_vtu(res.mesh, res, out, base, study=st, warnings=warn)
+    if a.format in ("csv", "all"):
+        files += export_results_csv(res, out, base, study=st, dialect=a.dialect, elements=a.elements, warnings=warn)
+    for w in warn:
+        print(f"warning: {w}")
+    for p in files:
+        print(p)
+    print(f"{len(files)} files written to {out}")
+    return 0
+
+
+def cmd_solve_project(a) -> int:
+    """Solve a .fea project and save it with the results (another file by default – the original stays unchanged)."""
+    import tempfile
+    from .project import load_motion, load_project, save_project
+    from .solve import run_study
+    from .study import Study
+    src = Path(a.source)
+    tmp = Path(tempfile.mkdtemp(prefix="fea_solve_"))
+    import shutil
+    try:
+        st, step, _ = load_project(src, tmp)
+        calc = Study.from_dict(st.to_dict())      # as the GUI: empty load cases left out with heat / frequencies only
+        if calc.thermal.cases or calc.modal.enabled or calc.dynamics.enabled:
+            calc.load_cases = [lc for lc in calc.load_cases if lc.loads]
+        res = run_study(calc, tmp / "run", study_dir=tmp, on_log=lambda s: print(s, flush=True))
+        out = Path(a.output) if a.output else src.with_name(f"{src.stem}_results.fea")
+        save_project(out, st, step if step is not None else "", res, motion=load_motion(tmp))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    for w in res.warnings:
+        print(f"warning: {w}", flush=True)
+    print(f"Saved: {out}", flush=True)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="fea_core", description="FEA Studio – calculation core")
     from . import __version__
@@ -286,6 +350,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--safety", type=float, default=1.0, help="required safety against Re (default 1.0)")
     p.add_argument("--lang", choices=["cs", "en"], default="", help="report language (default: program language, FEA_LANG, otherwise English)")
     p.set_defaults(func=cmd_report)
+    p = sub.add_parser("export", help="results of a solved project to VTU (ParaView) and / or CSV")
+    p.add_argument("source", help=".fea project with results (or study.json with --results)")
+    p.add_argument("--format", choices=["vtu", "csv", "all"], default="vtu")
+    p.add_argument("--out", help="output folder (default <name>_export next to the project)")
+    p.add_argument("--results", help="results.npz (for a study.json source)")
+    p.add_argument("--dialect", choices=["standard", "excel"], default="standard", help="CSV dialect (excel = ; and decimal comma)")
+    p.add_argument("--elements", action="store_true", help="also the element table (CSV)")
+    p.set_defaults(func=cmd_export)
+    p = sub.add_parser("solve-project", help="solve a .fea project and save it with the results")
+    p.add_argument("source", help=".fea project")
+    p.add_argument("-o", "--output", help="output .fea (default <name>_results.fea next to the project)")
+    p.set_defaults(func=cmd_solve_project)
     a = ap.parse_args(argv)
     try:
         return a.func(a)

@@ -6,6 +6,8 @@ of the appearance and the attributes and passes them to FEA Studio:
   1. if the REST server of FEA Studio runs (`python -m fea_core.rest`), it sends the STEP + metadata to POST /api/import
      (opens a study) and optionally starts the GUI through POST /api/open-gui;
   2. otherwise it saves the STEP + JSON into the export folder and starts the GUI of FEA Studio (FEA_STUDIO_HOME) with the STEP.
+With a token set, the server must first prove it knows the token (POST /api/hello) – the token and the design go only to such a
+server; on this computer every process listening on the port must also belong to the current user (Windows).
 
 Only the standard library of Python (Fusion has its own Python without packages). Settings: settings.json next to
 this file (the pattern settings.example.json), the environment variables FEA_REST_URL, FEA_REST_TOKEN, FEA_STUDIO_HOME.
@@ -204,8 +206,49 @@ def check_server(settings):
             port, ", ".join(map(str, sorted(foreign)))))
 
 
+def _hello_proof(token, nonce, port):
+    """The same formula as fea_core.rest.app.hello_proof: HMAC-SHA256(token, "rest" + nonce + ":" + port)."""
+    import hashlib
+    import hmac
+    msg = ("rest" + nonce + ":" + str(port or "")).encode("ascii")
+    return hmac.new(token.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+
+def prove_server(settings, timeout=10):
+    """With a token in the settings the server must first prove that it knows the token (POST /api/hello, challenge–response)
+    – only then the token and the design are sent. A server that cannot (an older FEA Studio without the endpoint, a server
+    started without a token, a wrong proof) is not trusted: UntrustedServer, the caller falls back to the export folder.
+    Without a token nothing is checked here (the port-owner check stays the protection). A refused connection propagates
+    as URLError (= the server is not running)."""
+    import hmac
+    import secrets
+    token = settings.get("token")
+    if not token:
+        return
+    _host, port = _server_host_port(settings)
+    nonce = secrets.token_hex(16)
+    req = urllib.request.Request(settings["server"].rstrip("/") + "/api/hello", method="POST",
+                                 data=json.dumps({"nonce": nonce}).encode("ascii"),
+                                 headers={"Accept": "application/json", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            ans = json.loads(r.read().decode("utf-8") or "null")
+    except urllib.error.HTTPError as e:              # 401 / 404: a server of an older version (no /api/hello)
+        raise UntrustedServer("The FEA Studio server on port {} cannot prove the token (HTTP {}; an older version?) – "
+                              "the token and the design were not sent".format(port, e.code)) from None
+    except ValueError:
+        raise UntrustedServer("The server on port {} gave an invalid answer to the token proof – nothing was sent "
+                              "to it".format(port)) from None
+    if not isinstance(ans, dict) or ans.get("token") is not True:
+        raise UntrustedServer("The server on port {} does not use a token although one is set – the token and the design "
+                              "were not sent".format(port))
+    if not hmac.compare_digest(str(ans.get("proof", "")), _hello_proof(token, nonce, port)):
+        raise UntrustedServer("The server on port {} could not prove the token – nothing was sent to it".format(port))
+
+
 def _call(settings, method, path, body=None, ctype=None, timeout=None):
     check_server(settings)
+    prove_server(settings, timeout=min(10, timeout or 10))
     url = settings["server"].rstrip("/") + path
     req = urllib.request.Request(url, data=body, method=method,
                                  headers=_headers(settings, {"Content-Type": ctype} if ctype else None))
@@ -232,11 +275,14 @@ def server_status(settings):
 
 
 NOTES = []                                           # notes for the user (an untrusted server on the port)
+_NOTE_SEQ = [0]                                      # number of notes logged (also repeated ones – deliver compares it)
 
 
 def _log_note(text):
-    if text not in NOTES:
-        NOTES.append(text)
+    _NOTE_SEQ[0] += 1
+    if text in NOTES:
+        NOTES.remove(text)                           # the latest note is always the last one
+    NOTES.append(text)
 
 
 def multipart(fields, files):
@@ -296,9 +342,9 @@ def deliver(settings, step_path, meta, open_gui=None):
     meta_path = os.path.splitext(step_path)[0] + ".json"
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
-    n0 = len(NOTES)
+    n0 = _NOTE_SEQ[0]
     st = server_status(settings)
-    if st is None and len(NOTES) > n0:
+    if st is None and _NOTE_SEQ[0] > n0:
         warn = "Warning: " + NOTES[-1] + "\n"
         if not open_gui:
             return warn + "The STEP and metadata were saved:\n" + step_path

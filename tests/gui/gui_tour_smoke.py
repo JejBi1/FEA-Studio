@@ -16,7 +16,6 @@ QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.No)   # always a
 
 def main():
     from fea_gui.main import MainWindow
-    from fea_gui.tour import install_help
     from fea_gui.help import show_help
     app = QApplication(sys.argv)
     w = MainWindow()

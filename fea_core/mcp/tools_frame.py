@@ -65,10 +65,10 @@ def flags(v, names: tuple, what: str, presets: dict | None = None) -> list[bool]
     raise FeaError(f"{what}: give 6 true/false values, a list of components ({', '.join(names)}) or a preset")
 
 
-SUPPORT_PRESETS = {"fixed": [True] * 6, "vetknuti": [True] * 6, "fixed": [True] * 6, "all": [True] * 6,
+SUPPORT_PRESETS = {"fixed": [True] * 6, "vetknuti": [True] * 6, "all": [True] * 6,
                    "pinned": [True, True, True, False, False, False], "hinge": [True, True, True, False, False, False],
                    "none": [False] * 6, "vetknutí": [True] * 6, "kloub": [True, True, True, False, False, False]}
-RELEASE_PRESETS = {"hinge": [False, False, False, False, True, True], "hinge": [False, False, False, False, True, True],
+RELEASE_PRESETS = {"hinge": [False, False, False, False, True, True],
                    "none": [False] * 6, "": [False] * 6, "kloub": [False, False, False, False, True, True]}
 
 

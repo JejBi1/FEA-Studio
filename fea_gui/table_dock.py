@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QStackedWidget, QTabBar, QTableWidgetItem, QVBoxLayout, QWidget)
 
@@ -24,7 +24,7 @@ from . import theme
 from fea_core.i18n import tr
 from fea_core.richtext import safe_rich
 
-from .widgets import fmt, set_placeholder, table, table_text
+from .widgets import fmt, table, table_text
 
 GROUP_OF = {"Model": "parts", "Materials": "parts", "3D printing": "parts", "Joints": "joints",
             "Constraints": "loads", "Loads": "loads",
@@ -764,16 +764,21 @@ class PhaseTables(QWidget):
         from .thermal_panel import KIND_SHORT, describe_bc, describe_case
         t.setHorizontalHeaderLabels(["Face / part", "Type", "Value"] + [f"{c.name} ({describe_case(c)})" for c in cases])
         rows = [(ci, bc) for ci, c in enumerate(cases) for bc in c.loads]
+        rows += [(-1, cc) for cc in (st.thermal.conductances if st is not None else [])]   # interfaces: all cases
         t = self._start("thermal", len(rows))
         for r, (ci, bc) in enumerate(rows):
             text = describe_bc(bc)
             name = getattr(bc, "selection", None) or getattr(bc, "part", "") or "–"
+            if isinstance(name, list):
+                name = ", ".join(name)
+            if ci < 0:
+                name = f"{bc.selection} – {bc.master}"
             value = text.split(": ", 1)[1] if ": " in text else text
             t.setItem(r, 0, _item(name))
             t.setItem(r, 1, _item(KIND_SHORT.get(getattr(bc, "kind", ""), getattr(bc, "kind", ""))))
             t.setItem(r, 2, _item(value))
             for cj in range(len(cases)):
-                it = _item("√" if cj == ci else "")
+                it = _item("√" if cj == ci or ci < 0 else "")
                 it.setTextAlignment(Qt.AlignCenter)
                 t.setItem(r, 3 + cj, it)
             self._row_data["thermal"].append(ci)

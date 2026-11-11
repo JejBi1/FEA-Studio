@@ -7,7 +7,6 @@ If the GUI is not running, they return information about the headless state with
 """
 from __future__ import annotations
 
-from typing import Any
 
 from .common import out
 from .session import Session

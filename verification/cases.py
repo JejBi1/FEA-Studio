@@ -612,6 +612,18 @@ from verification.plasticity_cases import CASES as PLASTIC_CASES  # noqa: E402 �
 
 CASES.update(PLASTIC_CASES)
 
+from verification.param_cases import PARAM_CASES  # noqa: E402 – parametric study PS1, polygon imprint IM2
+
+CASES.update(PARAM_CASES)
+
+from verification.buckle_cases import BUCKLE_CASES  # noqa: E402 – nonlinear buckling with imperfection BK1–BK3 (F9 C2)
+
+CASES.update(BUCKLE_CASES)
+
+from verification.cyclic_cases import CYCLIC_CASES  # noqa: E402 – cyclic symmetry CY1, CY2 (F9 C3)
+
+CASES.update(CYCLIC_CASES)
+
 from fea_core.modules import ModuleMissing  # noqa: E402
 
 try:                                       # ε-N fatigue (U4) needs the accel module (Numba); without it only this case is missing

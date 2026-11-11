@@ -23,16 +23,11 @@ from fea_core.calc.thermal_convection import (
     natural_convection_horizontal_cylinder,
     forced_convection_flat_plate,
     forced_convection_internal_pipe,
-    gnielinski_correlation,
-    dittus_boelter_correlation,
 )
 from fea_core.thermal.model import (
     ContactConductance,
     CavityRadiation,
-    Radiation,
     STEFAN_BOLTZMANN,
-    STEFAN_BOLTZMANN_CCX,
-    ABSOLUTE_ZERO,
 )
 from fea_core.thermal.contact_conductance import (
     CONTACT_CONDUCTANCE_DATABASE,
@@ -44,7 +39,6 @@ from fea_core.thermal.contact_conductance import (
 from fea_core.thermal.radiation import (
     parallel_plates_radiation,
     concentric_cylinders_radiation,
-    radiation_heat_transfer_coefficient,
     linearized_radiation_convection,
 )
 
@@ -280,7 +274,7 @@ def test_suggest_contact_conductance_token_matching():
 def test_thermal_contact_conductance_inp_from_contacts_report(tmp_path):
     """Finding 3: a ContactConductance found in contacts_report must be carried correctly into model.inc."""
     from tests.test_thermal import bar_mesh, study
-    from fea_core.thermal.inp import write_model, write_case, thermal_contact_conductances
+    from fea_core.thermal.inp import write_model, thermal_contact_conductances
     from fea_core.thermal.model import ThermalCase
 
     m = bar_mesh(parts=2)

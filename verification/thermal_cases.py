@@ -11,6 +11,10 @@ T5  thermal stress from the field T2 (steady state of ccx → statics), plane st
     σr, σθ, u_r according to Timoshenko & Goodier (integrals of T·r numerically), σz = ν(σr + σθ) − EαΔT.
 T6  transient conduction: bar 100 mm, start 20 °C, at x = 0 a jump to 120 °C, others insulated – Fourier series.
 T7  radiation: bar k = 5 W/(m·K), x = 0 at 300 °C, the face x = 100 radiates (ε = 0.8) to 20 °C – the root k(T0 − T_L)/L = εσ(T_L⁴ − T∞⁴).
+TH8 two plates in series with a contact pair conductance h_c (series resistances), TH8B the same as a bonded interface
+    (ThermalSettings.conductances, one part meshed separately) + tension through the kept mechanical *TIE;
+TH9 / TH9C radiation in a closed cavity between two plates (Radiation cavity=True / CavityRadiation, ε 0.8 / 0.5),
+    TH9C also checks the heat of each cavity face.
 """
 from __future__ import annotations
 
@@ -357,8 +361,10 @@ def th8_eval(res: Results, st: Study):
     dT_num = T_a - T_b
 
     ends = {h["name"]: h["Q_W"] for h in th.heat if h["kind"] == "fixed_temperature"}
+    ifc = (th.balance.get("interfaces") or [{}])[0]
 
     return [
+        Check("heat through the interface Q = h_c·∫ΔT dA (own integration)", abs(ifc.get("Q_W", 0.0)), Q_exact, 1e-3, "W"),
         Check("T rozhraní x = 50- (slave)", T_a, T_a_exact, 1e-4, "°C"),
         Check("T rozhraní x = 50+ (master)", T_b, T_b_exact, 1e-4, "°C"),
         Check("ΔT styku (q / h_c)", dT_num, dT_gap_exact, 1e-3, "K"),
@@ -420,7 +426,92 @@ def th9_eval(res: Results, st: Study):
     ]
 
 
+# ------------------------------------------------------------------ TH8B
+F8B = 1000.0   # N tension of the bar (the mechanical *TIE of the separately meshed part must stay)
+
+
+def th8b_build(wd: Path):
+    """TH8 as a bonded interface of two parts (no contact pair): ThermalSettings.conductances with the part names,
+    one part meshed separately (the Heat step / fea_thermal_add_contact_conductance do the same) + a tension load case."""
+    from fea_core.thermal.model import ContactConductance
+    from fea_core.study import Force
+    p1 = Part("Platna1", box(0, 0, 0, 50, 10, 10))
+    p2 = Part("Platna2", box(50, 0, 0, 50, 10, 10))
+    st, parts = _bar_study("TH8B bonded interface conductance", wd, [p1, p2], size=4.0)
+    st.mesh.separate = ["Platna2"]
+    st.thermal.conductances = [ContactConductance("Platna1", "Platna2", conductance=HC8, name="Plate joint")]
+    st.thermal.cases = [ThermalCase("Contact resistance", [FixedTemperature("x0", 100.0), FixedTemperature("x100", 20.0)])]
+    # symmetry planes only on part 1 – the *TIE slave (separate part 2) must not have supported nodes (ties.detect leaves
+    # such faces out); part 2 is held by the *TIE alone → uniaxial tension in both parts
+    st.add_selection("y0a", find_faces([parts[0]], y=0))
+    st.add_selection("z0a", find_faces([parts[0]], z=0))
+    st.constraints += [Displacement("x0", ux=0.0), Displacement("y0a", uy=0.0), Displacement("z0a", uz=0.0)]
+    st.load_cases = [LoadCase("Tension", [Force("x100", [F8B, 0.0, 0.0])])]
+    return st, parts
+
+
+def _interface_T(res: Results, part: str) -> float:
+    m = res.mesh
+    pi = m.part_names.index(part)
+    own = np.unique(m.tets[m.tet_part == pi])
+    idx = own[np.abs(m.nodes[own, 0] - 50.0) < 1e-6]
+    return float(res.thermal_case(0).T[idx].mean())
+
+
+def th8b_eval(res: Results, st: Study):
+    R = 0.05 / (K_ST * A8)
+    Q = 80.0 / (2 * R + 1.0 / (HC8 * A8))
+    th = res.thermal_case(0)
+    ends = {h["name"]: h["Q_W"] for h in th.heat if h["kind"] == "fixed_temperature"}
+    ifc = (th.balance.get("interfaces") or [{}])[0]
+    n = res.mesh.nodes
+    end = np.abs(n[:, 0] - 100) < 1e-6
+    u = float(res.step(0).U[end, 0].mean())
+    return [
+        Check("T at x = 50 in part 1", _interface_T(res, "Platna1"), 100.0 - Q * R, 1e-4, "°C"),
+        Check("T at x = 50 in part 2", _interface_T(res, "Platna2"), 20.0 + Q * R, 1e-4, "°C"),
+        Check("heat in at x = 0", ends.get("x0", 0.0), Q, 1e-3, "W"),
+        Check(f"heat through the interface {ifc.get('from')} → {ifc.get('to')} (own integration)",
+              ifc.get("Q_W", 0.0) if ifc.get("from") == "Platna1" else 0.0, Q, 1e-3, "W"),
+        Check("ΔT of the interface = q / h_c", ifc.get("dT_mean_K", 0.0), Q / A8 / HC8, 1e-3, "K"),
+        Check("heat balance (1 + residual)", 1 + th.balance["imbalance"], 1.0, 1e-3, ""),
+        Check("mechanics: u(L) = F·L/(E·A) (*TIE kept)", u, F8B * 100.0 / (E * 100.0), 1e-4, "mm"),
+    ]
+
+
+# ------------------------------------------------------------------ TH9C
+EPS9H, EPS9C = 0.8, 0.5
+
+
+def th9c_build(wd: Path):
+    """TH9 with the CavityRadiation condition (the Heat step / fea_thermal_add_cavity) and a different ε per face."""
+    from fea_core.thermal.model import CavityRadiation
+    st, parts = th9_build(wd)
+    st.name = "TH9C cavity two emissivities"
+    case = st.thermal.cases[0]
+    case.loads = [FixedTemperature("x0", T9_HOT), FixedTemperature("x22", T9_COLD),
+                  CavityRadiation("cav_hot", emissivity=EPS9H, cavity_name="Gap", closed=True),
+                  CavityRadiation("cav_cold", emissivity=EPS9C, cavity_name="Gap", closed=True)]
+    return st, parts
+
+
+def th9c_eval(res: Results, st: Study):
+    eps = 1.0 / (1.0 / EPS9H + 1.0 / EPS9C - 1.0)
+    Q = eps * STEFAN_BOLTZMANN * ((T9_HOT - ABSOLUTE_ZERO) ** 4 - (T9_COLD - ABSOLUTE_ZERO) ** 4) * A9
+    th = res.thermal_case(0)
+    ends = {h["name"]: h["Q_W"] for h in th.heat if h["kind"] == "fixed_temperature"}
+    faces = {f["selection"]: f["Q_W"] for f in th.balance.get("cavity_faces", [])}
+    return [
+        Check("radiated heat Q (ε 0.8 / 0.5)", ends.get("x0", 0.0), Q, 1e-3, "W"),
+        Check("cavity face 'cav_hot' gives off Q", -faces.get("cav_hot", 0.0), Q, 1e-3, "W"),
+        Check("cavity face 'cav_cold' receives Q", faces.get("cav_cold", 0.0), Q, 1e-3, "W"),
+        Check("heat balance (1 + residual)", 1 + th.balance["imbalance"], 1.0, 1e-3, ""),
+    ]
+
+
 THERMAL_CASES: dict[str, Case] = {
+    "TH8B": Case("TH8B", "Heat: bonded interface with contact conductance (separate mesh, ΔT = q / h_c)", th8b_build, th8b_eval),
+    "TH9C": Case("TH9C", "Heat: cavity radiation with two emissivities (ε_eff = 1/(1/ε1 + 1/ε2 − 1))", th9c_build, th9c_eval),
     "T1": Case("T1", "Teplo: tyč ocel + hliník, konvekce / tok / výkon (sériové odpory)", t1_build, t1_eval),
     "T2": Case("T2", "Teplo: trubka ri 20 / ro 40, radiální vedení (logaritmický profil)", t2_build, t2_eval),
     "T3": Case("T3", "Teplo: tyč s vnitřním zdrojem 10 W (parabolický profil)", t3_build, t3_eval),

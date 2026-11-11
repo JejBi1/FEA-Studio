@@ -10,14 +10,14 @@ import math
 import numpy as np
 import pytest
 
-from fea_core.fatigue.strain_life import (
-    StrainLifeParams,
+pytest.importorskip("numba")                     # module accel (fatigue kernels)
+
+from fea_core.fatigue.strain_life import (  # noqa: E402
     estimate_strain_life,
     ramberg_osgood_strain,
     ramberg_osgood_stress,
     neuber_solve,
     glinka_solve,
-    notch_correction,
     coffin_manson_life,
     morrow_life,
     swt_life,
@@ -28,7 +28,6 @@ from fea_core.fatigue.strain_life import (
     RULE_GLINKA,
     MEAN_EN_NONE,
     MEAN_EN_MORROW,
-    MEAN_EN_SWT,
 )
 from fea_core.fatigue.settings import FatigueSettings
 from fea_core.fatigue.history import Channel, LoadHistory

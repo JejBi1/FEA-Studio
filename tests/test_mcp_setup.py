@@ -4,7 +4,12 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from fea_core.mcp import setup as ms
+
+# the imitated client configurations use the Windows layout (APPDATA, USERPROFILE)
+WINDOWS_LAYOUT = pytest.mark.skipif(sys.platform != "win32", reason="Windows client configuration paths")
 
 
 def _env(tmp_path):
@@ -13,6 +18,7 @@ def _env(tmp_path):
             "LOCALAPPDATA": str(home / "AppData" / "Local")}, home
 
 
+@WINDOWS_LAYOUT
 def test_register_update_remove(tmp_path):
     env, home = _env(tmp_path)
     appdata = home / "AppData" / "Roaming"
@@ -56,6 +62,7 @@ def test_register_update_remove(tmp_path):
     assert "fea-studio" not in cd["mcpServers"] and "jiny" in cd["mcpServers"]
 
 
+@WINDOWS_LAYOUT
 def test_vscode_format_and_dry_run(tmp_path):
     env, home = _env(tmp_path)
     user = home / "AppData" / "Roaming" / "Code" / "User"
@@ -70,6 +77,7 @@ def test_vscode_format_and_dry_run(tmp_path):
 
 def test_spec_starts_from_any_folder(tmp_path):
     """The client entry works from any working folder (PYTHONPATH = the root of the program)."""
+    pytest.importorskip("mcp")
     spec = ms.server_spec()
     env = dict(os.environ, **spec["env"])
     env.pop("PYTHONHOME", None)
@@ -79,6 +87,7 @@ def test_spec_starts_from_any_folder(tmp_path):
     assert spec["command"] == sys.executable or spec["command"].lower().endswith("python.exe")
 
 
+@WINDOWS_LAYOUT
 def test_vscode_trailing_commas_and_comments(tmp_path):
     """VS Code reads mcp.json as JSONC: trailing commas do not matter (the file is written, the keys stay), comments do
     (the file is not overwritten – they would be lost).

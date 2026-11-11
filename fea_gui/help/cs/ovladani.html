@@ -112,6 +112,18 @@ výběr ploch a dílů, řez, pohledy, zpět a znovu a ukládání. Na konci je 
 <li>Neuložené změny značí hvězdička v titulku okna; při zavření nebo otevření jiného souboru se program zeptá.</li>
 </ul>
 
+<h3><a name="nedavne"></a>Nedávné soubory a automatické ukládání</h3>
+<p><b>Soubor → Nedávné soubory</b> nabízí naposledy otevřené nebo uložené projekty a modely (jen soubory, které stále existují).
+Dokud má projekt neuložené změny, FEA Studio každých 5 minut uloží kopii do složky uživatelských dat
+(<code>FEAStudio/autosave</code>; výsledky větší než 200 MB se vynechají – jen studie). Uložení nebo běžné ukončení kopii smaže.
+Pokud program skončil neočekávaně, nabídne při dalším spuštění její <b>obnovení</b>; obnovený projekt si ponechá původní název
+souboru, změny zachováte uložením.</p>
+<h3><a name="konzole"></a>Konzole Pythonu</h3>
+<p><b>Zobrazit → Konzole Pythonu</b> otevře panel, kde lze spouštět kód Pythonu nad otevřeným modelem: <code>study</code>,
+<code>mesh</code>, <code>results</code>, <code>window</code>, <code>fea_core</code>, <code>np</code> (Ctrl+Enter spustí). Kód běží
+uvnitř programu s plným přístupem k vašim souborům – spouštějte jen kód, kterému důvěřujete. Konzole není dostupná agentům
+MCP / LLM ani přes REST API.</p>
+
 <h2>Klávesové zkratky</h2>
 <table class="grid">
 <tr><th>Klávesa</th><th>Akce</th><th>Poznámka</th></tr>

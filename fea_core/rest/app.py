@@ -68,6 +68,18 @@ def _is_within(p: Path, root: Path) -> bool:
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 PROTECTED_PREFIXES = ("/api", "/docs", "/redoc", "/openapi.json")       # after the token (if set)
 UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+HELLO_PATH = "/api/hello"           # token proof (challenge–response) – reachable without the token
+NONCE_CHARS = frozenset("0123456789abcdef")
+
+
+def hello_proof(token: str, nonce: str, port: int | None) -> str:
+    """Proof that the server knows the token, without sending it: HMAC-SHA256(token, "rest" + nonce + ":" + port) in hex.
+    The port is the one the server listens on (the client uses the port of its URL) – a foreign process on another port cannot
+    relay the client's challenge to the real server and pass the answer on as its own.
+    """
+    import hashlib
+    msg = ("rest" + nonce + ":" + str(port or "")).encode("ascii")
+    return hmac.new(token.encode("utf-8"), msg, hashlib.sha256).hexdigest()
 
 
 def _host_name(value: str) -> str:
@@ -117,7 +129,7 @@ def create_app(session: Session | None = None, base_dir: str | Path | None = Non
             same = o.netloc.lower() == host.strip().lower()
             if not (same or (o.scheme in ("http", "https") and (o.hostname or "") in LOOPBACK_HOSTS)):
                 return JSONResponse({"error": f"Request from a foreign web page ({origin}) rejected"}, status_code=403)
-        if token and request.url.path.startswith(PROTECTED_PREFIXES):
+        if token and request.url.path.startswith(PROTECTED_PREFIXES) and request.url.path != HELLO_PATH:
             h = request.headers.get("authorization", "")
             if not (h.startswith("Bearer ") and hmac.compare_digest(h[7:].strip().encode(), token.encode())):
                 return JSONResponse({"error": "Token missing or wrong (header Authorization: Bearer …)"},
@@ -207,6 +219,20 @@ def create_app(session: Session | None = None, base_dir: str | Path | None = Non
         return out
 
     # ------------------------------------------------------------ endpointy
+    @app.post(HELLO_PATH)
+    def hello(request: Request, body: dict | None = Body(default=None)) -> dict:
+        """Token proof for clients (CAD add-ins) BEFORE they send the token or a design: {"nonce": 32–128 hex characters} →
+        {"app", "token": true, "proof": HMAC-SHA256(token, "rest" + nonce + ":" + port)}; a server without a token answers
+        {"app", "token": false} (the client then must not send its token). Needs no token itself."""
+        nonce = str((body or {}).get("nonce", "")).lower()
+        if not (32 <= len(nonce) <= 128 and set(nonce) <= NONCE_CHARS):
+            raise ApiError(400, "nonce must be 32–128 hexadecimal characters")
+        out: dict = {"app": "FEA Studio", "token": bool(token)}
+        if token:
+            server = request.scope.get("server") or (None, None)
+            out["proof"] = hello_proof(token, nonce, server[1])
+        return out
+
     @app.get("/api/status")
     def status() -> dict:
         from ..solvers import summary as solvers_summary

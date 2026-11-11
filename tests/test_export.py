@@ -1,6 +1,5 @@
 import xml.etree.ElementTree as ET
 import csv
-from pathlib import Path
 import numpy as np
 import pytest
 
@@ -8,7 +7,7 @@ from fea_core.mesh import Mesh
 from fea_core.results import Results, StepResult
 from fea_core.study import Study
 from fea_core.combinations import Combination
-from fea_core.export_vtu import export_step_vtu, export_results_vtu, VTK_QUADRATIC_TETRA
+from fea_core.export_vtu import export_step_vtu, export_results_vtu
 from fea_core.export_csv import export_nodal_csv, export_reactions_csv
 
 

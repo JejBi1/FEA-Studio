@@ -1,0 +1,132 @@
+# Tests of FEA Studio: lint (ruff) + installation with the project installer (installer/fea_setup.py, module profiles from
+# fea_core/modules.json) + fast tests (pytest -m "not slow") + a few verification cases against analytical references.
+# Tests of optional modules that are not part of a profile skip themselves (tests/conftest.py).
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd   # v5.0.1
+        with:
+          persist-credentials: false
+      - name: ruff check (configuration in pyproject.toml)
+        run: pipx run --spec ruff==0.12.4 ruff check --output-format=github .
+
+  test:
+    name: ${{ matrix.os }} / ${{ matrix.profile }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # minimal = core only (+ the verify module with pytest): checks that the core runs without the optional modules
+          - os: ubuntu-24.04
+            profile: minimal
+            modules: verify
+            cases: V1 S1                        # U1 (fatigue) needs the accel module
+          - os: ubuntu-24.04
+            profile: standard
+            modules: verify mcp
+            cases: V1 U1 S1
+          - os: windows-2022
+            profile: standard
+            modules: verify mcp
+            cases: V1 U1 S1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd   # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: System libraries (Linux; Gmsh needs GLU/X11 client libraries, Qt offscreen needs EGL/xkbcommon)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libglu1-mesa libxcursor1 libxft2 libxinerama1 \
+            libxrender1 libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3 curl bzip2 perl
+
+      # outside the checkout: tests list the untracked files of the repository (git ls-files --others)
+      - name: uv cache folder (read by installer/fea_setup.py)
+        run: echo "FEA_UV_CACHE_DIR=$RUNNER_TEMP/uv-cache" >> "$GITHUB_ENV"
+
+      - name: Cache of uv packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae   # v5.0.5
+        with:
+          path: ${{ runner.temp }}/uv-cache
+          key: uv-${{ runner.os }}-${{ matrix.profile }}-${{ hashFiles('installer/locks/*.txt') }}
+          restore-keys: uv-${{ runner.os }}-${{ matrix.profile }}-
+
+      # CalculiX for Linux is built from source by installer/linux/build_ccx.sh when no prebuilt archive exists (minutes);
+      # the result depends only on that script (+ the MKL of the pardiso module for ccx_i4 → the profile is in the key)
+      - name: Cache of CalculiX (Linux build)
+        if: runner.os == 'Linux'
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae   # v5.0.5
+        with:
+          path: tools/calculix/ccx_2.23_linux
+          key: ccx-linux-${{ matrix.profile }}-${{ hashFiles('installer/linux/build_ccx.sh') }}
+
+      - name: Cache of CalculiX (Windows, extracted from the dhondt.de archive)
+        if: runner.os == 'Windows'
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae   # v5.0.5
+        with:
+          path: tools/calculix/calculix_2.23_4win
+          key: ccx-win-2.23-${{ hashFiles('installer/fea_setup.py') }}
+          restore-keys: ccx-win-2.23-
+
+      - name: Install (installer/fea_setup.py, profile ${{ matrix.profile }} + ${{ matrix.modules }})
+        run: |
+          # any Python >= 3.9 runs the installer; it downloads uv and its own Python 3.11 into tools/ and creates .venv
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=python; else PY=python3; fi
+          "$PY" installer/fea_setup.py install ${{ matrix.modules }} --profile ${{ matrix.profile }} --quiet --lang en \
+            --no-shortcuts --no-mcp --no-fusion --no-check
+          if [ "$RUNNER_OS" = "Windows" ]; then echo "VPY=$GITHUB_WORKSPACE/.venv/Scripts/python.exe" >> "$GITHUB_ENV"
+          else echo "VPY=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"; fi
+
+      - name: Installed modules and solvers
+        run: |
+          "$VPY" -m fea_core.modules
+          "$VPY" -m fea_core.solvers
+          "$VPY" -c "from fea_core import config; p = config.find_ccx()[0]; print('ccx:', p); assert p.exists(), p"
+
+      - name: Fast tests (pytest -m "not slow")
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then export QT_QPA_PLATFORM=offscreen; fi    # no display on the runner
+          "$VPY" -m pytest -m "not slow" -q -rs -p no:cacheprovider --junitxml="$RUNNER_TEMP/pytest-report.xml"
+
+      - name: Verification cases (${{ matrix.cases }})
+        run: |
+          "$VPY" -m verification.run_all ${{ matrix.cases }}
+
+      - name: Logs
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4   # v5.0.0
+        with:
+          name: logs-${{ matrix.os }}-${{ matrix.profile }}
+          path: |
+            install.log
+            ${{ runner.temp }}/pytest-report.xml
+            verification/out/report.json
+          if-no-files-found: ignore
+          retention-days: 7

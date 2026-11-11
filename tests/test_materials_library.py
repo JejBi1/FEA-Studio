@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from fea_core import grades as G
-from fea_core.materials import LIBRARY, by_name
+from fea_core.materials import LIBRARY
 from fea_core.ortho import compliance
 
 

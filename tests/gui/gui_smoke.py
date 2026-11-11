@@ -5,13 +5,11 @@
 Without STEP it creates a plate with a hole (V3, whole), clamps the left face, puts a force on the right one,
 creates the mesh, calculates and saves the snapshots of the individual steps + the .fea project.
 """
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import numpy as np  # noqa: E402
 from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 

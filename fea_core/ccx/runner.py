@@ -44,6 +44,9 @@ def run_ccx(workdir: str | Path, jobname: str, exe: Path | None = None,
     exe = Path(exe or config.CCX_EXE)
     if not exe.exists():
         raise CcxError(f"CalculiX not found: {exe}")
+    if not threads:                          # share of the machine of this thread (independent jobs side by side)
+        from .parallel import budget_threads
+        threads = budget_threads()
     dllguard.check_workdir(workdir, "CalculiX")  # ccx runs with cwd = workdir: no planted DLLs (fea_core.dllguard)
     log_path = workdir / f"{jobname}.log"
     memory.release_unused()                  # ccx gets the memory that this process does not use (fea_core.memory)

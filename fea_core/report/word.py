@@ -25,6 +25,7 @@ import numpy as np
 from .. import __version__ as FEA_VERSION
 from .. import i18n
 from ..i18n import tr as _tr
+from . import images as IM
 
 SUP = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
 MARKER = ".fea_protokol_obrazky.json"         # list of the pictures that the report wrote into the folder
@@ -205,7 +206,12 @@ class _Doc:
     def image(self, path: Path, caption: str):
         from docx.shared import Pt
         from docx.enum.text import WD_ALIGN_PARAGRAPH
-        self.doc.add_picture(str(path), width=self.width)
+        from .images import current
+        pool = current()
+        if pool is not None and pool.pending(path):      # still being drawn: the picture goes into this run later
+            pool.slots.append((self.doc.add_paragraph().add_run(), path, self.width))
+        else:
+            self.doc.add_picture(str(path), width=self.width)
         self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
         self.fig += 1
         par = self.p(f"Figure {self.fig}: {_tr(caption)}", italic=True, size=9)
@@ -355,8 +361,16 @@ def bc_text(bc) -> str:
         return f"Q = {num(bc.value)} W uniformly over the area (+ into the body)"
     if k == "convection":
         return f"h = {num(bc.h)} W/(m²·K), ambient {num(bc.ambient)} °C"
+    if k == "radiation" and getattr(bc, "cavity", False):
+        k = "cavity_radiation"
     if k == "radiation":
         return f"ε = {num(bc.emissivity, 3)}, ambient {num(bc.ambient)} °C"
+    if k == "cavity_radiation":
+        name = getattr(bc, "cavity_name", None) or "CAV"
+        return (f"ε = {num(bc.emissivity, 3)}, cavity “{name}”, closed (view factors normalised to 1)" if bc.closed
+                else f"ε = {num(bc.emissivity, 3)}, cavity “{name}”, open to ambient {num(bc.ambient)} °C")
+    if k == "contact_conductance":
+        return f"h_c = {num(bc.conductance)} W/(m²·K) between “{bc.selection}” and “{bc.master}”"
     if k == "heat_generation":
         return f"{num(bc.value)} W uniformly over the part volume"
     return k
@@ -384,8 +398,8 @@ def build_report(sess, path: str | Path, options: ReportOptions | None = None, o
     img_dir = Path(tempfile.mkdtemp(prefix="fea_protokol_"))      # own temporary folder of the pictures
     i18n.patch_matplotlib()                                         # captions of the pictures in the language of the report
     try:
-        with i18n.using(o.language or None):                         # this thread only (the GUI may have another language)
-            return _build(sess, study, res, path, img_dir, o, log)
+        with i18n.using(o.language or None), IM.Pool():             # this thread only (the GUI may have another language)
+            return _build(sess, study, res, path, img_dir, o, log)   # pictures drawn in parallel (report/images.py)
     finally:
         shutil.rmtree(img_dir, ignore_errors=True)
 
@@ -495,7 +509,7 @@ def _build(sess, study, res, path: Path, img_dir: Path, o: ReportOptions, log) -
         intro.append("Linear buckling (CalculiX *BUCKLE): critical load factor λ = multiple of the selected load case at which stability is lost (eigenvalues with the stress stiffness matrix) – without imperfections, plasticity and geometric nonlinearity.")
     if therm:
         intro.append("Finite element heat conduction (steady / transient, CalculiX *HEAT TRANSFER): linear conduction, material properties independent of temperature, "
-                     + ("parts with a shared mesh in perfect thermal contact, contact pair interfaces thermally insulated. " if study.active_contacts() else "parts in perfect thermal contact. ")
+                     + _thermal_contact_sentence(study)
                      + "Units: °C, W, W/m², W/(m²·K)."
                      + (" The temperature field serves as a static load (thermal stress)." if study.has_thermal_loads()
                         else ""))
@@ -569,12 +583,21 @@ def _build(sess, study, res, path: Path, img_dir: Path, o: ReportOptions, log) -
             n += 1
             log(f"Report: {ms.name}")
             _modes_section(D, sess, j, f"3.{n}", o, img_dir, images, warnings)
+        if getattr(res, "submodels", None):
+            from . import submodel as SMR
+            n = SMR.results_sections(D, sess, o, img_dir, images, warnings, n)
 
     sec = 4
     if F8.has_contacts(study, res):
         D.h(f"{sec} Contacts and nonlinear analysis", 1)
         log("Report: contacts")
         F8.contacts_section(D, sess, o, img_dir, images, warnings, str(sec))
+        sec += 1
+    from . import plasticity as PLR
+    if PLR.has_plasticity(study, res):
+        D.h(f"{sec} Plasticity", 1)
+        log("Report: plasticity")
+        PLR.section(D, sess, o, img_dir, images, warnings, str(sec), num, _render_field)
         sec += 1
     if F8.has_dynamics(study, res):
         D.h(f"{sec} Dynamics", 1)
@@ -585,6 +608,12 @@ def _build(sess, study, res, path: Path, img_dir: Path, o: ReportOptions, log) -
         D.h(f"{sec} Motion (mechanism)", 1)
         log("Report: mechanism")
         F8.motion_section(D, sess, o, img_dir, images, warnings, str(sec))
+        sec += 1
+    from . import cyclic as CY
+    if CY.has_cyclic(study, res):
+        D.h(f"{sec} Cyclic symmetry", 1)
+        log("Report: cyclic symmetry")
+        CY.section(D, sess, o, img_dir, images, warnings, str(sec))
         sec += 1
     if res is not None and study.frame.active and any(s_.frame for s_ in res.steps) and o.assess_frame:
         D.h(f"{sec} Member check per EN 1993-1-1", 1)
@@ -608,6 +637,11 @@ def _build(sess, study, res, path: Path, img_dir: Path, o: ReportOptions, log) -
         D.h(f"{sec} 3D printing", 1)
         _printing_section(D, sess, printed, o, img_dir, images, warnings)
         sec += 1
+    from . import param as PS
+    if PS.has_param(sess):
+        D.h(f"{sec} Parametric study", 1)
+        PS.param_section(D, sess)
+        sec += 1
 
     D.h(f"{sec} Assumptions, limitations, and warnings", 1)
     _assumptions(D, study, res, printed, o)
@@ -619,6 +653,8 @@ def _build(sess, study, res, path: Path, img_dir: Path, o: ReportOptions, log) -
     D.doc.core_properties.title = title
     D.doc.core_properties.author = o.author or "FEA Studio"
     D.doc.core_properties.subject = study.name
+    if IM.current() is not None:
+        IM.current().finish(warnings)                  # pictures drawn in parallel → into their places
     D.doc.save(str(path))
     images = _keep_images(images, path.with_name(path.stem + "_obrazky")) if o.keep_images and images else []
     log(f"Report saved: {path}")
@@ -719,6 +755,9 @@ def _summary_section(D: _Doc, sess, summ, o: ReportOptions) -> None:
             extra.append(f"Natural frequencies (number of modes {len(f)}): " + ", ".join(f"f{_sub(i + 1)} = {num(v)} Hz"
                                                                           for i, v in enumerate(f[:4]))
                          + (" …" if len(f) > 4 else "") + " (ch. 3)")
+        elif ms["kind"] == "nlbuckle":                # nonlinear buckling with imperfection (fea_core.imperfect)
+            from .nlbuckling import summary_line
+            extra.append(summary_line(sess))
         else:
             lam = ms["buckling_factors"]
             l1 = min(lam, key=abs) if lam else None
@@ -881,6 +920,11 @@ def _bc_section(D: _Doc, study, res, lab_bc: str = "1.3", lab_lc: str = "1.4", f
 
 
 
+def _thermal_contact_sentence(study) -> str:
+    from .thermal_extras import contact_sentence
+    return contact_sentence(study)
+
+
 def _thermal_input_section(D: _Doc, study, res, num_label: str) -> None:
     """Setup of the heat: reference / initial temperature, thermal states and their boundary conditions."""
     from ..mcp.diagnostics import THERMAL_LABELS
@@ -907,15 +951,17 @@ def _thermal_input_section(D: _Doc, study, res, num_label: str) -> None:
             typ = "steady state"
         D.table(["Boundary condition", "Selection / part", "Value", "area [mm²]"], rows or [["no conditions", "", "", ""]],
                 caption=f"Thermal case “{c.name}” – {typ}", widths=(0.25, 0.2, 0.4, 0.15))
+    from .thermal_extras import input_tables
+    input_tables(D, study)                               # contact conductances of interfaces (all thermal cases)
 
 
 def _render_model(sess, img_dir: Path, lc, warnings, thermal_case: str | None = None) -> Path | None:
-    from ..mcp.render import render
+    from .images import numbered, render
     from ..mcp.scenes import model_scene
     try:
         scene = model_scene(sess, lc, None, False, None, thermal_case)
         img_dir.mkdir(parents=True, exist_ok=True)
-        p = img_dir / f"model_{len(list(img_dir.glob('model_*.png'))) + 1}.png"
+        p = numbered(img_dir, "model_")
         render(scene, p, "multi", 1600, 1000)
         return p
     except Exception as e:  # noqa: BLE001 – without geometry (the STEP is missing) the report continues without the picture
@@ -995,6 +1041,8 @@ def _mesh_section(D: _Doc, sess, study, res) -> None:
         bs = study.buckling
         case = bs.case or (study.load_cases[0].name if study.load_cases else "–")
         rows.append(("Linear buckling", f"CalculiX *BUCKLE, {bs.modes} modes, loads of case “{case}”"))
+    if study.nlbuckling.enabled:
+        rows.append(("Nonlinear buckling", "CalculiX *STATIC, NLGEOM on the imperfect mesh, load control with automatic increments"))
     mesh = res.mesh if res is not None else sess.mesh
     if res is not None:
         m = res.mesh
@@ -1053,7 +1101,7 @@ def _render_field(sess, i, key, img_dir: Path, view: str, warnings, deformed: bo
                   thermal: int | None = None) -> tuple[Path, dict] | None:
     """Map of a field: the mechanical state i (deformed), or the thermal state thermal (always the undeformed shape)."""
     from ..mcp.diagnostics import FIELDS, REVERSED, SIGNED, field_values, thermal_values
-    from ..mcp.render import render
+    from .images import render
     from ..mcp.scenes import result_scene
     try:
         vals = thermal_values(sess, thermal, key) if thermal is not None else field_values(sess, i, key)
@@ -1098,7 +1146,8 @@ def _thermal_section(D: _Doc, sess, k: int, t: dict | None, num_label: str, o: R
     case = next((c for c in sess.study.thermal.cases if c.name == tr.name), None)
     given = {}
     for bc in (case.loads if case is not None else []):
-        given[(bc.kind, getattr(bc, "selection", None) or bc.part)] = bc_text(bc)
+        key = getattr(bc, "selection", None) or getattr(bc, "part", "")
+        given[(bc.kind, ", ".join(key) if isinstance(key, list) else key)] = bc_text(bc)
     rows = []
     for f in t.get("heat_flows_W", []):
         rows.append([THERMAL_LABELS.get(f["kind"], f["kind"]), f["name"], given.get((f["kind"], f["name"]), "–"),
@@ -1108,6 +1157,8 @@ def _thermal_section(D: _Doc, sess, k: int, t: dict | None, num_label: str, o: R
                 caption=f"Heat of the boundary conditions – thermal state “{tr.name}” (positive = into the body, negative = removed"
                         + (", at the end of the state" if tr.transient else "") + ")",
                 widths=(0.25, 0.2, 0.4, 0.15), font=8)
+    from .thermal_extras import result_tables
+    result_tables(D, tr)                                 # heat through conductance interfaces and cavity faces
     bal = t.get("balance") or {}
     if "imbalance" in bal:
         D.p(f"Heat balance: supply {num(bal.get('in_W'))} W, removal {num(bal.get('out_W'))} W, residual {num(bal.get('residual_W'), 2)} W, relative imbalance {num(bal['imbalance'], 2)} "
@@ -1236,7 +1287,7 @@ def _step_section(D: _Doc, sess, i: int, s: dict | None, o: ReportOptions, img_d
 
 def _render_mode(sess, j: int, k: int, img_dir: Path, view: str, warnings) -> Path | None:
     """Picture of the shape of the mode k of the set Results.modes[j] (|u| normalised, enlarged shape)."""
-    from ..mcp.render import render
+    from .images import render
     from ..mcp.scenes import result_scene
     try:
         ms = sess.results.modes[j]
@@ -1248,7 +1299,9 @@ def _render_mode(sess, j: int, k: int, img_dir: Path, view: str, warnings) -> Pa
             render(scene, p, view, 1600, 900)
             return p
         vals = np.linalg.norm(np.asarray(ms.shapes[k], float), axis=1)
-        scene, _ = result_scene(sess, 0, "displacement", vals, "Mode |u|", "–", False, True, None, 12, None, None,
+        nl = ms.kind == "nlbuckle"                    # nonlinear buckling: real displacement [mm]
+        scene, _ = result_scene(sess, 0, "displacement", vals, "|u|" if nl else "Mode |u|", "mm" if nl else "–", False,
+                                True, None, 12, None, None,
                                 False, False, mode=(j, k))
         img_dir.mkdir(parents=True, exist_ok=True)
         p = img_dir / f"mode_{ms.kind}_{k + 1}.png"
@@ -1265,6 +1318,9 @@ def _modes_section(D: _Doc, sess, j: int, num_label: str, o: ReportOptions, img_
     """
     from ..mcp.diagnostics import modes_summary
     ms = sess.results.modes[j]
+    if ms.kind == "nlbuckle":                       # nonlinear buckling with imperfection (F9 C2)
+        from .nlbuckling import nlbuckling_section
+        return nlbuckling_section(D, sess, j, num_label, o, img_dir, images, warnings, _render_mode)
     d = modes_summary(sess, j)
     if ms.kind == "modal":
         D.h(f"{num_label} Natural frequencies", 2)
@@ -1655,7 +1711,8 @@ def _assumptions(D: _Doc, study, res, printed, o: ReportOptions) -> None:
     elif study.load_cases and study.is_nonlinear():
         has_plastic = any(getattr(m, "is_plastic", False) for m in study.materials.values())
         items += [
-            "Statics with contact: linear elastic material (Hooke's law), "
+            ("Nonlinear statics: elastoplastic material (von Mises yield condition, hardening curve – see the Plasticity chapter), "
+             if has_plastic else "Statics with contact: linear elastic material (Hooke's law), ")
             + ("large displacements and rotations (NLGEOM)" if study.contact_settings.nlgeom else "small displacements and strains")
             + ("; material plasticity is considered." if has_plastic else "; plasticity is not considered."),
             "Parts in contact pairs interact through contact surfaces (opening, friction); the other assembly parts are connected by shared nodes on the mating faces.",

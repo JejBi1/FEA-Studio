@@ -15,7 +15,7 @@ Main class TopologyOptimizer:
 from __future__ import annotations
 
 import tempfile
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Any
 
@@ -30,7 +30,7 @@ MIN_STIFFNESS_RATIO = 1e-6
 
 if TYPE_CHECKING:
     from ..mesh import Mesh
-    from ..results import StepResult, Results
+    from ..results import StepResult
     from ..study import Material, Study
 
 

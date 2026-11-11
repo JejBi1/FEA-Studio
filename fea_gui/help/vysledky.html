@@ -42,6 +42,7 @@ Tsai-Wu / Hill safety factor. The <b>Table</b> at the bottom has the numbers for
 <tr><td>3D printing – safety factor (Tsai-Wu/Hill) [–]</td><td>Load multiple to failure by the printing criterion; the worse of shell and core.</td><td>Printed parts only; others 10. See <a href="tisk.html">3D printing</a>.</td></tr>
 <tr><td>3D printing – failure index [–]</td><td>Criterion index (1 = failure).</td><td>Non-printed parts 0.</td></tr>
 <tr><td>Temperature [°C]</td><td>Temperature field used as the load of the case.</td><td>Otherwise “The case has no thermal load.”</td></tr>
+<tr><td>Equivalent plastic strain PEEQ [–]</td><td>Accumulated equivalent plastic strain (CalculiX, nodal value extrapolated from integration points).</td><td>Only with a plastic material (<a href="materialy.html#plasticity">Materials → Plasticity</a>); otherwise a note. Grows at singularities.</td></tr>
 </table>
 <h3>Thermal cases (Heat: …)</h3>
 <table class="grid">
@@ -63,6 +64,15 @@ At singularities (sharp inner corner, fixed support edge) it stays high even aft
 The summary gives frequency, ω, period and effective mass fraction.</p>
 <p>The <b>Mode shapes</b> tab lists the shapes with frequency [Hz] (λ for buckling), effective mass fractions m_x, m_y, m_z [%] and their sums Σ from mode 1.
 For base excitation and seismic analysis, a sum ≥ 90 % in every direction is required; otherwise add modes. Click a row to show the shape.</p>
+<p><b>Nonlinear buckling with imperfection</b> (<a href="reseni.html#nelinearni-vzper">Solve</a>) adds the items <b>Nonlinear buckling (case): imperfection</b>
+(the initial shape added to the mesh) and <b>Nonlinear buckling (case): λ = …</b> for chosen increments. These show the <b>real displacement in mm</b>
+from the imperfect geometry (quantities “Nonlinear buckling – total / X / Y / Z displacement”). Below the table the <b>Mode shapes</b> tab shows the
+ultimate load factor λ_u with its status, first yield and the <b>load–displacement curve</b> (λ over the displacement of the monitored point, λ_u and the
+linear λ_cr marked). With load control λ_u is the last converged increment; a flat end of the curve means a limit point.</p>
+
+<h3><a name="cyklicka"></a>Cyclic symmetry – the full 360° model</h3>
+<p>A study with <a href="vazby.html#cyklicka">cyclic symmetry</a> is solved on one sector, but with <b>show results as the full 360° model</b> (Constraints step, on by default) the Results step shows the sector rotated N times – maps, probe, maxima and section work on the whole part; the sector results themselves are not changed (switching the display keeps the results). Stresses at the cut faces are averaged over both sides as in a full model.</p>
+<p>Natural frequencies are listed as <b>Mode shape n (ND k): f = … Hz</b>; the 360° shape shows k waves around the circumference. For 0 &lt; k &lt; N/2 the frequency belongs to a pair of equal modes of the whole part (the second is the same shape turned by a quarter wave). Effective masses are not given for cyclic modes. Reactions in the summary are per sector.</p>
 
 <h3><a name="pruty"></a>Members</h3>
 <p>With members, the Quantity menu has <b>Members – stress σ_eq, displacement |u|, N, Vy, Vz, T, My, Mz, utilization EN 1993</b>
@@ -161,6 +171,28 @@ The table fills after each level (element size, nodes, elements, value, change, 
 A value that keeps growing with refinement, with differences that do not shrink, is a <b>singularity</b> (sharp inner corner, fixed support edge, point force) – no finite value there.
 Each level with r = 1.5 has about 3.4× more elements; 3 levels take ~15× a single analysis.</p>
 
+<h2><a name="submodel"></a>Submodel</h2>
+<p>The <b>Submodel…</b> button computes a <b>finer local model</b> of a critical region from the displayed result, without remeshing the whole model.
+The parts are cut by a <b>box</b> (centre + size in the global axes) or a <b>sphere</b> (centre + radius) and meshed with the submodel element size.
+On the <b>cut faces</b> (where the region cuts through the material) the displacement of the global result is prescribed (interpolated with the element shape functions);
+the original free surface inside the region stays free.</p>
+<ol>
+<li>Run the global analysis (a coarser mesh is fine away from the detail).</li>
+<li>In Results press <b>Submodel…</b>, choose the load case and the region. Centre: <b>Click in 3D</b>, <b>Selected hotspot</b> (row of the Highest stresses table) or
+<b>Max. stress</b> (highest von Mises outside singularities). The blue outline shows the region in 3D.</li>
+<li>Set the element size (default = global size / 4) and press <b>Run submodel</b>; <b>Cancel</b> stops meshing or CalculiX.</li>
+<li>The result appears in the result menu as <b>Submodel: name</b> – drawn on its own mesh, the global parts transparent around it; probe, section, max/min markers work as usual.</li>
+</ol>
+<p><b>Transferred into the region:</b> fixed supports and prescribed displacements, force (the same traction F/A) and pressure on faces, gravity, rotation and inertia (body forces).
+Other conditions inside the region – bolt couplings, bearing and remote loads, elastic, cylindrical and remote supports, edge or point forces, weld roots, thermal load – stop the submodel with an
+error (move or shrink the region). Nonlinear analyses, printed and orthotropic materials are not supported.</p>
+<p><b>Cut check:</b> von Mises of the submodel on the cut faces vs the global field at the same points. Mean difference ≤ 10 % and max. ≤ 25 % = the cut lies far enough from the
+stress concentration. When it is exceeded the summary is red: <b>enlarge the region</b> (cut at least ~2–3 notch sizes from the peak) or refine the global mesh there.
+Quantity <b>Cut check – |Δσ_vM| to the global model</b> shows where on the cut the difference is. The summary also shows the equilibrium check (free nodes carry exactly the
+transferred loads) and the max. stress of the submodel vs the global model in the region.</p>
+<p>Submodels are kept with the results and <b>saved in the .fea project</b> (they are discarded with the results when the study changes); the Word report has a section per submodel.
+MCP: <code>fea_submodel_run</code>, <code>fea_submodel_results</code>, <code>fea_submodel_render</code>. Verification SM1 (plate with a hole, Peterson) and SM2 (submodel vs a fine full model, 0.4–0.6 %).</p>
+
 <h2><a name="topologie"></a>Topology optimization (BESO)</h2>
 <p>The <b>Topology (BESO)…</b> button in the Results panel removes lightly loaded material from a full “design space” and keeps what carries the load.
 Use it to <b>lightweight a part</b> or to <b>propose a shape</b> for 3D printing or milling: it shows where the load path should run, as a basis for remodelling in CAD.</p>
@@ -225,6 +257,43 @@ with an eye at the free end and a 4 kN load. It opens with the statics results o
 <b>Topology – density</b> and <b>Topology – final shape</b> are in the results. The 40 % target is reached in iteration 23; the design settles after 40 iterations (about
 3 min). Compliance rises from 104.6 to 230.6 N·mm (2.2× at 40 % volume). The remaining material forms a truss bracket with two tension members to the bolts and a compression strut.</p>
 <p><img src="example10_density.png" alt="BESO density in example 10"></p>
+
+<h2><a name="plasticity"></a>Plasticity assessment</h2>
+<p>With a plastic material the button <b>Plasticity assessment…</b> in the Results panel evaluates every step with PEEQ (same computation as the Word report and MCP <code>fea_plasticity_assess</code>):</p>
+<ul>
+<li><b>EN 1993-1-5 Annex C</b>: PEEQ ≤ the strain limit of the material (default 5 %); utilization = PEEQ / limit.</li>
+<li><b>ASME VIII-2, 5.3.3.1</b> (local failure): PEEQ + ε<sub>cf</sub> ≤ ε<sub>L</sub> = ε<sub>Lu</sub>·exp[−α<sub>sl</sub>/(1 + m<sub>2</sub>)·((σ<sub>1</sub> + σ<sub>2</sub> + σ<sub>3</sub>)/(3σ<sub>e</sub>) − 1/3)]
+per node with Table 5.7 constants, R = Re/Rm: ferritic steel m<sub>2</sub> = 0.60(1 − R), α<sub>sl</sub> = 2.2; austenitic stainless steel / nickel alloy m<sub>2</sub> = 0.75(1 − R), α<sub>sl</sub> = 0.6;
+ε<sub>Lu</sub> = m<sub>2</sub> (or max(m<sub>2</sub>, ln(1 + A)) with a Hollomon elongation). The class is guessed from the material name; it, ε<sub>Lu</sub> and the forming strain ε<sub>cf</sub> can be set in the window.</li>
+<li><b>Residual stress</b>: for an unloading step of the load history (scale 0) the largest von Mises stress is shown – select that step and “von Mises” for the map.</li>
+</ul>
+<p>The table gives the max PEEQ and where (part, coordinates), both utilizations, the triaxiality at the governing node; the second table the constants per material.
+A warning appears when PEEQ exceeds the last point of the hardening curve. Double-click a row = PEEQ of that step in 3D. Verified by PL1–PL5 (<code>python -m verification.run_all PL1 PL2 PL3 PL4 PL5</code>;
+PL5 = uniaxial strain against the closed-form J2 solution: PEEQ, triaxiality, both utilizations and the residual stress to 0.001 %).</p>
+<p class="warn"><b>Caution:</b> maxima at singularities (sharp inner corners, support edges, point loads) grow with refinement – assess away from them. The checks cover the computed strain only,
+not the complete design procedure of the standard (load factors, ratcheting, shakedown, buckling).</p>
+
+<h2><a name="parametricka"></a>Parametric study</h2>
+<p><b>Tools → Parametric study…</b> solves the study for several values of its inputs and compares the key results. Each
+design point is a full analysis of a <b>copy</b> of the study – the main window does not change until you take a point over.</p>
+<ul>
+<li><b>Parameters</b> (one row each): load factor of all load cases or of one case, material of a part (materials of the
+study), a material property (E, ν, ρ, Re, Rm, α, λ, E_z, Rm_z), the global mesh size and a 3D print setting of a printed part
+(perimeters, top / bottom layers, infill 0–1, layer height, line width, pattern). Values: a list <code>1, 1.5, 2</code> or a
+range <code>start:stop:n</code>.</li>
+<li><b>Grid</b> = all combinations, <b>list</b> = the i-th values of all parameters together; at most 200 points.</li>
+<li><b>KPI</b> per point: max. von Mises outside singularities (as the Assessment card), max. von Mises, max. displacement,
+min. safety to Re, mass, 1st natural frequency (if enabled), 3D print safety. * marks the Pareto front (no other point is both
+lighter and less stressed). The chart plots any result against a parameter or another result.</li>
+<li>A <b>linear</b> study with load factors only is solved once and the points are scaled exactly (superposition). Otherwise
+each point is one analysis; the mesh is reused while the mesh size does not change.</li>
+<li><b>Take over selected point</b> copies its parameters into the study (undo works); the results are discarded – run the
+analysis. The table also goes into the Word report (section Parametric study).</li>
+</ul>
+<p>CAD parameters (dimensions) are not swept – the program does not regenerate geometry; for a modified model use
+<b>Replace geometry</b>. MCP: <code>fea_param_study_run</code>, <code>fea_param_study_results</code>,
+<code>fea_param_study_apply</code> (group results). Verification PS1: cantilever V1, deflection = Timoshenko × F / E within
+0.7 %, scaled points equal solved ones to 1e-6.</p>
 
 <h2>Reactions and equilibrium</h2>
 <ul>

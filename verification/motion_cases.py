@@ -707,7 +707,7 @@ def mb12_build(wd: Path):
 
 
 def mb12_run(st, wd, parts):
-    from fea_core.motion.to_fea import export_loads, history_loads, instant_loads
+    from fea_core.motion.to_fea import history_loads, instant_loads
     from fea_core.solve import run_study
     from fea_core.study import BearingLoad, LoadCase
     res = _run(st, Path(wd) / "mbd", parts)

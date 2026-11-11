@@ -9,7 +9,7 @@ import json
 
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHeaderView, QLabel, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHeaderView, QLabel, QTableWidgetItem, QVBoxLayout, QWidget
 
 from .safe_browser import SafeTextBrowser
 from .contour import BAND_COLORS, band_edges

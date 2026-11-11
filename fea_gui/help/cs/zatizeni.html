@@ -118,6 +118,20 @@ Každý zatěžovací stav je samostatný výpočet se stejnými vazbami.</p>
 </ul>
 <p>Ve 3D jsou zatížení prutů červené šipky (velikost podle hodnoty).</p>
 
+<h2><a name="otisk"></a>Otisk na ploše (rozdělení plochy)</h2>
+<p>Zatížení, uložení nebo kontakt často působí jen na části plochy z CADu (razník, patka, podložka). <b>Otisk na ploše…</b>
+(tlačítko v kroku Zatížení) rozdělí rovinnou plochu dílu obrysem; nová plocha se stane výběrem s názvem otisku a síťuje se
+s tělesem (souvislá síť). Tvary:</p>
+<ul>
+<li><b>Kruhový</b> – střed, normála plochy, poloměr R.</li>
+<li><b>Obdélníkový</b> – střed, normála, dx × dy podél os rámu plochy (x' = n × X, nebo n × Y, když je normála blízko osy X;
+y' = n × x').</li>
+<li><b>Mnohoúhelník</b> – body obrysu, jeden na řádek, nejméně 3, bez samoprotnutí: <i>u, v</i> v rámu plochy kolem středu,
+nebo globální body <i>x, y, z</i> (všechny se promítnou do své společné roviny – střed a normála se pak vezmou z bodů).
+Hrany jsou přímé, takže plocha otisku se přesně rovná ploše mnohoúhelníku (ověřovací úloha IM2).</li>
+</ul>
+<p>MCP: <code>fea_imprint_add(shape="polygon", points=[[u, v], …])</code> nebo s 3D body.</p>
+
 <h2>Zobrazení a úpravy</h2>
 <ul>
 <li>Plochy zatížení jsou červené (tlak fialově) s popiskem; šipka tahové síly začíná na ploše, tlakové na ní končí. Vzdálená síla má šipku ve vzdáleném bodě, moment dvojitou šipku. Zatížené hrany jsou purpurové se šipkami, body křížkem; válcová síla má šipky v bodech daleko od osy. Osa otáčení je purpurová úsečka.</li>

@@ -302,7 +302,8 @@ def tessellate(sess: Session) -> dict:
 
 
 THERMAL_HUES = {"fixed_temperature": (0.76, 0.84), "heat_flux": (0.05, 0.09), "heat_flow": (0.05, 0.09),
-                "convection": (0.46, 0.53), "radiation": (0.13, 0.17), "heat_generation": (0.93, 0.97)}
+                "convection": (0.46, 0.53), "radiation": (0.13, 0.17), "heat_generation": (0.93, 0.97),
+                "cavity_radiation": (0.17, 0.21)}
 
 
 def model_scene(sess: Session, load_case: str | None, highlight, show_face_ids: bool,
@@ -597,6 +598,19 @@ def model_scene(sess: Session, load_case: str | None, highlight, show_face_ids: 
             p, _ = anchor(msk)
             markers.append({"xyz": p, "text": f"source {fmt(bc.value)} W ({bc.part}){tag}", "color": col})
             swatches.append((col, f"{label}{tag}: {val}"))
+            n_th += 1
+    if th_cases and st.thermal.conductances:            # interface conductances (all thermal cases): a mark on side A
+        names = [p.name for p in sess.parts]
+        for cc in st.thermal.conductances:
+            if cc.selection in names:
+                msk = own[:, 0] == names.index(cc.selection)
+            elif cc.selection in st.selections:
+                msk = faces_mask(st.selections[cc.selection].faces)
+            else:
+                continue
+            p, _ = anchor(msk)
+            markers.append({"xyz": p, "text": f"{cc.name}: {bc_value_text(cc)}", "color": (0.55, 0.35, 0.1)})
+            swatches.append(((0.55, 0.35, 0.1), f"contact conductance {cc.name}: {bc_value_text(cc)}"))
             n_th += 1
     f8_notes: list[str] = []
     if show_mech and (st.contacts or st.masses or st.dynamics.probes):   # F8: contact pairs, probes, added mass

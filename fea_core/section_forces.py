@@ -22,7 +22,7 @@ import logging
 import re
 from pathlib import Path
 from .recovery import element_nodal_forces
-from .joints.forces import element_nodal_forces as joints_nodal_forces, read_el_print
+from .joints.forces import element_nodal_forces as joints_nodal_forces
 
 
 ALL_ELEMENTS_MAX = 200_000      # up to this many elements the extra ccx run prints S of ALL elements (later cuts need no ccx)

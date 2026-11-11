@@ -210,6 +210,11 @@ def rigid_body_check(sess: Session) -> dict:
             center = fcenter
         rows = np.vstack([rows, frows])
         method += " + member supports"
+    from ..cyclic import rigid_rows as cyclic_rows   # cyclic symmetry holds the motions perpendicular to the axis
+    crows = cyclic_rows(st, center)
+    if len(crows):
+        rows = np.vstack([rows, crows])
+        method += " + cyclic symmetry"
     modes = _describe_modes(rows, center)
     d = {"method": method, "free_rigid_modes": modes, "ok": not modes}
     if fallback:

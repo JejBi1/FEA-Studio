@@ -3,15 +3,12 @@ from __future__ import annotations
 
 import html
 import threading
-from pathlib import Path
-from typing import Any
 
-import numpy as np
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QDoubleSpinBox,
-    QPushButton, QComboBox, QFileDialog, QMessageBox, QGroupBox, QSpinBox,
-    QProgressBar, QListWidget, QListWidgetItem, QTextBrowser
+    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QDoubleSpinBox,
+    QPushButton, QFileDialog, QMessageBox, QGroupBox, QSpinBox,
+    QProgressBar, QListWidget, QListWidgetItem
 )
 
 from .safe_browser import SafeTextBrowser
@@ -197,7 +194,7 @@ class TopologyOptDialog(QDialog):
         )
 
         self.txt_log.clear()
-        self.txt_log.append(f"<b>BESO topology optimization started:</b>")
+        self.txt_log.append("<b>BESO topology optimization started:</b>")
         self.txt_log.append(f"Target: {spec.target_volume_fraction * 100:.1f} % of the original volume")
         self.txt_log.append(f"Filter R: {spec.filter_radius:.1f} mm, ER: {spec.evolution_rate * 100:.1f} %")
         self.txt_log.append(f"Protected regions: {(', '.join(nd_selected) if nd_selected else 'none')}<br>")

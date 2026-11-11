@@ -5,17 +5,15 @@
 """
 from __future__ import annotations
 
-import math
 from pathlib import Path
 import numpy as np
 import pytest
 
 from fea_core.nl_convergence import (
-    parse_cvg, parse_sta, parse_stdout_residuals, read_convergence_job,
-    ConvergenceHistory, ConvergenceIteration
+    parse_cvg, parse_sta, parse_stdout_residuals, read_convergence_job
 )
 from fea_core.submodel import (
-    SubmodelSpec, identify_cut_nodes, interpolate_cut_displacements, verify_cut_boundary,
+    SubmodelSpec, identify_cut_nodes, verify_cut_boundary,
     generate_submodel_mesh, create_submodel_shape, locate_batch, write_submodel_inp
 )
 from fea_core.study import Material
@@ -23,7 +21,7 @@ from fea_core.post_vectors import (
     principal_stresses_and_directions, principal_vector_segments
 )
 from fea_core.isosurface import extract_isosurface
-from fea_core.results import Results, StepResult, von_mises
+from fea_core.results import Results, StepResult
 from fea_core.mesh import Mesh
 
 

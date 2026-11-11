@@ -2,6 +2,29 @@
 
 Upgrade: run setup.exe (Windows) or `.run` (Linux) over the existing installation, or extract a new archive and run `Install FEA Studio.bat update` / `./install.sh update`. The installer applies migrations (`installer/migrations.py`), removes obsolete files, and synchronizes modules.
 
+## 1.4.1 (2026-11-11)
+
+### New features
+- **Plasticity in the GUI**: Materials → Plasticity (bilinear, multilinear table, Ramberg-Osgood, Hollomon; isotropic / kinematic hardening), PEEQ in the results, plasticity assessment dialog (EN 1993-1-5 Annex C, ASME VIII-2 5.3.3.1), report chapter, unloading step for residual stress. Verified PL1–PL5.
+- **Submodel** from the Results panel, MCP and the report (box / sphere region, cut-boundary check). Verified SM1, SM2.
+- **Thermal contact conductance and cavity radiation** in the Heat and Contacts steps, MCP and the report; heat through each interface and cavity face. Verified TH8, TH8B, TH9, TH9C.
+- **Nonlinear buckling with imperfection (GNIA / GMNIA)**: imperfection from buckling modes, a bow or a CSV shape; load–displacement curve, ultimate load factor, first yield. CalculiX has no arc-length method – the ultimate factor is the last converged increment (lower bound). Verified BK1–BK3.
+- **Cyclic symmetry**: statics on a sector by constraint equations, natural frequencies by nodal diameters, results shown as the full 360° model. Verified CY1, CY2.
+- **Parametric study** (Tools → Parametric study…): load factors, materials, material properties, mesh size, print settings; KPI table, chart, Pareto front, take-over of a point; MCP and report. Verified PS1.
+- **Job queue** for several projects, **Python console** dock, **nonlinear convergence monitor** in the Solve step, **polygon imprint** (IM2), CLI `export` / `solve-project` / `--version`, **recent files** and **autosave** with restore after a crash, **About** dialog with licences and a **crash log**.
+- **Speed**: result animation ~21 fps on example 2 (was < 1 fps), result display 3–4× faster, report pictures drawn in parallel (example 2 report about 2× faster), modal / buckling / dynamics / Campbell speeds / print variants run side by side with the load cases (e.g. statics + modal + buckling + harmonic 61 → 24 s); `FEA_CCX_PARALLEL=0` restores the serial order.
+
+### Fixes
+- Nonlinear convergence history was never read; EN 1990 generator classified load cases by single letters (now whole words + a confirmation table); errors that silently dropped results are now warnings or errors; ASME VIII-2 local failure exponent corrected (α_sl / (1 + m2)).
+- Security: STEP external file references, solver work folders (DLL planting), deck input from saved meshes, rich-text resources in labels and messages, REST file access, native CAD reader limits, MCP file writes.
+- Licences: CalculiX built with Intel MKL (`ccx_i4`) is no longer bundled – it is downloaded (Windows) or built (Linux) at installation with the pardiso module; GPL sources (`licenses/SOURCES.md`, CalculiX source) in every package.
+
+### Infrastructure
+- **REST token proof**: `POST /api/hello` answers a client nonce with HMAC-SHA256(token, "rest" + nonce + ":" + port) without the token; the Fusion add-in sends its token and the design only to a server that proves it (an older server or one without a token → the export folder is used).
+- **Continuous integration** (`.github/workflows/tests.yml`): ruff lint; installation with `installer/fea_setup.py` (Linux minimal / standard, Windows standard), fast tests and verification cases V1, U1, S1. Tests of optional modules that are not installed are skipped.
+- **Fixes found by the linter**: context menus of the study tree (part / body) failed with a NameError; the language flag icon of an unknown language failed.
+- **Linux**: reading of Fusion `.f3d` files uses the system zstd library (the Linux wheel of cadquery-ocp has none).
+
 ## 1.4.0 (2026-11-06)
 
 - **Fixes found by the full test run after the English conversion**: bolt clamping force with a contact joint (+13 % before), print advice never proposed more perimeters, GUI crash when showing the stress error estimate, shell edge supports rejected by the readiness check, mechanism energy plot, Czech input values accepted again by MCP (`tlak`, `teplota`, contact types, excitation, supports…), 361 texts shown in English in the Czech UI, translation engine no longer garbles multi-line summaries, F1 in a dialog shows the help of the focused field.

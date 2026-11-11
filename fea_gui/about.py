@@ -9,7 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
-                               QTabWidget, QVBoxLayout, QWidget)
+                               QTabWidget, QVBoxLayout)
 
 ROOT = Path(__file__).resolve().parents[1]
 # (tab title, file in the program folder)

@@ -187,7 +187,6 @@ def run(job: dict) -> dict:
                 raise RuntimeError(f"Part '{p['name']}' contains no body")
             part_vols[p["name"]] = vols
         occ.synchronize()
-        all_vols = [v for vs in part_vols.values() for v in vs]
         bb = gmsh.model.getBoundingBox(-1, -1)
         model_size = float(np.linalg.norm(np.subtract(bb[3:], bb[:3])))
         tol = max(1e-6 * model_size, 1e-6)
@@ -254,7 +253,11 @@ def run(job: dict) -> dict:
             xa /= np.linalg.norm(xa)
             c = np.asarray(imp["center"], float)
             shape = imp.get("shape", "circle")
-            if shape == "rectangle":
+            if shape == "polygon":                          # outline in global coordinates (Imprint.to_mesh_dict)
+                pts = [occ.addPoint(*(float(v) for v in q)) for q in imp["points3d"]]
+                lines = [occ.addLine(pts[k], pts[(k + 1) % len(pts)]) for k in range(len(pts))]
+                disks.append(occ.addPlaneSurface([occ.addWire(lines)]))
+            elif shape == "rectangle":
                 dx = float(imp.get("dx", 20.0))
                 dy = float(imp.get("dy", 20.0))
                 ya = np.cross(n, xa)
@@ -466,6 +469,10 @@ def run(job: dict) -> dict:
             fm = gmsh.model.mesh.field.add("Min")
             gmsh.model.mesh.field.setNumbers(fm, "FieldsList", fields)
             gmsh.model.mesh.field.setAsBackgroundMesh(fm)
+
+        if s.get("periodic"):                             # cyclic symmetry: the mesh of the right cut face = rotated left one
+            from fea_core.mesh.periodic import apply as apply_periodic
+            apply_periodic(s["periodic"], sel_surfs, tol, report)
 
         # ---------------------------------------------------------- mesh
         gmsh.logger.start()

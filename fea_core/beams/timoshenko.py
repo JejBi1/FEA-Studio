@@ -33,7 +33,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
 from .fem import FrameError, segment_loads
-from .model import FrameNodeLoad, FrameTemperature, LOCAL_NAMES, DOF_NAMES
+from .model import FrameNodeLoad, FrameTemperature, DOF_NAMES
 
 PIVOT_TOL = 1e-12                    # ratio of the LU pivot (system with unit diagonal) below this = mechanism
 
@@ -604,12 +604,11 @@ def member_results(model: TimModel, res: dict, n_base: int = 21) -> dict:
     n = el.n
     L = el.L
     f = res["f_loc"]
-    ue = res["u_full"]
     qa_l, qb_l = res["q"]
     eps, kz, ky = res["thermal"]
     q0 = qa_l
     q1 = (qb_l - qa_l) / L[:, None]
-    Fa, Ma = f[:, 0:3], f[:, 3:6]
+    Fa = f[:, 0:3]
     # positions of the output points: uniformly + extremes of the moment (V = 0)
     nm = max(len(fe.member_segs), 1)
     per = n / nm

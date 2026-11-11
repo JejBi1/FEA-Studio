@@ -42,6 +42,7 @@ Stejná čísla pro všechny stavy jsou v dolní <b>Tabulce</b> (bezpečnost oba
 <tr><td>3D tisk – bezpečnost (Tsai-Wu/Hill) [–]</td><td>Násobek zatížení do porušení podle kritéria tisku, horší z skořepiny a jádra.</td><td>Jen tištěné díly; netištěné mají 10. Viz <a href="tisk.html">3D tisk</a>.</td></tr>
 <tr><td>3D tisk – index porušení [–]</td><td>Index kritéria (1 = porušení).</td><td>Netištěné díly 0.</td></tr>
 <tr><td>Teplota [°C]</td><td>Pole teploty použité jako zatížení stavu.</td><td>Jen u stavu s tepelným zatížením; jinak „Stav nemá tepelné zatížení.“</td></tr>
+<tr><td>Ekvivalentní plastické přetvoření PEEQ [–]</td><td>Nahromaděné ekvivalentní plastické přetvoření (CalculiX, uzlová hodnota extrapolovaná z integračních bodů).</td><td>Jen s plastickým materiálem (<a href="materialy.html#plasticity">Materiály → Plasticita</a>); jinak poznámka. V singularitách roste.</td></tr>
 </table>
 <h3>Tepelné stavy (Teplo: …)</h3>
 <table class="grid">
@@ -65,6 +66,15 @@ Souhrn uvádí frekvenci, ω, periodu a podíl efektivní hmotnosti.</p>
 <p>Záložka <b>Tvary kmitů</b>: tabulka tvarů s frekvencí [Hz] (pro vzpěr λ), podíly efektivní hmotnosti m_x, m_y, m_z
 [%] (jaká část hmoty se kmitání účastní ve směru) a jejich součty Σ od 1. tvaru. Pro harmonické buzení a seizmickou analýzu se
 vyžaduje součet ≥ 90 % v každém směru – jinak přidejte tvary. Klik na řádek zobrazí tvar.</p>
+<p><b>Nelineární vzpěr s imperfekcí</b> (<a href="reseni.html#nelinearni-vzper">Řešení</a>) přidá položky <b>Nelineární vzpěr (stav): imperfekce</b>
+(počáteční tvar přičtený k síti) a <b>Nelineární vzpěr (stav): λ = …</b> pro vybrané přírůstky. Ukazují <b>skutečný posuv v mm</b>
+od imperfektní geometrie (veličiny „Nelineární vzpěr – celkový posuv / posuv X / Y / Z“). Pod tabulkou záložka <b>Tvary kmitů</b> ukazuje
+mezní součinitel zatížení λ_u se stavem, první plastizaci a <b>pracovní diagram</b> (λ v závislosti na posunu sledovaného bodu, vyznačené λ_u a
+lineární λ_cr). Při řízení silou je λ_u poslední konvergovaný přírůstek; vodorovný konec křivky znamená mezní bod.</p>
+
+<h3><a name="cyklicka"></a>Cyklická symetrie – celý model 360°</h3>
+<p>Studie s <a href="vazby.html#cyklicka">cyklickou symetrií</a> se počítá na jednom sektoru, ale s volbou <b>zobrazit výsledky jako celý model 360°</b> (krok Vazby, standardně zapnuto) ukazuje krok Výsledky sektor N× pootočený – mapy, sonda, maxima i řez fungují na celém dílu; samotné výsledky sektoru se nemění (přepnutí zobrazení výsledky nezahodí). Napětí na řezných plochách se průměruje z obou stran jako u celého modelu.</p>
+<p>Vlastní frekvence se uvádějí jako <b>Vlastní tvar n (ND k): f = … Hz</b>; tvar 360° má po obvodu k vln. Pro 0 &lt; k &lt; N/2 patří frekvence dvojici stejných tvarů celého dílu (druhý je stejný tvar pootočený o čtvrt vlny). Efektivní hmotnosti se u cyklických tvarů neuvádějí. Reakce v souhrnu jsou na jeden sektor.</p>
 
 <h3><a name="pruty"></a>Pruty</h3>
 <p>U prutové soustavy nabídka Veličina obsahuje <b>Pruty – napětí σ_eq, posuv |u|, N, Vy, Vz, T, My, Mz, využití EN 1993</b>
@@ -168,6 +178,28 @@ Richardsonova extrapolace a GCI (Roache, ASME V&amp;V 20). Hodnota, která se se
 je <b>singularita</b> (ostrý vnitřní roh, hrana pevné podpory, bodová síla) – napětí v tom místě nemá konečnou hodnotu.
 Úroveň s r = 1,5 má asi 3,4× víc prvků – 3 úrovně trvají ~15× déle než jediná analýza.</p>
 
+<h2><a name="submodel"></a>Submodel</h2>
+<p>Tlačítko <b>Submodel…</b> spočte z&nbsp;zobrazeného výsledku <b>jemnější místní model</b> kritické oblasti bez nového síťování celého modelu.
+Díly se oříznou <b>kvádrem</b> (střed + rozměry v globálních osách) nebo <b>koulí</b> (střed + poloměr) a vysíťují se velikostí prvku submodelu.
+Na <b>plochách řezu</b> (kde oblast prochází materiálem) se předepíše posuv z&nbsp;globálního výsledku (interpolovaný tvarovými funkcemi prvků);
+původní volný povrch uvnitř oblasti zůstává volný.</p>
+<ol>
+<li>Spočtěte globální analýzu (mimo detail stačí hrubší síť).</li>
+<li>Ve Výsledcích stiskněte <b>Submodel…</b>, vyberte zatěžovací stav a oblast. Střed: <b>Klik ve 3D</b>, <b>Vybrané místo</b> (řádek tabulky Nejvyšší napětí) nebo
+<b>Max. napětí</b> (nejvyšší von Mises mimo singularity). Modrý obrys ukazuje oblast ve 3D.</li>
+<li>Nastavte velikost prvku (výchozí = globální velikost / 4) a stiskněte <b>Spustit submodel</b>; <b>Zrušit</b> zastaví síťování nebo CalculiX.</li>
+<li>Výsledek se objeví v&nbsp;nabídce výsledků jako <b>Submodel: název</b> – kreslí se na vlastní síti, globální díly kolem něj průhledně; sonda, řez a značky max/min fungují jako obvykle.</li>
+</ol>
+<p><b>Přenáší se do oblasti:</b> pevné vetknutí a předepsané posuvy, síla (stejné plošné zatížení F/A) a tlak na plochách, tíha, otáčení a setrvačnost (objemové síly).
+Jiné podmínky uvnitř oblasti – vazby šroubů, ložiskové a vzdálené zatížení, pružné, válcové a vzdálené podpory, síly na hraně nebo v bodě, kořeny svarů, teplotní zatížení – submodel zastaví
+chybou (posuňte nebo zmenšete oblast). Nelineární analýzy, tištěné a ortotropní materiály nejsou podporovány.</p>
+<p><b>Kontrola řezu:</b> von Mises submodelu na plochách řezu proti globálnímu poli ve stejných bodech. Střední rozdíl ≤ 10 % a max. ≤ 25 % = řez leží dost daleko od
+koncentrace napětí. Při překročení je souhrn červený: <b>zvětšete oblast</b> (řez aspoň ~2–3 velikosti vrubu od špičky) nebo tam zjemněte globální síť.
+Veličina <b>Kontrola řezu – |Δσ_vM| proti globálnímu modelu</b> ukazuje, kde na řezu rozdíl je. Souhrn uvádí i kontrolu rovnováhy (volné uzly nesou přesně
+přenesená zatížení) a max. napětí submodelu proti globálnímu modelu v oblasti.</p>
+<p>Submodely se drží s&nbsp;výsledky a <b>ukládají se do projektu .fea</b> (se změnou studie se zahodí spolu s výsledky); protokol Word má pro každý submodel oddíl.
+MCP: <code>fea_submodel_run</code>, <code>fea_submodel_results</code>, <code>fea_submodel_render</code>. Ověření SM1 (deska s otvorem, Peterson) a SM2 (submodel proti jemnému plnému modelu, 0,4–0,6 %).</p>
+
 <h2><a name="topologie"></a>Optimalizace topologie (BESO)</h2>
 <p>Tlačítko <b>Topologie (BESO)…</b> v panelu Výsledků otevře dialog, který odebírá málo zatížený materiál z plné
 „oblasti návrhu“ a ponechá jen to, co nese zatížení. Hodí se k <b>odlehčení dílu</b> a k <b>návrhu tvaru</b> pro 3D tisk nebo frézování:
@@ -233,6 +265,42 @@ s okem na volném konci a zatížením 4 kN. Projekt se otevře s výsledky stat
 Veličiny <b>Topologie – hustota</b> a <b>Topologie – výsledný tvar</b> jsou ve výsledcích. Cíl 40 % je dosažen v iteraci 23, návrh se ustálí po 40 iteracích (asi
 3 min). Poddajnost vzroste ze 104,6 na 230,6 N·mm (2,2× při 40 % objemu). Zbylý materiál tvoří příhradový držák se dvěma tažnými pruty k šroubům a tlačenou vzpěrou.</p>
 <p><img src="example10_density.png" alt="Hustota BESO v ukázce 10"></p>
+
+<h2><a name="plasticity"></a>Posouzení plasticity</h2>
+<p>S plastickým materiálem tlačítko <b>Posouzení plasticity…</b> v panelu Výsledky vyhodnotí každý krok s PEEQ (stejný výpočet jako protokol Word a MCP <code>fea_plasticity_assess</code>):</p>
+<ul>
+<li><b>EN 1993-1-5 příloha C</b>: PEEQ ≤ mez přetvoření materiálu (výchozí 5 %); využití = PEEQ / mez.</li>
+<li><b>ASME VIII-2, 5.3.3.1</b> (lokální porušení): PEEQ + ε<sub>cf</sub> ≤ ε<sub>L</sub> = ε<sub>Lu</sub>·exp[−α<sub>sl</sub>/(1 + m<sub>2</sub>)·((σ<sub>1</sub> + σ<sub>2</sub> + σ<sub>3</sub>)/(3σ<sub>e</sub>) − 1/3)]
+v každém uzlu s konstantami tabulky 5.7, R = Re/Rm: feritická ocel m<sub>2</sub> = 0,60(1 − R), α<sub>sl</sub> = 2,2; austenitická nerezová ocel / niklová slitina m<sub>2</sub> = 0,75(1 − R), α<sub>sl</sub> = 0,6;
+ε<sub>Lu</sub> = m<sub>2</sub> (nebo max(m<sub>2</sub>, ln(1 + A)) s tažností Hollomona). Třída se odhadne z názvu materiálu; ji, ε<sub>Lu</sub> a přetvoření z tváření ε<sub>cf</sub> lze v okně nastavit.</li>
+<li><b>Zbytkové napětí</b>: u kroku odlehčení historie zatěžování (násobek 0) se ukáže největší napětí von Mises – pro mapu vyberte tento krok a „von Mises“.</li>
+</ul>
+<p>Tabulka uvádí max. PEEQ a místo (díl, souřadnice), obě využití a triaxialitu v rozhodujícím uzlu; druhá tabulka konstanty po materiálech.
+Varování se objeví, když PEEQ přesáhne poslední bod křivky zpevnění. Dvojklik na řádek = PEEQ tohoto kroku ve 3D. Ověřeno úlohami PL1–PL5 (<code>python -m verification.run_all PL1 PL2 PL3 PL4 PL5</code>;
+PL5 = jednoosá deformace proti uzavřenému řešení J2: PEEQ, triaxialita, obě využití a zbytkové napětí na 0,001 %).</p>
+<p class="warn"><b>Pozor:</b> maxima v singularitách (ostré vnitřní rohy, okraje podpor, bodová zatížení) se zjemněním rostou – posuzujte mimo ně. Kontroly pokrývají jen spočtené přetvoření,
+ne celý návrhový postup normy (součinitele zatížení, ratcheting, shakedown, stabilita).</p>
+
+<h2><a name="parametricka"></a>Parametrická studie</h2>
+<p><b>Nástroje → Parametrická studie…</b> spočítá studii pro několik hodnot jejích vstupů a porovná klíčové výsledky. Každý
+návrhový bod je úplný výpočet <b>kopie</b> studie – hlavní okno se nezmění, dokud bod nepřevezmete.</p>
+<ul>
+<li><b>Parametry</b> (každý na řádku): násobek zatížení všech stavů nebo jednoho stavu, materiál dílu (materiály studie),
+vlastnost materiálu (E, ν, ρ, Re, Rm, α, λ, E_z, Rm_z), globální velikost sítě a nastavení 3D tisku tištěného dílu (perimetry,
+horní / spodní vrstvy, výplň 0–1, výška vrstvy, šířka linky, vzor). Hodnoty: seznam <code>1, 1.5, 2</code> nebo rozsah
+<code>od:do:n</code>.</li>
+<li><b>Mřížka</b> = všechny kombinace, <b>seznam</b> = i-té hodnoty všech parametrů spolu; nejvýše 200 bodů.</li>
+<li><b>KPI</b> každého bodu: max. von Mises mimo singularity (jako karta Hodnocení), max. von Mises, max. posuv, min. bezpečnost
+k Re, hmotnost, 1. vlastní frekvence (je-li zapnuta), bezpečnost 3D tisku. * značí Paretovu frontu (žádný jiný bod není zároveň
+lehčí a méně namáhaný). Graf vynese libovolný výsledek proti parametru nebo jinému výsledku.</li>
+<li><b>Lineární</b> studie jen s násobky zatížení se spočítá jednou a body se přesně přepočtou (superpozice). Jinak je každý bod
+jeden výpočet; síť se použije znovu, dokud se nemění její velikost.</li>
+<li><b>Převzít vybraný bod</b> zkopíruje jeho parametry do studie (funguje Zpět); výsledky se zahodí – spusťte výpočet.
+Tabulka jde i do protokolu Word (kapitola Parametrická studie).</li>
+</ul>
+<p>Parametry CADu (rozměry) se nemění – program geometrii nepřegeneruje; pro upravený model použijte <b>Nahradit geometrii</b>.
+MCP: <code>fea_param_study_run</code>, <code>fea_param_study_results</code>, <code>fea_param_study_apply</code> (skupina
+results). Ověřovací úloha PS1: konzola V1, průhyb = Timoshenko × F / E do 0,7 %, přepočtené body se rovnají spočteným na 1e-6.</p>
 
 <h2>Reakce a rovnováha</h2>
 <ul>

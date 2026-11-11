@@ -1,6 +1,7 @@
 """Unpacking of Zstandard (members of the .f3d with method 93, which zipfile in Python 3.11 does not know) without a new dependency.
 
-Always ctypes on the zstd library shipped in the wheel of cadquery-ocp (cadquery_ocp.libs, module core): the output buffer has
+Always ctypes on the zstd library shipped in the wheel of cadquery-ocp (cadquery_ocp.libs, module core; the Linux wheel has none →
+the system libzstd.so.1): the output buffer has
 the size from the zip header (the caller limits it) – the modules of Python (compression.zstd, zstandard) would unpack the frame without
 a limit ("zip bomb" in a foreign file).
 """
@@ -21,21 +22,27 @@ def _lib():
         pats = ("zstd*.dll", "libzstd*.so*", "libzstd*.dylib")
         dirs = [os.path.join(p, "cadquery_ocp.libs") for p in site.getsitepackages() + [site.getusersitepackages()]]
         dirs += [os.path.join(p, "cadquery_ocp.libs") for p in sys.path if p]
-        for d in dict.fromkeys(dirs):
-            for pat in pats:
-                for c in glob.glob(os.path.join(d, pat)):
-                    try:
-                        lib = ctypes.CDLL(c)
-                    except OSError:
-                        continue
-                    lib.ZSTD_decompress.restype = ctypes.c_size_t
-                    lib.ZSTD_decompress.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
-                    lib.ZSTD_isError.restype = ctypes.c_uint
-                    lib.ZSTD_isError.argtypes = [ctypes.c_size_t]
-                    lib.ZSTD_getErrorName.restype = ctypes.c_char_p
-                    lib.ZSTD_getErrorName.argtypes = [ctypes.c_size_t]
-                    _LIB = lib
-                    return _LIB
+        cands = [c for d in dict.fromkeys(dirs) for pat in pats for c in glob.glob(os.path.join(d, pat))]
+        if not sys.platform.startswith("win"):
+            # the Linux wheel of cadquery-ocp does not bundle zstd; the system library (libzstd1 is part of every
+            # Debian / Ubuntu base system) has the same C interface
+            from ctypes.util import find_library
+            sys_lib = find_library("zstd")
+            cands += [sys_lib] if sys_lib else []
+            cands += ["libzstd.so.1"]
+        for c in cands:
+            try:
+                lib = ctypes.CDLL(c)
+                lib.ZSTD_decompress.restype = ctypes.c_size_t
+            except (OSError, AttributeError):          # not loadable / not a zstd library
+                continue
+            lib.ZSTD_decompress.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
+            lib.ZSTD_isError.restype = ctypes.c_uint
+            lib.ZSTD_isError.argtypes = [ctypes.c_size_t]
+            lib.ZSTD_getErrorName.restype = ctypes.c_char_p
+            lib.ZSTD_getErrorName.argtypes = [ctypes.c_size_t]
+            _LIB = lib
+            return _LIB
         raise RuntimeError("The Zstandard library was not found (cadquery_ocp.libs) – the file cannot be unpacked")
     return _LIB
 

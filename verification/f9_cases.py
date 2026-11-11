@@ -12,11 +12,11 @@ import math
 from pathlib import Path
 import numpy as np
 
-from fea_core.study import Study, Material, MeshSettings, Force, Fixed, Pressure, Displacement, LoadCase
+from fea_core.study import Study, Material, MeshSettings, Force, Fixed, Pressure, LoadCase
 from fea_core.results import Results
 from fea_core.selectors import find_faces
-from fea_core.geometry import Part, write_step, read_step
-from fea_core.assessment import compute_safety_field, equivalent_stress
+from fea_core.geometry import Part
+from fea_core.assessment import compute_safety_field
 from fea_core.section_forces import section_forces
 from fea_core.csys import transform_stress, transform_displacements
 from fea_core.calc.convection import natural_vertical_plate, natural_horizontal_cylinder, forced_internal_pipe
@@ -24,7 +24,7 @@ from fea_core.combinations import Combination, combine_results, compute_envelope
 from fea_core.imprint import Imprint
 from fea_core.mesh import tri_areas
 
-from .cases import AtLeast, Check, Case, _study, box, cyl, solid, v1_build, v7_build, v4_build, E, NU, STEEL, RI, RO, V4_H, P4
+from .cases import AtLeast, Check, Case, _study, box, v1_build, v7_build, v4_build, E, NU, RI, RO, V4_H, P4
 
 
 F9_CASES: dict[str, Case] = {}
@@ -491,3 +491,7 @@ def sm1_eval(res, st: Study):
 
 F9_CASES["SM1"] = Case("SM1", "Submodel (C1): deska s otvorem pod tahem, Peterson/Heywood Kt,net = 2,51 (Kt,gross = 3,13)",
                        sm1_build, sm1_eval, run=sm1_run)
+
+from .submodel_cases import SUBMODEL_CASES  # noqa: E402 – SM2: submodel of a solved study (GUI / MCP path)
+
+F9_CASES.update(SUBMODEL_CASES)

@@ -255,6 +255,9 @@ class ThermalSettings:
     cases: list[ThermalCase] = field(default_factory=list)
     reference_temperature: float = 20.0   # °C – temperature without thermal strain (assembly)
     initial_temperature: float | None = None   # °C – start of the transient state (None = reference)
+    # contact conductances of interfaces (model data – they apply to ALL thermal cases; ccx *CONTACT PAIR is model data);
+    # sides = two part names (bonded interface, one part meshed separately) or two face selections; written only when used
+    conductances: list[ContactConductance] = field(default_factory=list)
 
     def case(self, name: str) -> ThermalCase:
         for c in self.cases:
@@ -267,12 +270,16 @@ class ThermalSettings:
         return self.reference_temperature if self.initial_temperature is None else self.initial_temperature
 
     def to_dict(self) -> dict:
-        return {"cases": [c.to_dict() for c in self.cases], "reference_temperature": self.reference_temperature,
-                "initial_temperature": self.initial_temperature}
+        d = {"cases": [c.to_dict() for c in self.cases], "reference_temperature": self.reference_temperature,
+             "initial_temperature": self.initial_temperature}
+        if self.conductances:
+            d["conductances"] = [c.to_dict() for c in self.conductances]
+        return d
 
     @classmethod
     def from_dict(cls, d: dict | None) -> "ThermalSettings":
         d = d or {}
         return cls(cases=[ThermalCase.from_dict(c) for c in d.get("cases", [])],
                    reference_temperature=float(d.get("reference_temperature", 20.0)),
-                   initial_temperature=d.get("initial_temperature"))
+                   initial_temperature=d.get("initial_temperature"),
+                   conductances=[ContactConductance.from_dict(c) for c in d.get("conductances") or []])

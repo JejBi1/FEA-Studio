@@ -11,7 +11,6 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout)
 
-from . import theme
 from .table_dock import required_safety, step_summaries
 from fea_core.i18n import tr
 

@@ -53,8 +53,8 @@ from fea_core.study import (BearingLoad, CylindricalSupport, Displacement, Fixed
                             LoadCase, Material, MeshSettings, Pressure, RemoteLoad, Study, ThermalLoad)
 from fea_core.thermal.model import Convection, FixedTemperature, HeatFlow, ThermalCase
 
-from .geometry import (CHLADIC_MONT_OTVORY, D_KONZOLA_DIRA, D_KONZOLA_OKO, D_KOTVA, KONZOLA_DIRY, D_MONT_OTVOR, DPS, H_SLOUPEK, KOTVY, KOTVY_VYLOZNIK,
-                        L_PIPE, M_PRIRUBA, PATICE, PATKA, R_PIPE_IN, T_FLANGE, T_VIKO, X_ZAKLAD,
+from .geometry import (CHLADIC_MONT_OTVORY, D_KONZOLA_DIRA, D_KONZOLA_OKO, KONZOLA_DIRY, D_MONT_OTVOR, DPS, H_SLOUPEK, KOTVY, KOTVY_VYLOZNIK,
+                        L_PIPE, PATICE, PATKA, R_PIPE_IN, T_VIKO, X_ZAKLAD,
                         chladic, drzak, klikovy_mechanismus, konzola_navrh, patka_sroubovana, pripravek_dps, priruba, sestava,
                         vyloznik)
 

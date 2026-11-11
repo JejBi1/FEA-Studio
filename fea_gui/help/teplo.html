@@ -1,6 +1,7 @@
 <h1>Heat</h1>
 <p class="lead">The Heat step computes heat conduction in the parts as a steady state or as a time history (transient case). Boundary conditions:
-prescribed temperature, heat flux, power, convection, radiation and heat generation. The temperature field can then load the mechanical analysis as thermal stress.</p>
+prescribed temperature, heat flux, power, convection, radiation to the surroundings, radiation between faces of a cavity and heat generation;
+interfaces of parts can have a thermal contact conductance. The temperature field can then load the mechanical analysis as thermal stress.</p>
 
 <h2>What the step can do</h2>
 <ul>
@@ -44,9 +45,22 @@ prescribed temperature, heat flux, power, convection, radiation and heat generat
 <tr><td>Heat power [W]</td><td>Q [W]</td><td>Total power spread uniformly over the selected faces; positive = into the body (cartridge heater, component losses).</td></tr>
 <tr><td>Heat transfer – convection</td><td>h [W/(m²·K)], T ambient [°C]</td><td>q = h·(T ambient − T). Free air 5–25, forced air 25–250, water 500–10 000 W/(m²·K).</td></tr>
 <tr><td>Radiation to surroundings</td><td>ε in (0; 1], T ambient [°C]</td><td>q = ε·σ·(T_amb⁴ − T⁴), absolute temperatures. Polished Al ~0.05, oxidized steel / anodized ~0.8, black paint ~0.95. Nonlinear (iterations).</td></tr>
+<tr><td>Cavity radiation (between faces)</td><td>ε in (0; 1], Cavity, closed cavity, T ambient [°C]</td><td>Faces with the same <b>Cavity</b> name radiate to each other; CalculiX computes the view factors. Add each face group as a separate condition with its own ε (same cavity name). <b>Closed cavity</b> = the faces enclose it completely, no heat leaves (the case still needs a heat sink elsewhere); unchecked = open cavity, the opening sees T ambient. Closed / T ambient is one setting per cavity – it is copied to its other faces. Nonlinear (iterations).</td></tr>
 <tr><td>Heat generation in part</td><td>P [W], Part</td><td>Power uniform in the part's volume (winding losses, electronics). Choose the part in the list or click its face.</td></tr>
 </table>
-<p>The <b>T ambient</b> field appears only for convection and radiation, <b>Part</b> only for heat generation. A condition cannot be turned into another kind by editing; add a new one.</p>
+<p>The <b>T ambient</b> field appears only for convection, radiation and an open cavity, <b>Cavity</b> and <b>closed cavity</b> only for cavity radiation, <b>Part</b> only for heat generation. A condition cannot be turned into another kind by editing; add a new one.</p>
+
+<h3 id="conductance">Contact conductance (all thermal cases)</h3>
+<p>Without it, touching parts are in <b>perfect thermal contact</b>. An interface with a <b>thermal contact conductance h_c</b> [W/(m²·K)] has a temperature jump ΔT = q / h_c (CalculiX <code>*GAP CONDUCTANCE</code>). Interfaces are model data – they apply to <b>all thermal cases</b>.</p>
+<table class="grid">
+<tr><th>Control</th><th>What it does</th><th>Typical value / note</th></tr>
+<tr><td>Interface list</td><td>Defined interfaces; a click loads the parts and h_c into the form and colours both parts in 3D.</td><td></td></tr>
+<tr><td>Part A, Part B</td><td>The two touching parts of the interface.</td><td></td></tr>
+<tr><td>h_c</td><td>Contact conductance; <b>Suggest…</b> opens typical values (double-click = use) and an estimate from the materials, pressure, roughness Ra and filler (paste / pad).</td><td>Steel dry 1 000–3 000, bolted flange 5 000, thermal pad 5 000, paste 25 000 W/(m²·K)</td></tr>
+<tr><td><b>Add / update</b>, <b>Delete</b></td><td>Adds the interface A–B (the same pair again = new h_c), deletes the selected one.</td><td></td></tr>
+</table>
+<p>A temperature jump needs two sets of nodes on the interface: when the interface is added, <b>one of the parts is meshed separately</b> (the *TIE list of the <a href="spoje.html">Joints</a> step, logged) and stays mechanically tied by <code>*TIE</code> – the mechanics is unchanged except for the non-conforming mesh (CalculiX backend). A part with a bolt imprint is not chosen. Deleting the interface does not switch the separate mesh off.</p>
+<p>A <a href="kontakty.html">contact pair</a> can have its own h_c (field <b>Thermal conductance</b> in the Contacts step); the other contact pairs are in perfect thermal contact in the heat analysis. The estimate of h_c is <b>indicative</b> (±50 % and more) – measure it or take a datasheet value when the result depends on it.</p>
 
 <h3>Study temperatures</h3>
 <table class="grid">
@@ -58,6 +72,7 @@ prescribed temperature, heat flux, power, convection, radiation and heat generat
 
 <h2>Heat balance</h2>
 <p>The equivalent of force equilibrium for a steady state. The heat of all conditions (faces by exact integration) must sum to zero: the residual must not exceed 0.1 % of the sum of absolute fluxes, otherwise the result is discarded. Results show <b>Boundary condition heat [W] (+ = into the body)</b> and “Heat balance: input … W, output … W, residual … W (… %)”. Transient cases are not checked (heat is stored in the parts).</p>
+<p>A cavity appears in the heat table as one row with its <b>net</b> heat (a closed cavity ≈ 0; a larger value is reported as a warning – the faces probably do not enclose the cavity, use an open one). The heat of each cavity face and the heat through each contact conductance interface are listed separately (see Results) – they are internal exchanges and are not part of the balance.</p>
 
 <h2>Thermal stress</h2>
 <p>In <a href="zatizeni.html">Loads</a> choose <b>Temperature (thermal stress)</b> and in <b>Temperature from</b>:</p>
@@ -86,12 +101,12 @@ prescribed temperature, heat flux, power, convection, radiation and heat generat
 <tr><td>Heat flux |q| [W/m²]</td><td>Magnitude of the flux density.</td><td rowspan="2">Transient cases: end of the case only.</td></tr>
 <tr><td>Heat flux qx, qy, qz [W/m²]</td><td>Components in model axes.</td></tr>
 </table>
-<p>Transient cases get a <b>Time</b> selector (“t = 0 s” … “t = duration”). The info panel gives the maximum and minimum temperature with location, max |q|, reference temperature, heat of each condition and the balance. A mechanical case with a thermal load can show <b>Temperature</b> and all stresses.</p>
+<p>Transient cases get a <b>Time</b> selector (“t = 0 s” … “t = duration”). The info panel gives the maximum and minimum temperature with location, max |q|, reference temperature, heat of each condition and the balance. The <a href="protokol.html">report</a>, the MCP results summary (<code>balance.interfaces</code>, <code>balance.cavity_faces</code>) and the study file give the <b>heat through each contact conductance interface</b> (Q = h_c·∫ΔT dA, positive = from part A to part B, with the mean ΔT) and the <b>heat of each cavity face</b> (positive = absorbed). A mechanical case with a thermal load can show <b>Temperature</b> and all stresses.</p>
 
 <h2>Limitations</h2>
 <ul>
-<li>In this window radiation is only <b>to the surroundings</b>: no mutual irradiation of faces. Radiation between faces of a cavity (view factors computed by CalculiX, <code>CavityRadiation</code>) is available only through the Python API / study file (see <a href="automatizace.html">Automation</a>).</li>
-<li>Touching parts share nodes, so contact is <b>perfect</b> – no interface resistance. Model an insulating layer or paste as a thin part with its own λ. The same holds for <a href="kontakty.html">contact pairs</a> and split interfaces in this window (no contact conductance or opening in heat). A finite thermal contact conductance h_c of a contact pair (<code>ContactPair.conductance</code>) is available only through the Python API / study file.</li>
+<li>“Radiation to surroundings” has no mutual irradiation of faces; radiation between faces needs the <b>cavity radiation</b> condition. View factors are computed by CalculiX without shadowing checks by other parts outside the cavity faces.</li>
+<li>Touching parts share nodes, so contact is <b>perfect</b> unless an interface has a contact conductance (see above). h_c is constant – it does not follow the contact pressure or temperature. Contact pairs with a conforming split interface are in perfect contact in heat (no h_c).</li>
 <li>λ, c_p, h and ε do not depend on temperature. No fluid flow or phase change; convection is a boundary condition with a given h.</li>
 <li>Transient conditions are constant in time; each transient case starts from the initial temperature.</li>
 <li>MYSTRAN (cross-check) does not convert heat.</li>
@@ -119,6 +134,12 @@ The listed parts are not connected by a face to the heat exit; a bolt does not c
 Fill in λ, c_p or α in Materials. This applies to all meshed parts.</li>
 <li><b>“Thermal case 'X': heat balance does not close (residual … W, … % of fluxes). The result is invalid.”</b><br>
 Usually overlapping conditions on the same faces (temperature with flux or convection; two temperatures on a shared edge), or unconverged radiation. Check for overlaps and that the CalculiX iterations finished in the log.</li>
+<li><b>“Contact conductance 'X': parts 'A' and 'B' share a mesh (perfect contact) – mesh one of them separately”</b><br>
+The part was removed from the separately meshed parts; add the interface again (it switches the separate mesh on) or tick the part in the *TIE list of the <a href="spoje.html">Joints</a> step.</li>
+<li><b>“Contact conductance 'X': parts 'A' and 'B' do not touch (no common faces within … mm)”</b><br>
+The parts have a gap in CAD – use cavity radiation (or convection) across the gap, or fix the geometry.</li>
+<li><b>“Closed cavity 'X': net heat of the faces … W …”</b> (warning)<br>
+The selected faces do not enclose the cavity; uncheck “closed cavity” so the opening sees the ambient temperature.</li>
 <li><b>“Heat flux is stored only for the end of a transient case – choose the last time.”</b><br>
 Choose the last time to display flux, or shorten the duration.</li>
 <li><b>“Thermal case 'X': 50000 time steps – the analysis will take long”</b>, “the time step must be 0 (automatic) up to the case duration”<br>

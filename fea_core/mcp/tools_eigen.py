@@ -22,10 +22,11 @@ def mode_set_index(sess: Session, kind: str | None) -> int:
         raise FeaError("The results contain neither natural frequencies nor buckling – enable fea_modal_set / fea_buckling_set and run fea_solve_run")
     if kind is None:
         return 0
-    k = {"modal": "modal", "frequency": "modal", "frequency": "modal", "buckling": "buckling", "buckling": "buckling",
-         "buckling": "buckling", "frekvence": "modal", "vzper": "buckling", "vzpěr": "buckling"}.get(str(kind).strip().lower())
+    k = {"modal": "modal", "frequency": "modal", "buckling": "buckling", "frekvence": "modal", "vzper": "buckling",
+         "vzpěr": "buckling", "nonlinear": "nlbuckle", "nlbuckle": "nlbuckle",
+         "nlbuckling": "nlbuckle"}.get(str(kind).strip().lower())
     if k is None:
-        raise FeaError("kind must be 'modal' (natural frequencies) or 'buckling'")
+        raise FeaError("kind must be 'modal' (natural frequencies), 'buckling' or 'nonlinear' (nonlinear buckling shapes)")
     for j, m in enumerate(modes):
         if m.kind == k:
             return j
@@ -116,7 +117,7 @@ def register(mcp, sess: Session) -> None:
                                 output_path: str | None = None, view: str | list[float] = "iso",
                                 scale: float | None = None, width: int = 1280, height: int = 720,
                                 show_mesh: bool = False, bands: int = 12, return_image: bool = True):
-        """PNG of a mode shape: kind 'modal' | 'buckling', mode from 1. Shape normalized to max|u| = 1; field displacement | ux | uy | uz; scale in mm per unit (None = auto 8 % of size); view/width/height/bands/show_mesh as fea_results_render_image. Title shows frequency or lambda."""
+        """PNG of a mode shape: kind 'modal' | 'buckling' | 'nonlinear' (frame 1 = imperfection, then increments in mm), mode from 1. Shape normalized to max|u| = 1; field displacement | ux | uy | uz; scale in mm per unit (None = auto 8 % of size); view/width/height/bands/show_mesh as fea_results_render_image. Title shows frequency or lambda."""
         from .render import render
         from .scenes import result_scene
         from .tools_results import _png_path
@@ -148,7 +149,8 @@ def register(mcp, sess: Session) -> None:
             U = np.asarray(ms.shapes[k], float)
             vals = np.linalg.norm(U, axis=1) if key == "displacement" else U[:, "xyz".index(key[1])]
             label = {"displacement": "Mode |u|", "ux": "Mode ux", "uy": "Mode uy", "uz": "Mode uz"}[key]
-            scene, meta = result_scene(sess, 0, key, vals, label, "–", False, True, scale, bands, None, None,
+            unit = "mm" if ms.kind == "nlbuckle" else "–"   # nonlinear buckling: real displacement of the increment
+            scene, meta = result_scene(sess, 0, key, vals, label, unit, False, True, scale, bands, None, None,
                                        show_mesh, key != "displacement", mode=(j, k))
             p = _png_path(sess, output_path, f"mode_{ms.kind}_{k + 1}")
             t0 = time.time()

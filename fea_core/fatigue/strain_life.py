@@ -47,7 +47,6 @@ MEAN_EN_MORROW = 1
 MEAN_EN_SWT = 2
 
 # labels taken from settings.py (removing duplication)
-from .settings import NOTCH_RULE_LABELS, MEAN_LABELS as MEAN_EN_LABELS
 
 
 @dataclass

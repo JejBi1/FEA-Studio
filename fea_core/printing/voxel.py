@@ -24,7 +24,6 @@ Verified conventions of ccx 2.23 (scratch/voxel/exp1.py, exp2.py, 14. 10. 2026):
 from __future__ import annotations
 
 import json
-import math
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path

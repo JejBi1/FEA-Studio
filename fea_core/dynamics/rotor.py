@@ -19,17 +19,22 @@ def campbell(study, mesh, workdir: Path, log, on_line=None, cancel=None, orders=
     from .modal import run_basis
     pr = study.dynamics.prestress
     rpm = sorted(float(x) for x in pr.rpm_list)
-    freqs, gammas = [], []
-    for k, n in enumerate(rpm):
-        st = copy.copy(study)
-        st.load_cases = [LoadCase("_rot", [Rotation(point=list(pr.axis_point), axis=list(pr.axis),
-                                                    omega=2 * np.pi * n / 60.0)])] if n > 0 else \
-            [LoadCase("_rot", [])]
-        log(f"Campbell diagram: {n:g} rpm ({k + 1}/{len(rpm)})")
-        b = run_basis(st, mesh, Path(workdir) / f"campbell_{k + 1}", log, on_line, cancel,
-                      prestress_case="_rot" if n > 0 else None, job="campbell")
-        freqs.append(b.freq)
-        gammas.append(b.gamma)
+    from ..ccx.concurrent import run_tasks
+
+    def speed(k: int, n: float):
+        def task(cancel_, on_line_):
+            st = copy.copy(study)
+            st.load_cases = [LoadCase("_rot", [Rotation(point=list(pr.axis_point), axis=list(pr.axis),
+                                                        omega=2 * np.pi * n / 60.0)])] if n > 0 else \
+                [LoadCase("_rot", [])]
+            log(f"Campbell diagram: {n:g} rpm ({k + 1}/{len(rpm)})")
+            return run_basis(st, mesh, Path(workdir) / f"campbell_{k + 1}", log, on_line_, cancel_,
+                             prestress_case="_rot" if n > 0 else None, job="campbell")
+        return task
+
+    # the speeds are independent ccx jobs (own folders) → side by side as the machine allows (ccx.concurrent)
+    bases = run_tasks([speed(k, n) for k, n in enumerate(rpm)], 3 * len(mesh.nodes), cancel, on_line)
+    freqs = [b.freq for b in bases]
     K = min(len(f) for f in freqs)
     F = np.array([f[:K] for f in freqs])                  # (n_rpm, K)
     crit = []

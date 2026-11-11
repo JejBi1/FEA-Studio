@@ -35,12 +35,13 @@ FIELDS = {
     "hfx": ("Heat flux q_x", "W/m²"), "hfy": ("Heat flux q_y", "W/m²"), "hfz": ("Heat flux q_z", "W/m²"),
     "stress_error": ("ccx stress error estimate (STR)", "%"),
     "topo_density": ("Topology – density (1 = material, 0 = removed)", "–"),
+    "peeq": ("Equivalent plastic strain PEEQ", "–"),
 }
 ALIASES = {"von_mises": "mises", "vm": "mises", "seqv": "mises", "u": "displacement", "umag": "displacement",
            "disp": "displacement", "usum": "displacement", "sf": "safety", "s_1": "s1", "s_3": "s3",
            "t": "temperature", "temp": "temperature", "temperature": "temperature", "nt": "temperature",
            "flux": "heat_flux", "hfl": "heat_flux", "tok": "heat_flux", "q": "heat_flux", "heatflux": "heat_flux",
-           "error": "stress_error", "str": "stress_error", "err": "stress_error", "error": "stress_error", "teplota": "temperature", "chyba": "stress_error"}
+           "error": "stress_error", "str": "stress_error", "err": "stress_error", "teplota": "temperature", "chyba": "stress_error"}
 REVERSED = {"safety", "print_safety", "fatigue_safety", "fatigue_life"}
 SIGNED = {"s1", "s2", "s3", "sxx", "syy", "szz", "sxy", "syz", "szx", "ux", "uy", "uz", "hfx", "hfy", "hfz"}
 THERMAL_KEYS = {"temperature", "heat_flux", "hfx", "hfy", "hfz"}
@@ -49,7 +50,8 @@ FLUX_KEYS = THERMAL_KEYS - {"temperature"}
 # thermal boundary conditions (fea_core.thermal.model.THERMAL_KINDS) – descriptions for the LLM, pictures and the report
 THERMAL_LABELS = {"fixed_temperature": "prescribed temperature", "heat_flux": "heat flux", "heat_flow": "heat power",
                   "convection": "heat transfer (convection)", "radiation": "radiation to ambient",
-                  "heat_generation": "internal heat generation"}
+                  "heat_generation": "internal heat generation", "cavity_radiation": "cavity radiation",
+                  "contact_conductance": "contact conductance"}
 
 
 def no_solid_hint(res) -> str:
@@ -79,8 +81,16 @@ def bc_value_text(bc) -> str:
         return f"Q = {bc.value:g} W"
     if k == "convection":
         return f"h = {bc.h:g} W/(m²·K), ambient {bc.ambient:g} °C"
+    if k == "radiation" and getattr(bc, "cavity", False):
+        k = "cavity_radiation"
     if k == "radiation":
         return f"ε = {bc.emissivity:g}, ambient {bc.ambient:g} °C"
+    if k == "cavity_radiation":
+        name = getattr(bc, "cavity_name", None) or "CAV"
+        return (f"ε = {bc.emissivity:g}, cavity {name}, closed" if bc.closed
+                else f"ε = {bc.emissivity:g}, cavity {name}, open to ambient {bc.ambient:g} °C")
+    if k == "contact_conductance":
+        return f"h_c = {bc.conductance:g} W/(m²·K) between {bc.selection} and {bc.master}"
     if k == "heat_generation":
         return f"{bc.value:g} W in the volume of part {bc.part}"
     return k
@@ -148,6 +158,11 @@ def field_values(sess: Session, step: int, key: str) -> np.ndarray:
         if v is None:
             raise FeaError("The result has no topology optimization – run fea_topo_opt_run")
         return v
+    if key == "peeq":
+        v = st.fields.get("peeq")
+        if v is None:
+            raise FeaError("The result has no plastic strain PEEQ – no material of the model has plasticity")
+        return np.maximum(np.asarray(v, float), 0.0)
     raise FeaError(f"Quantity '{key}' is not available")
 
 
@@ -862,6 +877,11 @@ def modes_summary(sess: Session, j: int, brief: bool = False) -> dict:
         d["notes"] = notes
         return d
     d["case"] = ms.case
+    if ms.kind == "nlbuckle":                         # nonlinear buckling (fea_core.imperfect): frames, not eigenvalues
+        r = ((res.info or {}).get("nlbuckling") or {}).get("result") or {}
+        d.update(frame_load_factors=vals, ultimate_load_factor=r.get("ultimate_factor"), status=r.get("status"),
+                 note="frame 1 = imperfection (mm), further frames = displacement of the increments (mm); details fea_results_nlbuckling")
+        return d
     d["buckling_factors"] = vals
     st = next((s for s in res.steps if s.name == ms.case), None)
     applied = None
@@ -912,6 +932,9 @@ def summary_text(sess: Session) -> str:
         if ms["kind"] == "modal":
             fr = ", ".join(f"{v:.4g}" for v in ms["frequencies_Hz"][:10])
             lines.append(f"\nNatural frequencies [Hz]: {fr}" + (" …" if len(ms["frequencies_Hz"]) > 10 else ""))
+        elif ms["kind"] == "nlbuckle":
+            lines.append(f"\nBuckling (nonlinear, state '{ms['case']}'): ultimate λ_u = {ms.get('ultimate_load_factor')}"
+                         f" ({ms.get('status')})")
         else:
             lines.append(f"\nBuckling (linear, state '{ms['case']}'): λ = "
                          + ", ".join(f"{v:.4g}" for v in ms["buckling_factors"]))

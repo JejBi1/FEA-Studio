@@ -88,6 +88,15 @@ def check(study: Study, part_names: list[str]) -> tuple[list[str], list[str], se
             warnings.append(f"Thermal case '{c.name}': cavity radiation between faces (mutual irradiation), the problem is nonlinear (ccx iterations)")
         elif has_ambient_rad:
             warnings.append(f"Thermal case '{c.name}': radiation to ambient only (no surface-to-surface radiation), the problem is nonlinear (ccx iterations)")
+    if th.conductances:                               # contact conductances of interfaces (fea_core.thermal.interfaces)
+        from .interfaces import check_definitions
+        e, w = check_definitions(study, part_names)
+        errors += e
+        warnings += w
+        for c in th.conductances:
+            used.update(s for s in (c.selection, c.master) if s in study.selections)
+        if not th.cases:
+            warnings.append("Contact conductance is defined but there is no thermal case – it has no effect")
     # thermal loads of the mechanical states
     if study.has_thermal_loads():
         for p in meshed:
@@ -138,7 +147,7 @@ def floating_parts(study: Study, mesh: Mesh, case: ThermalCase) -> list[str]:
                 union(ps[0], q)
     # faces of the same cavity (radiation) and faces of the contact conductance (GAP CONDUCTANCE) connect the parts thermally
     cavities: dict[str, set[int]] = {}
-    for bc in case.loads:
+    for bc in [*case.loads, *study.thermal.conductances]:
         if isinstance(bc, ContactConductance) and bc.selection in mesh.surfaces and bc.master in mesh.surfaces:
             ps = {int(q) for sel in (bc.selection, bc.master) for q in np.unique(owner[mesh.surface_nodes(sel)])} - {-1}
             ps = sorted(ps)

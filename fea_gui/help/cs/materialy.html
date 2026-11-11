@@ -162,6 +162,32 @@
 <tr><td>Bukové dřevo</td><td>14 000 / 1 600 / 900</td><td>1 200 / 850 / 250</td><td>0,45 / 0,50 / 0,70</td><td>120 / 60</td><td>DIN 68364 / Wood Handbook (listnáč, 12 % vlhkosti)</td></tr>
 </table>
 
+<h2><a name="plasticity"></a>Plasticita (pružně-plastický kov)</h2>
+<p>V okně <b>Vlastnosti materiálu</b> zaškrtněte <b>Plasticita (pružně-plastický kov)</b> – materiál se pak počítá i za mezí kluzu
+(podmínka plasticity von Mises se zpevněním). Studie běží jako <b>nelineární</b> výpočet v CalculiXu (bez superpozice zatěžovacích stavů,
+bez NGSolve) a výsledky obsahují <b>ekvivalentní plastické přetvoření PEEQ</b>.</p>
+<table class="grid">
+<tr><th>Pole</th><th>Význam</th><th>Výchozí</th></tr>
+<tr><td>Model</td><td><b>Bilineární</b> – kluz při Re (pole výše), pak přímka; <b>Vícelineární</b> – tabulka bodů;
+<b>Ramberg-Osgood</b> – σ = K·(ε_pl + (Re/K)^(1/n))^n od Re; <b>Hollomon</b> – mocninná křivka přes Re a Rm při rovnoměrném prodloužení ≈ A/2 (odhad).</td><td>bilineární</td></tr>
+<tr><td>Zpevnění</td><td><b>Izotropní</b> – monotónní zatěžování; <b>Kinematické</b> – obrácení zatížení a cykly (Bauschingerův efekt).
+Kinematické zpevnění počítá CalculiX správně jen s velkými deformacemi – NLGEOM se zapne automaticky. Ověřeno pro bilineární křivku (PL4).</td><td>izotropní</td></tr>
+<tr><td>Sklon zadán jako / Sklon</td><td>Bilineární: tečný modul E<sub>t</sub> tahového diagramu (dσ/dε) nebo plastický modul H = dσ/dε<sub>pl</sub> = E·E<sub>t</sub>/(E − E<sub>t</sub>);
+ukládá se vždy E<sub>t</sub>. 0 = ideálně plastický.</td><td>E/100</td></tr>
+<tr><td>Tabulka σ skut. – ε_pl</td><td>Vícelineární: SKUTEČNÉ napětí [MPa] a ekvivalentní PLASTICKÉ přetvoření [–]; první řádek = mez kluzu s ε_pl = 0, přetvoření rostou,
+napětí neklesají. <b>Vložit</b> převezme dva sloupce z Excelu / CSV (tabulátor, „;“ s desetinnou čárkou nebo „,“).
+<b>Smluvní → skutečné</b> převede smluvní tahový diagram (σ, celkové ε) podle σ = σ_sml(1 + ε), ε_pl = ln(1 + ε) − σ/E (platí do vzniku krčku).</td><td>body bilineární křivky</td></tr>
+<tr><td>K, n / Rm, A</td><td>Součinitel (K &gt; Re) a exponent Ramberg-Osgood; mez pevnosti (Rm &gt; Re) a tažnost A [%] pro Hollomona.</td><td>700 MPa, 0,2 / Rm materiálu, 20 %</td></tr>
+<tr><td>Mez přetvoření</td><td>Mez PEEQ pro posouzení podle EN 1993-1-5 přílohy C ve Výsledcích.</td><td>5 %</td></tr>
+<tr><td>Přidat krok odlehčení</td><td>Vytvoří historii zatěžování (krok Kontakty → Nelineární výpočet – kroky): zatěžovací stavy postupně a na konci krok s násobkem 0.
+Napětí tohoto kroku je <b>zbytkové napětí</b> po odlehčení.</td><td></td></tr>
+</table>
+<p>Okno definici hned kontroluje (stejná pravidla jako kontrola připravenosti: chybějící Re, E<sub>t</sub> ≥ E, klesající tabulka, K ≤ Re… jsou chyby)
+a kreslí tahový diagram, který dostane řešič (skutečné napětí – celkové přetvoření). Za posledním bodem křivky zůstává napětí konstantní (ideálně plastické).
+Plasticita je jen pro izotropní materiály (ne ortotropní ani 3D tisk). Materiál s plasticitou se s ní uloží i do vlastní knihovny.</p>
+<p class="warn"><b>Pozor:</b> křivka je hlavní zdroj nejistoty – použijte data skutečné napětí – plastické přetvoření pro daný materiál a stav.
+Poškození, lom, vliv rychlosti deformace ani teploty se nemodelují.</p>
+
 <h2>Tření mezi materiály</h2>
 <p>Součinitel tření patří dvojici povrchů, ne jednomu materiálu, proto ho formulář materiálu nemá. Pro <a href="kontakty.html">kontakty</a> (μ = 0 ve formuláři páru = z knihovny) a tření v kloubech <a href="pohyb.html">mechanismů</a> si program vezme μ z <b>knihovny tření</b> podle dvojice materiálů a účelu: pro přenos síly třením (prokluz spoje, lisovaný spoj) dolní mez μ_min, pro odpor mechanismu horní mez μ_max. Hodnoty se zdroji a orientační tlumení jsou na stránce <a href="treni.html">Tření a tlumení</a>; vlastní naměřené hodnoty uložíte v <b>Nástroje → Kalkulačky… → Knihovna tření</b>.</p>
 

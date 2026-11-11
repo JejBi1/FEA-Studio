@@ -4,10 +4,10 @@ from __future__ import annotations
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFormLayout,
     QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-    QMessageBox, QPushButton, QVBoxLayout, QWidget
+    QMessageBox, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 )
 
-from fea_core.imprint import Imprint
+from fea_core.imprint import Imprint, ImprintError
 from . import theme
 from .widgets import dspin
 
@@ -22,7 +22,7 @@ class ImprintDialog(QDialog):
         lay = QVBoxLayout(self)
 
         lbl = QLabel(
-            "<b>Geometric Face Imprint (A10)</b><p>Splits the body surface with a circular or rectangular imprint (OpenCASCADE fragmentation). The resulting face is automatically added to named selections and can receive pressure, force, support, or contact.</p>"
+            "<b>Geometric Face Imprint (A10)</b><p>Splits the body surface with a circular, rectangular or polygonal imprint (OpenCASCADE fragmentation). The resulting face is automatically added to named selections and can receive pressure, force, support, or contact.</p>"
         )
         lbl.setWordWrap(True)
         lay.addWidget(lbl)
@@ -48,6 +48,7 @@ class ImprintDialog(QDialog):
         f.addRow("Imprint name:", self.txt_name)
 
         self.combo_part = QComboBox()
+        self.combo_part.setProperty("_i18n_done", True)          # CAD part names are not translated
         self.combo_part.setToolTip("Target model part on whose surface the imprint is created")
         parts = getattr(win, "parts", None)
         if parts:
@@ -62,6 +63,7 @@ class ImprintDialog(QDialog):
         self.combo_shape.setToolTip("Imprint shape (circular for punches and pins, rectangular for pads)")
         self.combo_shape.addItem("Circular (punch / washer / pin)", "circle")
         self.combo_shape.addItem("Rectangular (pad / strip)", "rectangle")
+        self.combo_shape.addItem("Polygon (outline points)", "polygon")
         self.combo_shape.currentIndexChanged.connect(self._on_shape_changed)
         f.addRow("Imprint shape:", self.combo_shape)
 
@@ -112,7 +114,19 @@ class ImprintDialog(QDialog):
         h_rec.addWidget(QLabel("Width dy [mm]:")); h_rec.addWidget(self.sp_dy)
         self.w_rect.setVisible(False)
         f.addRow(self.w_rect)
-
+        self.txt_points = QPlainTextEdit()
+        self.txt_points.setPlaceholderText("u, v per line in the face frame around the centre [mm]\n"
+                                           "or x, y, z per line (global points on the face)")
+        self.txt_points.setToolTip("Polygon outline: 'u, v' (face frame, x' = n × X) or 'x, y, z' per line [mm]")
+        self.txt_points.setWhatsThis("<b>Polygon outline</b><p>One point per line, at least 3, without self-intersection. "
+                                     "Two numbers = u, v in the face frame around the centre (x' = n × X, or n × Y when the "
+                                     "normal is close to X; y' = n × x'). Three numbers = a global point; all points are "
+                                     "projected onto their common plane (centre and normal are then taken from the points).</p>")
+        self.txt_points.setFixedHeight(90)
+        self.txt_points.setVisible(False)
+        self.lbl_points = QLabel("Outline points:")
+        self.lbl_points.setVisible(False)
+        f.addRow(self.lbl_points, self.txt_points)
         lay.addWidget(g)
 
         # Buttons
@@ -135,18 +149,49 @@ class ImprintDialog(QDialog):
         shape = self.combo_shape.currentData()
         self.w_circle.setVisible(shape == "circle")
         self.w_rect.setVisible(shape == "rectangle")
+        self.txt_points.setVisible(shape == "polygon")
+        self.lbl_points.setVisible(shape == "polygon")
 
     def _refresh_list(self):
         self.list_imprints.clear()
         if not self.win.study:
             return
         for imp in self.win.study.imprints:
-            dim_str = f"R = {imp.radius:g} mm" if imp.shape == "circle" else f"{imp.dx:g}×{imp.dy:g} mm"
+            dim_str = (f"R = {imp.radius:g} mm" if imp.shape == "circle" else f"{imp.dx:g}×{imp.dy:g} mm"
+                       if imp.shape == "rectangle" else f"{len(imp.points)} points, A = {imp.area():.4g} mm²")
             self.list_imprints.addItem(f"{imp.name} [{imp.part}] – {imp.shape} ({dim_str})")
 
     def _on_select_imprint(self, row: int):
         if row < 0 or not self.win.study or row >= len(self.win.study.imprints):
             return
+
+    def _points(self) -> list[list[float]]:
+        pts = []
+        for line in self.txt_points.toPlainText().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            items = [s for s in line.replace(";", " ").replace(",", " ").split() if s]
+            try:
+                pts.append([float(s) for s in items])
+            except ValueError:
+                raise ImprintError(f"Cannot read the point '{line}'") from None
+        if pts and len({len(p) for p in pts}) != 1 or any(len(p) not in (2, 3) for p in pts):
+            raise ImprintError("Points: all 'u, v' (face frame) or all 'x, y, z' (global)")
+        return pts
+
+    def _make(self, name: str) -> Imprint:
+        shape = self.combo_shape.currentData()
+        part = self.combo_part.currentText()
+        normal = [self.sp_nx.value(), self.sp_ny.value(), self.sp_nz.value()]
+        pts = self._points() if shape == "polygon" else []
+        if shape == "polygon" and pts and len(pts[0]) == 3:
+            return Imprint.polygon_from_3d(name, part, pts, normal=normal if any(normal) else None)
+        imp = Imprint(name=name, part=part, shape=shape,
+                      center=[self.sp_cx.value(), self.sp_cy.value(), self.sp_cz.value()], normal=normal,
+                      radius=self.sp_radius.value(), dx=self.sp_dx.value(), dy=self.sp_dy.value(), points=pts)
+        imp.validate()
+        return imp
 
     def _add_imprint(self):
         name = self.txt_name.text().strip()
@@ -162,16 +207,11 @@ class ImprintDialog(QDialog):
             QMessageBox.warning(self, "Error", f"Imprint '{name}' already exists.")
             return
 
-        imp = Imprint(
-            name=name,
-            part=self.combo_part.currentText(),
-            shape=self.combo_shape.currentData(),
-            center=[self.sp_cx.value(), self.sp_cy.value(), self.sp_cz.value()],
-            normal=[self.sp_nx.value(), self.sp_ny.value(), self.sp_nz.value()],
-            radius=self.sp_radius.value(),
-            dx=self.sp_dx.value(),
-            dy=self.sp_dy.value(),
-        )
+        try:
+            imp = self._make(name)
+        except ImprintError as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
 
         study.imprints.append(imp)
         self.win.changed(invalidate_mesh=True)

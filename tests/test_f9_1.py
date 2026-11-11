@@ -11,15 +11,14 @@ from __future__ import annotations
 
 import math
 import numpy as np
-import pytest
 
-from fea_core.assessment import equivalent_stress, compute_safety_field, assessment_summary
-from fea_core.section_forces import section_forces, section_csys
+from fea_core.assessment import equivalent_stress
+from fea_core.section_forces import section_csys
 from fea_core.csys import transform_stress, transform_displacements, stress_labels, displacement_labels
 from fea_core.calc.convection import (natural_vertical_plate, natural_horizontal_cylinder,
                                       natural_horizontal_plate, finned_heatsink_natural,
                                       forced_flat_plate, forced_internal_pipe)
-from fea_core.study import Study, Material, MeshSettings, CoordinateSystem
+from fea_core.study import Study, MeshSettings, CoordinateSystem
 
 
 def test_convection_vertical_plate():

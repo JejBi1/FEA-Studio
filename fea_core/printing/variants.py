@@ -16,6 +16,9 @@ from typing import Callable
 from .model import PrintSpec, PrintVariant
 
 BASE_NAME = "Current settings"
+# variants side by side only for larger models: on small ones (P6 bar) the Python part of each variant dominates and the
+# concurrent variants were slower (5 variants: 16.9 s one after another, 20.9 s side by side)
+PARALLEL_MIN_DOF = 60_000
 # overrides: fields of PrintSpec (without part, note) + another printed material of the part
 SPEC_KEYS = ("build_dir", "layer_height", "line_width", "walls", "top_layers", "bottom_layers", "infill", "pattern",
              "enabled", "solid_thin", "thin_width")
@@ -287,43 +290,85 @@ def run_variants(study, workdir: str | Path, study_dir: str | Path | None = None
         mesh.report["study_warnings"] = [w for w in mw if w not in mesh.report.get("print_warnings", [])]
     mesh_info = {"nodes": int(len(mesh.nodes)), "elements": int(len(mesh.tets)), "meshed": meshed,
                  "time_s": time.time() - t0 if meshed else 0.0}
-    outcomes = []
-    for i, v in enumerate(todo):
+    # the variants are independent calculations on copies of the mesh → side by side as the machine allows
+    # (ccx.concurrent: each with its share of threads); the outcomes are reported and returned in the order of the variants
+    import threading
+    lock = threading.Lock()
+    done: dict[int, VariantOutcome] = {}
+    released = [0]
+
+    def release():                                   # finished outcomes in order (running table, log)
+        while released[0] in done:
+            out = done.pop(released[0])
+            released[0] += 1
+            if on_outcome is not None:
+                on_outcome(out)
+            if out.ok:
+                log(f"  min. safety factor {out.min_safety:.3g} ({out.governing.get('part')}, {out.governing.get('region')}), max. displacement {out.max_disp:.4g} mm" + (f", {out.mass_g:.4g} g" if out.mass_g is not None else ""))
+
+    def variant(i: int, v):
+        def task(cancel_, on_line_):
+            if cancel_ is not None and cancel_.is_set():
+                raise StudyError("Variant analysis cancelled by user")
+            if on_progress:
+                on_progress(i, len(todo), v.name)
+            log(f"Variant {i + 1}/{len(todo)}: {v.name}")
+            out = VariantOutcome(v.name, {k: dict(d) for k, d in v.parts.items()}, effective(study, v, names_all))
+            wd = workdir / f"v{i:02d}"
+            out.workdir = str(wd)
+            t1 = time.time()
+            try:
+                res = run_study(apply_variant(study, v), wd, study_dir, on_log=log, on_solver_line=on_line_,
+                                cancel=cancel_, mesh=_mesh_copy(mesh), parts=parts)
+                summarize(res, out)
+                out.ok = out.min_safety is not None
+                if not out.ok:
+                    out.error = "The result contains no printed parts (material with E_z)"
+                out.warnings = list(res.warnings)
+                if keep_results or v.name == BASE_NAME:
+                    out.results = res
+            except Exception as e:  # noqa: BLE001 – an error of a variant (e.g. a non-positive-definite infill) does not stop the others
+                if cancel_ is not None and cancel_.is_set():
+                    raise
+                out.error = str(e) or e.__class__.__name__
+                log(f"  error: {out.error}")
+            out.time_s = time.time() - t1
+            if not keep_files and v.name != BASE_NAME:
+                import shutil
+                shutil.rmtree(wd, ignore_errors=True)
+                out.workdir = ""
+            with lock:
+                done[i] = out
+                release()
+            return out
+        return task
+
+    from ..ccx.concurrent import run_tasks
+    try:
+        outcomes = run_tasks([variant(i, v) for i, v in enumerate(todo)], 3 * len(mesh.nodes), cancel,
+                             on_solver_line,
+                             share=None if _numba_threadsafe() and 3 * len(mesh.nodes) >= PARALLEL_MIN_DOF else (1, 0))
+    except Exception:
         if cancel is not None and cancel.is_set():
-            raise StudyError("Variant analysis cancelled by user")
-        if on_progress:
-            on_progress(i, len(todo), v.name)
-        log(f"Variant {i + 1}/{len(todo)}: {v.name}")
-        out = VariantOutcome(v.name, {k: dict(d) for k, d in v.parts.items()}, effective(study, v, names_all))
-        wd = workdir / f"v{i:02d}"
-        out.workdir = str(wd)
-        t1 = time.time()
-        try:
-            res = run_study(apply_variant(study, v), wd, study_dir, on_log=log, on_solver_line=on_solver_line,
-                            cancel=cancel, mesh=_mesh_copy(mesh), parts=parts)
-            summarize(res, out)
-            out.ok = out.min_safety is not None
-            if not out.ok:
-                out.error = "The result contains no printed parts (material with E_z)"
-            out.warnings = list(res.warnings)
-            if keep_results or v.name == BASE_NAME:
-                out.results = res
-        except Exception as e:  # noqa: BLE001 – an error of a variant (e.g. a non-positive-definite infill) does not stop the others
-            if cancel is not None and cancel.is_set():
-                raise
-            out.error = str(e) or e.__class__.__name__
-            log(f"  error: {out.error}")
-        out.time_s = time.time() - t1
-        if not keep_files and v.name != BASE_NAME:
-            import shutil
-            shutil.rmtree(wd, ignore_errors=True)
-            out.workdir = ""
-        if on_outcome is not None:
-            on_outcome(out)
-        if out.ok:
-            log(f"  min. safety factor {out.min_safety:.3g} ({out.governing.get('part')}, {out.governing.get('region')}), max. displacement {out.max_disp:.4g} mm" + (f", {out.mass_g:.4g} g" if out.mass_g is not None else ""))
-        outcomes.append(out)
+            raise StudyError("Variant analysis cancelled by user") from None
+        raise
     k_req = float(study.printing.required_safety)
     rec, why = recommend(outcomes, k_req)
     log(why)
     return VariantsRun(outcomes, k_req, rec, why, mesh_info, time.time() - t_all)
+
+
+def _numba_threadsafe() -> bool:
+    """The parallel numba kernels of the print assignment may be called from several threads at once only with the omp / tbb
+    threading layer (workqueue is not thread-safe) – otherwise the variants run one after another."""
+    import os
+    layer = os.environ.get("NUMBA_THREADING_LAYER", "default").lower()
+    if layer == "workqueue":
+        return False
+    for mod in ("omppool", "tbbpool"):
+        try:
+            __import__(f"numba.np.ufunc.{mod}")
+            return True
+        except Exception:  # noqa: BLE001 – the layer is not available
+            continue
+    return False

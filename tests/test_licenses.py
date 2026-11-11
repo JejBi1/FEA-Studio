@@ -15,6 +15,8 @@ import collect_licenses as cl  # noqa: E402
 
 VENV = ROOT / ".venv"
 HAS_VENV = (VENV / "Lib" / "site-packages").is_dir() or any(VENV.glob("lib/python3*/site-packages"))
+# the checks of the real environment expect every locked package (the development venv / the profile full), not a CI minimal one
+FULL_VENV = HAS_VENV and any(any(sp.glob("ngsolve-*.dist-info")) for sp in [VENV / "Lib" / "site-packages", *VENV.glob("lib/python3*/site-packages")])
 
 
 def _fake_project(root: Path, win: str, linux: str) -> None:
@@ -87,7 +89,7 @@ def test_main_exit_code_stays_zero_with_warnings(tmp_path):
     assert cl.main(["--out", str(tmp_path / "out2"), "--venv", str(tmp_path / "chybi")]) == 1
 
 
-@pytest.mark.skipif(not HAS_VENV, reason="chybí vývojové .venv")
+@pytest.mark.skipif(not FULL_VENV, reason="needs the full development .venv")
 def test_real_venv_covers_all_locks(tmp_path):
     out = tmp_path / "licenses"
     warnings = cl.collect(out, VENV)
@@ -167,7 +169,7 @@ def test_python_extra_texts_for_wheels_without_license(tmp_path):
     assert (out / "python" / "ngsolve-openblas-0.3.33" / "LICENSE").is_file()
 
 
-@pytest.mark.skipif(not HAS_VENV, reason="chybí vývojové .venv")
+@pytest.mark.skipif(not FULL_VENV, reason="needs the full development .venv")
 def test_real_venv_has_texts_for_known_gaps(tmp_path):
     out = tmp_path / "licenses"
     warnings = cl.collect(out, VENV)

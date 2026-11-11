@@ -41,6 +41,13 @@ $env:PYTHONIOENCODING = "utf-8"
 .venv\Scripts\python.exe -m verification.run_all V1 V7 K1 Y2 MB1</pre>
 <p>Verification problems compare results with analytical solutions and print an agreement table – useful after installation or an update.</p>
 
+<h3>Export and background solve</h3>
+<pre>python -m fea_core export project.fea --format vtu|csv|all [--out FOLDER] [--dialect standard|excel] [--elements]
+python -m fea_core solve-project project.fea [-o solved.fea]</pre>
+<p><code>export</code> writes the results of a solved project to ParaView (.vtu per load case + .pvd) and / or CSV (the same files
+as the GUI export). <code>solve-project</code> solves a project and saves it with the results as another .fea (default
+<code>&lt;name&gt;_results.fea</code>) – the job queue of the GUI uses it.</p>
+
 <h2>Python script</h2>
 <p>Templates: <code>examples\create.py</code> and <code>verification\</code>. Faces are selected geometrically (<code>find_faces</code>: part, plane x/y/z, cylinder radius, normal, custom condition), not by index, so the script survives model changes in CAD.</p>
 <pre>from fea_core import materials as matlib

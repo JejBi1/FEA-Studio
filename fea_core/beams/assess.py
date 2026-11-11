@@ -8,7 +8,6 @@ in the plane of curvature) is added to the stress from the straight bar – EN 1
 """
 from __future__ import annotations
 
-import math
 
 import numpy as np
 

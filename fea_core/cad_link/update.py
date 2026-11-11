@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..selectors import EdgeSelector, FaceSelector, PointSelector
+from ..selectors import FaceSelector
 from .faces import Geometry
 from .model import CadLink, Iteration
 from .remap import (DEFAULT_ACCEPT, AnchorMap, RemapReport, SelectionMap, _Ctx, _face_key, _edge_key,

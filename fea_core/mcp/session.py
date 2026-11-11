@@ -6,8 +6,6 @@ after a short wait return a comprehensible error instead of blocking.
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import re
 import threading
@@ -128,6 +126,7 @@ class Session:
         self.voxel = None                 # printing.voxel.VoxelResults – voxel detail of the printing
         self.voxel_spec: dict | None = None
         self.motion = None                # motion.results.MotionResult – result of the mechanism (fea_motion_run)
+        self.param_study = None           # sweep.ParametricStudyResult of the last parametric study (fea_param_study_run)
         self.log: list[str] = []
 
     # ---------------------------------------------------------------- lock

@@ -8,7 +8,6 @@ the time in the heading = frequency [Hz]; *MODAL DYNAMIC time from 0 (the freque
 """
 from __future__ import annotations
 
-import copy
 import re
 from pathlib import Path
 
@@ -150,7 +149,6 @@ def run_etalon(study, mesh, basis, zeta, out, workdir: Path, log, on_line=None, 
 
 def _compare(kind, blocks, nodes, basis, out, rr, terms) -> dict:
     """Python × ccx in the nodes of the probes: relative error to the maximum of the response of the node."""
-    res = out.residual
     nidx = np.array(nodes)
     phi = basis.shapes[:, nidx, :]                         # (K, p, 3)
     if kind == "harmonic":

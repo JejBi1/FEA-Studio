@@ -14,8 +14,9 @@ Case PL1:
 """
 from __future__ import annotations
 
-import math
 from pathlib import Path
+
+import math
 
 import numpy as np
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
@@ -376,3 +377,80 @@ def evaluate_pl4(res, st) -> list[Check]:
 CASES["PL2"] = Case("PL2", "PL2: Ohyb konzoly do plastického rozsahu, odlehčení (BISO)", build_pl2, evaluate_pl2)
 CASES["PL3"] = Case("PL3", "PL3: Tah – Ramberg-Osgood a Hollomon bod po bodu", build_pl3, evaluate_pl3)
 CASES["PL4"] = Case("PL4", "PL4: Cyklus tah–tlak – kinematické × izotropní zpevnění", build_pl4, evaluate_pl4)
+
+
+# ------------------------------------------------------------------ PL5: assessment of the plastic result (plasticity_eval)
+# Block 10×10×10 in UNIAXIAL STRAIN (lateral faces on frictionless walls ux = 0 / uy = 0), force σ_z·A on the top, then
+# unloading (step with scale 0 created by plasticity_eval.add_unloading_step, as the GUI button). Bilinear isotropic
+# hardening, small strains. Closed-form J2 solution (radial return, homogeneous field):
+#   p = K·ε, q = 2G·ε − 3G·ε_p, q = Re + H·ε_p  →  ε_p = (2G·ε − Re)/(3G + H),  σ_z = p + 2/3·q
+# given σ_z → ε from the linear relation. Unloading to zero force is elastic in uniaxial strain (Δσ_z = (K + 4G/3)·Δε):
+# residual σ_z = 0, residual von Mises q_res = 3/2·|2/3·q + 4/3·G·Δε|, PEEQ unchanged. Assessment references: EN 1993-1-5 annex C util = ε_p / 0.05; ASME VIII-2 5.3.3.1
+# ε_L = ε_Lu·exp(−α_sl/(1 + m2)·(p/q − 1/3)), ferritic m2 = 0.60(1 − Re/Rm), α_sl = 2.2, ε_Lu = m2 (no elongation given).
+PL5_A, PL5_RE, PL5_RM, PL5_ET, PL5_SZ = 10.0, 250.0, 400.0, 20000.0, 650.0
+
+
+def pl5_reference() -> dict:
+    E, nu, Re = PE, PNU, PL5_RE
+    G, K = E / (2 * (1 + nu)), E / (3 * (1 - 2 * nu))
+    H = E * PL5_ET / (E - PL5_ET)
+    c = 3 * G + H
+    # σ_z = Kε + 2/3·(Re + H·(2Gε − Re)/c) = ε·(K + 4GH/(3c)) + 2/3·Re·(1 − H/c)
+    eps = (PL5_SZ - 2.0 / 3.0 * Re * (1 - H / c)) / (K + 4 * G * H / (3 * c))
+    ep = (2 * G * eps - Re) / c
+    q = Re + H * ep
+    p = K * eps
+    T = p / q
+    # unloading to F = 0 (force control): elastic uniaxial strain Δσ_z = −σ_z = (K + 4G/3)·Δε; deviatoric
+    # s_z = 2/3·q + 4/3·G·Δε, residual σ_z = 0 → q_res = 3/2·|s_z|, residual p = −s_z
+    d_eps = -PL5_SZ / (K + 4 * G / 3)
+    s_res = 2.0 / 3.0 * q + 4.0 / 3.0 * G * d_eps
+    q_res = 1.5 * abs(s_res)
+    assert ep > 0 and q_res <= q                                # plastic on loading, elastic unloading
+    m2 = 0.60 * (1 - Re / PL5_RM)
+    eps_L = m2 * math.exp(-2.2 / (1 + m2) * (T - 1 / 3))
+    return {"eps": eps, "ep": ep, "q": q, "p": p, "T": T, "en_util": ep / 0.05, "eps_L": eps_L, "asme_util": ep / eps_L,
+            "q_res": q_res}
+
+
+def build_pl5(wd: Path):
+    from fea_core.plasticity_eval import add_unloading_step
+    a = PL5_A
+    st, parts = _plastic_study("PL5 plasticity assessment", wd, [Part("Blok", box(0, 0, 0, a, a, a))], 2.5)
+    st.add_material(_plastic_mat("Ocel BISO S", PlasticitySpec(model="bilinear", hardening="isotropic", Et=PL5_ET),
+                                 PL5_RE, PL5_RM), default=True)
+    for nm, kw in (("x0", dict(x=0)), ("x1", dict(x=a)), ("y0", dict(y=0)), ("y1", dict(y=a)), ("z0", dict(z=0)),
+                   ("z1", dict(z=a))):
+        st.add_selection(nm, find_faces(parts, **kw))
+    st.constraints += [Displacement("x0", ux=0.0), Displacement("x1", ux=0.0), Displacement("y0", uy=0.0),
+                       Displacement("y1", uy=0.0), Displacement("z0", uz=0.0)]
+    st.load_cases.append(LoadCase("Tah osy", [Force("z1", [0.0, 0.0, PL5_SZ * a * a])]))
+    assert add_unloading_step(st)                     # sequence: case (scale 1) + unloading (scale 0)
+    for s in st.analysis.sequence:
+        s.dt0, s.dt_max, s.max_inc = 0.1, 0.25, 200
+    return st, parts
+
+
+def evaluate_pl5(res, st) -> list[Check]:
+    from fea_core import plasticity_eval as PEV
+    r = pl5_reference()
+    en = PEV.assess(st, res, 0, "en1993")
+    am = PEV.assess(st, res, 0, "asme")
+    un = PEV.assess(st, res, 1, "en1993")
+    s0 = res.steps[0]
+    hyd = s0.S[:, :3].mean(axis=1)
+    return [
+        Check("PL5 PEEQ (uniaxial strain, J2 radial return)", en["max_peeq"], r["ep"], 5e-3, ""),
+        Check("PL5 von Mises q = Re + H·ε_p", float(s0.mises.mean()), r["q"], 2e-3, "MPa"),
+        Check("PL5 hydrostatic stress p = K·ε", float(hyd.mean()), r["p"], 2e-3, "MPa"),
+        Check("PL5 triaxiality p/q at the governing node", am["triaxiality_at_max"], r["T"], 5e-3, ""),
+        Check("PL5 EN 1993-1-5 annex C utilization ε_p / 5 %", en["utilization"], r["en_util"], 5e-3, ""),
+        Check("PL5 ASME VIII-2 limit ε_L (ferritic, Table 5.7)", am["limit_at_max"], r["eps_L"], 1e-2, ""),
+        Check("PL5 ASME VIII-2 utilization PEEQ / ε_L", am["utilization"], r["asme_util"], 1e-2, ""),
+        Check("PL5 unloading: residual von Mises (elastic unloading)", un["residual"]["max_mises_MPa"], r["q_res"], 5e-3, "MPa"),
+        Check("PL5 unloading: PEEQ unchanged", un["max_peeq"], r["ep"], 5e-3, ""),
+    ]
+
+
+CASES["PL5"] = Case("PL5", "PL5: Plasticity assessment – uniaxial strain, EN 1993 / ASME VIII-2, residual stress",
+                    build_pl5, evaluate_pl5)

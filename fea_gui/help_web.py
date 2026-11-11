@@ -576,8 +576,6 @@ def export_html(path: str | Path, lang: str = "cs", only: list[str] | None = Non
     If bilingual=True, it creates the merged bilingual manual with the CZ / EN switch.
     """
     from datetime import date
-    from .help import PAGES
-    from .help_pdf import TEXTS
     today = date.today()
     edition_cs = f"{today.day}. {today.month}. {today.year}"
     edition_en = f"{today:%B} {today.day}, {today.year}"

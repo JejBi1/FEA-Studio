@@ -15,7 +15,6 @@ per region (as the hard limit of Triangle: the largest element area ≤ the give
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 import tempfile
 import types

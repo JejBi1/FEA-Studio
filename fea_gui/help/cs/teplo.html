@@ -1,6 +1,7 @@
 <h1>Teplo</h1>
 <p class="lead">Krok Teplo počítá vedení tepla v dílech jako ustálený stav nebo časový průběh (přechodový stav). Okrajové podmínky:
-předepsaná teplota, tepelný tok, výkon, konvekce, sálání a zdroj tepla. Teplotní pole pak může zatížit mechanickou úlohu jako teplotní napětí.</p>
+předepsaná teplota, tepelný tok, výkon, konvekce, sálání do okolí, sálání mezi plochami dutiny a zdroj tepla;
+rozhraní dílů mohou mít tepelnou kontaktní vodivost. Teplotní pole pak může zatížit mechanickou úlohu jako teplotní napětí.</p>
 
 <h2>Co krok umí</h2>
 <ul>
@@ -44,9 +45,22 @@ předepsaná teplota, tepelný tok, výkon, konvekce, sálání a zdroj tepla. T
 <tr><td>Tepelný výkon [W]</td><td>Q [W]</td><td>Celkový výkon rovnoměrně po ploše; kladný = do tělesa (topná patrona, ztráty součástky).</td></tr>
 <tr><td>Přestup tepla – konvekce</td><td>h [W/(m²·K)], T okolí [°C]</td><td>q = h·(T okolí − T). Vzduch volně 5–25, nuceně 25–250, voda 500–10 000 W/(m²·K).</td></tr>
 <tr><td>Sálání do okolí</td><td>ε v intervalu (0; 1], T okolí [°C]</td><td>q = ε·σ·(T okolí⁴ − T⁴) v absolutních teplotách. Lesklý Al ~0,05, oxidovaná ocel a elox ~0,8, černý lak ~0,95. Nelineární (iterace).</td></tr>
+<tr><td>Sálání v dutině (mezi plochami)</td><td>ε v intervalu (0; 1], Dutina, uzavřená dutina, T okolí [°C]</td><td>Plochy se stejným názvem <b>Dutiny</b> si navzájem sálají; úhlové faktory spočítá CalculiX. Každou skupinu ploch přidejte jako samostatnou podmínku s vlastní ε (stejný název dutiny). <b>Uzavřená dutina</b> = plochy ji zcela uzavírají, teplo z ní neuniká (stav přesto potřebuje odvod tepla jinde); nezaškrtnuto = otevřená dutina, otvor „vidí“ T okolí. Uzavřená / T okolí je jedno nastavení pro celou dutinu – zkopíruje se i na její další plochy. Nelineární (iterace).</td></tr>
 <tr><td>Zdroj tepla v dílu</td><td>P [W], Díl</td><td>Výkon rovnoměrně v objemu dílu (ztráty vinutí, elektronika). Díl zvolte v seznamu nebo kliknutím na jeho plochu.</td></tr>
 </table>
-<p>Pole <b>T okolí</b> je jen u konvekce a sálání, <b>Díl</b> jen u zdroje tepla. Podmínku nelze úpravou převést na jiný druh; přidejte novou.</p>
+<p>Pole <b>T okolí</b> je jen u konvekce, sálání a otevřené dutiny, <b>Dutina</b> a <b>uzavřená dutina</b> jen u sálání v dutině, <b>Díl</b> jen u zdroje tepla. Podmínku nelze úpravou převést na jiný druh; přidejte novou.</p>
+
+<h3 id="conductance">Kontaktní vodivost (všechny tepelné stavy)</h3>
+<p>Bez ní jsou dotýkající se díly v <b>dokonalém tepelném styku</b>. Rozhraní s <b>tepelnou kontaktní vodivostí h_c</b> [W/(m²·K)] má teplotní skok ΔT = q / h_c (CalculiX <code>*GAP CONDUCTANCE</code>). Rozhraní jsou data modelu – platí pro <b>všechny tepelné stavy</b>.</p>
+<table class="grid">
+<tr><th>Ovládací prvek</th><th>Co dělá</th><th>Typická hodnota / poznámka</th></tr>
+<tr><td>Seznam rozhraní</td><td>Zadaná rozhraní; kliknutí načte díly a h_c do formuláře a obarví oba díly ve 3D.</td><td></td></tr>
+<tr><td>Díl A, Díl B</td><td>Dva dotýkající se díly rozhraní.</td><td></td></tr>
+<tr><td>h_c</td><td>Kontaktní vodivost; <b>Navrhnout…</b> otevře typické hodnoty (dvojklik = použít) a odhad z materiálů, tlaku, drsnosti Ra a výplně (pasta / podložka).</td><td>Ocel nasucho 1 000–3 000, šroubovaná příruba 5 000, teplovodivá podložka 5 000, pasta 25 000 W/(m²·K)</td></tr>
+<tr><td><b>Přidat / upravit</b>, <b>Smazat</b></td><td>Přidá rozhraní A–B (stejná dvojice znovu = nová h_c), smaže vybrané.</td><td></td></tr>
+</table>
+<p>Teplotní skok potřebuje na rozhraní dvě sady uzlů: při přidání rozhraní se <b>jeden z dílů síťuje samostatně</b> (seznam *TIE v kroku <a href="spoje.html">Spoje</a>, zapíše se do logu) a mechanicky zůstává spojený vazbou <code>*TIE</code> – mechanika se nemění kromě nesouvislé sítě (řešič CalculiX). Díl s otiskem šroubu se nevolí. Smazání rozhraní samostatné síťování nevypne.</p>
+<p><a href="kontakty.html">Kontaktní pár</a> může mít vlastní h_c (pole <b>Tepelná vodivost</b> v kroku Kontakty); ostatní kontaktní páry jsou v tepelném výpočtu v dokonalém styku. Odhad h_c je <b>orientační</b> (±50 % i více) – změřte ji nebo vezměte hodnotu z katalogového listu, když na ní výsledek závisí.</p>
 
 <h3>Teploty studie</h3>
 <table class="grid">
@@ -58,6 +72,7 @@ předepsaná teplota, tepelný tok, výkon, konvekce, sálání a zdroj tepla. T
 
 <h2>Tepelná bilance</h2>
 <p>Obdoba rovnováhy sil u ustáleného stavu. Teplo všech podmínek (plochy přesnou integrací) musí dát nulový součet: zbytek nesmí přesáhnout 0,1 % součtu absolutních toků, jinak se výsledek zahodí. Ve výsledcích je tabulka <b>Teplo okrajových podmínek [W] (+ = do tělesa)</b> a řádek „Tepelná bilance: přívod … W, odvod … W, zbytek … W (… %)“. U přechodového stavu se nekontroluje (část tepla se akumuluje v dílech).</p>
+<p>Dutina je v tabulce tepla jedním řádkem se svým <b>čistým</b> teplem (uzavřená dutina ≈ 0; větší hodnota se hlásí jako varování – plochy dutinu nejspíš neuzavírají, použijte otevřenou). Teplo jednotlivých ploch dutiny a teplo přes každé rozhraní s kontaktní vodivostí se vypisuje zvlášť (viz Výsledky) – jsou to vnitřní výměny a do bilance nevstupují.</p>
 
 <h2>Teplotní napětí</h2>
 <p>V <a href="zatizeni.html">Zatížení</a> zvolte <b>Teplota (teplotní napětí)</b> a v poli <b>Teplota z</b>:</p>
@@ -86,12 +101,12 @@ předepsaná teplota, tepelný tok, výkon, konvekce, sálání a zdroj tepla. T
 <tr><td>Tepelný tok |q| [W/m²]</td><td>Velikost hustoty toku.</td><td rowspan="2">U přechodového stavu jen pro konec (poslední čas).</td></tr>
 <tr><td>Tepelný tok qx, qy, qz [W/m²]</td><td>Složky v osách modelu.</td></tr>
 </table>
-<p>U přechodového stavu je výběr <b>Čas</b> se snímky „t = 0 s“ až „t = doba“. Informační panel ukazuje maximální a minimální teplotu s místem, max |q|, referenční teplotu, teplo podmínek a bilanci. U mechanického stavu s teplotním zatížením lze zobrazit <b>Teplotu</b> a všechna napětí.</p>
+<p>U přechodového stavu je výběr <b>Čas</b> se snímky „t = 0 s“ až „t = doba“. Informační panel ukazuje maximální a minimální teplotu s místem, max |q|, referenční teplotu, teplo podmínek a bilanci. <a href="protokol.html">Protokol</a>, souhrn výsledků MCP (<code>balance.interfaces</code>, <code>balance.cavity_faces</code>) a soubor studie uvádějí <b>teplo přes každé rozhraní s kontaktní vodivostí</b> (Q = h_c·∫ΔT dA, kladné = z dílu A do dílu B, se středním ΔT) a <b>teplo každé plochy dutiny</b> (kladné = pohlcené). U mechanického stavu s teplotním zatížením lze zobrazit <b>Teplotu</b> a všechna napětí.</p>
 
 <h2>Omezení</h2>
 <ul>
-<li>V tomto okně je sálání jen <b>do okolí</b>: bez vzájemného ozáření ploch. Sálání mezi plochami dutiny (view factory počítá CalculiX, <code>CavityRadiation</code>) je dostupné jen přes Python API / soubor studie (viz <a href="automatizace.html">Automatizace</a>).</li>
-<li>Dotýkající se díly sdílejí uzly, styk je <b>dokonalý</b> – bez odporu rozhraní. Izolační vrstvu nebo pastu modelujte jako tenký díl s vlastní λ. Totéž platí v tomto okně pro <a href="kontakty.html">kontaktní páry</a> a rozpojené spáry (v teple se neuvažuje kontaktní vodivost ani otevření). Konečná tepelná vodivost kontaktu h_c kontaktního páru (<code>ContactPair.conductance</code>) je dostupná jen přes Python API / soubor studie.</li>
+<li>„Sálání do okolí“ nemá vzájemné ozáření ploch; sálání mezi plochami vyžaduje podmínku <b>sálání v dutině</b>. Úhlové faktory počítá CalculiX bez kontroly zastínění jinými díly mimo plochy dutiny.</li>
+<li>Dotýkající se díly sdílejí uzly, styk je <b>dokonalý</b>, pokud rozhraní nemá kontaktní vodivost (viz výše). h_c je konstantní – nesleduje kontaktní tlak ani teplotu. Kontaktní páry se souvislou rozpojenou sítí jsou v teple v dokonalém styku (bez h_c).</li>
 <li>λ, c_p, h a ε nezávisí na teplotě. Proudění tekutin a změna fáze se nemodelují; konvekce je okrajová podmínka se zadaným h.</li>
 <li>Podmínky přechodového stavu jsou konstantní v čase; každý přechodový stav začíná z počáteční teploty.</li>
 <li>MYSTRAN (křížová kontrola) teplo nepřevádí.</li>
@@ -119,6 +134,12 @@ Díly nejsou plochou spojené s místem odvodu; šroub teplo nevede. Doplňte ko
 Doplňte λ, c_p nebo α v Materiálech. Platí pro všechny síťované díly.</li>
 <li><b>„Tepelný stav 'X': tepelná bilance nesedí (zbytek … W, … % toků). Výsledek je neplatný.“</b><br>
 Obvykle překryté podmínky na stejných plochách (teplota s tokem nebo konvekcí; dvě teploty na společné hraně), nebo nedokonvergované sálání. Zkontrolujte překryvy a v logu, že iterace CalculiXu doběhly.</li>
+<li><b>„Kontaktní vodivost 'X': díly 'A' a 'B' sdílejí síť (dokonalý styk) – jeden z nich síťujte samostatně“</b><br>
+Díl byl odebrán ze samostatně síťovaných dílů; přidejte rozhraní znovu (samostatné síťování zapne) nebo díl zaškrtněte v seznamu *TIE v kroku <a href="spoje.html">Spoje</a>.</li>
+<li><b>„Kontaktní vodivost 'X': díly 'A' a 'B' se nedotýkají (žádné společné plochy do … mm)“</b><br>
+Díly mají v CAD mezeru – přes mezeru použijte sálání v dutině (nebo konvekci), případně opravte geometrii.</li>
+<li><b>„Uzavřená dutina 'X': čisté teplo ploch … W …“</b> (varování)<br>
+Vybrané plochy dutinu neuzavírají; zrušte „uzavřená dutina“, aby otvor viděl teplotu okolí.</li>
 <li><b>„Tepelný tok se ukládá jen pro konec přechodového stavu – zvol poslední čas.“</b><br>
 Zvolte poslední čas, nebo zkraťte dobu stavu.</li>
 <li><b>„Tepelný stav 'X': 50000 časových kroků – výpočet bude dlouhý“</b>, „časový krok musí být 0 (automaticky) až doba stavu“<br>

@@ -18,7 +18,6 @@ OUT.mkdir(parents=True, exist_ok=True)
 os.environ["APPDATA"] = str(OUT / "appdata")
 os.environ.setdefault("FEA_LANG", "cs")
 
-import numpy as np  # noqa: E402
 from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox  # noqa: E402
 

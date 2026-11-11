@@ -5,7 +5,7 @@ Units: mm, N, MPa, t, s.
 Imports are lazy: the meshing process (fea_core.mesh.worker) must not load OCP,
 so that two OpenCascade libraries (OCP and gmsh) never meet in one process.
 """
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 _LAZY = {
     "Study": "study", "Material": "study", "Selection": "study", "Fixed": "study",

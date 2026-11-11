@@ -384,7 +384,7 @@ class Model:
 
     # ---------------------------------------------------------------- force elements
     def _forces(self):
-        mbs, ii, exu = self.mbs, self.ii, self.exu
+        mbs, ii = self.mbs, self.ii
         self.F = []
         for f in self.job.get("forces", []):
             kind = f["kind"]

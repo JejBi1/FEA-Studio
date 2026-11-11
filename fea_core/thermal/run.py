@@ -68,7 +68,7 @@ def heat_flows(study: Study, mesh: Mesh, case: ThermalCase, T: np.ndarray, rfl: 
     warns: list[str] = []
     taken = fixed.copy()                           # free nodes not yet assigned to any cavity
     fcav = np.zeros(n)
-    cav_rows = []
+    cav_rows, cav_faces = [], []
     for name, bcs in cavities.items():
         idx = np.unique(np.concatenate([mesh.surface_nodes(sel) for bc in bcs for sel in bc_selections(bc)]))
         idx = idx[~taken[idx]]
@@ -77,6 +77,14 @@ def heat_flows(study: Study, mesh: Mesh, case: ThermalCase, T: np.ndarray, rfl: 
         f[idx] = (rfl - fext)[idx]
         fcav += f
         cav_rows.append({"kind": "cavity_radiation", "name": name, "Q_W": float(f.sum())})
+        done = np.zeros(n, bool)                   # heat of the individual faces of the cavity (a shared edge node = first face)
+        for bc in bcs:
+            for sel in bc_selections(bc):
+                ix = mesh.surface_nodes(sel)
+                ix = ix[~done[ix]]
+                done[ix] = True
+                cav_faces.append({"cavity": name, "selection": sel, "emissivity": float(bc.emissivity),
+                                  "Q_W": float(f[ix].sum())})
         throughput = float(np.abs(f[idx]).sum())
         closed = all(bool(getattr(bc, "closed", False)) for bc in bcs)
         if closed and throughput > 1e-12 and abs(f.sum()) / throughput > CAVITY_CLOSED_TOL:
@@ -90,6 +98,8 @@ def heat_flows(study: Study, mesh: Mesh, case: ThermalCase, T: np.ndarray, rfl: 
            "out_W": float(-sum(r["Q_W"] for r in rows + fix_rows if r["Q_W"] < 0))}
     if warns:
         bal["warnings"] = warns
+    if cav_faces:
+        bal["cavity_faces"] = cav_faces             # + = heat into the body through the face (net radiation exchange)
     return fix_rows + rows, bal
 
 
@@ -195,10 +205,15 @@ def _result(study: Study, mesh: Mesh, case, frd_path: Path, n: int, log, warning
         tr.times = [0.0] + [float(b.time) for b in temps]
         tr.frames = np.vstack([np.full(n, float(study.thermal.t_initial))]
                               + [_nodal(b, n, 1)[:, 0] for b in temps])
-        bal = {"note": "transient case – the balance includes stored heat, not checked"}
+        bal = {"note": "transient case – the balance includes stored heat, not checked",
+               **({"cavity_faces": bal["cavity_faces"]} if "cavity_faces" in bal else {})}
     elif bal["imbalance"] > config.EQUILIBRIUM_TOL:
         raise CcxError(
             f"Thermal case '{case.name}': heat balance does not close (residual {bal['residual_W']:.4g} W, {100 * bal['imbalance']:.3g} % of fluxes). The result is invalid.")
+    from .interfaces import interface_flows
+    flows = interface_flows(study, mesh, T)        # heat through the contact conductance interfaces (end of the state)
+    if flows:
+        bal["interfaces"] = flows
     tr.balance = bal
     for w in bal.get("warnings", []):
         warnings.append(f"{case.name}: {w}")

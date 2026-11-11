@@ -9,7 +9,6 @@ from __future__ import annotations
 import base64
 import csv
 import json
-import math
 import struct
 import xml.etree.ElementTree as ET
 from dataclasses import asdict
@@ -230,7 +229,12 @@ def test_principal_vectors_edge_cases():
 def test_imprint_dict_matches_study_serialization():
     imp = Imprint(name="O", part="D", center=[1, 2, 3], normal=[0, 0, 1], shape="rectangle", dx=4, dy=5, size=0.5)
     assert imp.to_dict() == imp.to_mesh_dict()
-    assert imp.to_dict() == json.loads(json.dumps(asdict(imp)))          # Study.to_dict zapisuje asdict
+    from fea_core.study import Study
+    st = Study("s", "m.step")
+    st.imprints.append(imp)
+    assert json.loads(json.dumps(st.to_dict()))["imprints"][0] == imp.to_dict()   # Study.to_dict writes to_dict
+    old = {k: v for k, v in json.loads(json.dumps(asdict(imp))).items() if k != "points"}
+    assert imp.to_dict() == old                                         # older files (asdict without points) unchanged
     assert Imprint.from_dict(imp.to_dict()) == imp
 
 

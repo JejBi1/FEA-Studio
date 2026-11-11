@@ -4,13 +4,12 @@ maximum over the phase, saving of the results, check of the settings, version of
 from __future__ import annotations
 
 import json
-import math
 
 import numpy as np
 import pytest
 
-from fea_core.study import Study, Material, Fixed, Displacement, LoadCase
-from fea_core.dynamics.model import (DynamicsSettings, Excitation, PointMass, SurfaceMass, Probe, G_MM)
+from fea_core.study import Study, Material, Fixed, Displacement
+from fea_core.dynamics.model import (Excitation, PointMass, SurfaceMass, Probe)
 from fea_core.dynamics import response as R
 from fea_core.dynamics.check import check
 from fea_core.dynamics.modal import zetas

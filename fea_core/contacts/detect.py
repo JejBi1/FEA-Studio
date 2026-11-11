@@ -175,8 +175,6 @@ def _outward(mesh, tri: np.ndarray, n: np.ndarray, what: str) -> np.ndarray:
 
 def face_normals(mesh, tri: np.ndarray) -> np.ndarray:
     """Unit OUTWARD normals of the faces (orientation against the opposite corner of the element)."""
-    from ..loads import _OPPOSITE
-    from ..mesh import surface_element_faces
     X = mesh.nodes
     a, b, c = X[tri[:, 0]], X[tri[:, 1]], X[tri[:, 2]]
     n = np.cross(b - a, c - a)
@@ -220,7 +218,6 @@ def signed_gap(mesh, slave_tri: np.ndarray, master_tri: np.ndarray, master_part_
     """
     from scipy.spatial import cKDTree
     from ..ties import _point_tri_dist
-    from ..loads import _OPPOSITE
     X = mesh.nodes
     nodes = np.unique(slave_tri[:, :6] if slave_tri.shape[1] >= 6 else slave_tri)
     if not len(master_tri):
@@ -388,8 +385,6 @@ def _face_keys(n: int, *corners) -> list[np.ndarray]:
 
 def node_normals(mesh, tri: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Nodes of the face (corners and midpoints) and the unit OUTWARD normals at them (average of the normals of the faces weighted by area)."""
-    from ..loads import _OPPOSITE
-    from ..mesh import surface_element_faces
     X = mesh.nodes
     a, b, c = X[tri[:, 0]], X[tri[:, 1]], X[tri[:, 2]]
     n = 0.5 * np.cross(b - a, c - a)

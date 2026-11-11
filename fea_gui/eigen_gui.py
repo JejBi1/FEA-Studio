@@ -8,17 +8,30 @@ import html
 
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QHeaderView, QLabel, QSpinBox,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QHeaderView, QLabel, QLineEdit, QSpinBox,
                                QTableWidgetItem, QVBoxLayout, QWidget)
 
 from fea_core.eigen import BucklingSettings, ModalSettings
 
-from .widgets import Section, dspin, fmt, help_tip, table
+from .widgets import LazyPlot, Section, dspin, fmt, help_tip, table
 
 # quantities of the mode shape display (normalised displacement)
 MODE_QUANTITIES = [("Mode – total displacement (normalized)", "–"), ("Mode – X displacement (normalized)", "–"),
                    ("Mode – Y displacement (normalized)", "–"), ("Mode – Z displacement (normalized)", "–")]
 LINEAR_NOTE = ("Buckling is LINEAR (stress stiffness only, no imperfections, plasticity or large deformations) – the actual capacity is usually lower than λ·load. For design use the code procedure (e.g. EN 1993-1-1, 6.3) or a nonlinear analysis.")
+
+
+# nonlinear buckling (fea_core.imperfect): real displacements of the increments from the imperfect geometry (frame 0 = imperfection)
+NLB_QUANTITIES = [("Nonlinear buckling – total displacement", "mm"), ("Nonlinear buckling – X displacement", "mm"),
+                  ("Nonlinear buckling – Y displacement", "mm"), ("Nonlinear buckling – Z displacement", "mm")]
+NLB_KIND = "nlbuckle"
+NLB_NOTE = ("The imperfection shape and amplitude e0 are your responsibility – take them from the design code "
+            "(EN 1993-1-5 Annex C, EN 1993-1-6, EN 1993-1-1 5.3). Load control: the ultimate factor is the last converged increment.")
+
+
+def mode_quantities(ms) -> list[tuple[str, str]]:
+    """Quantity menu of a mode set: normalised shapes, or real displacements of the nonlinear buckling increments."""
+    return NLB_QUANTITIES if getattr(ms, "kind", "") == NLB_KIND else MODE_QUANTITIES
 
 
 def mode_value_text(ms, k: int) -> str:
@@ -30,8 +43,70 @@ def mode_value_text(ms, k: int) -> str:
 def mode_label(ms, k: int) -> str:
     """Results menu item: "Vlastní tvar 1: f = 209,4 Hz" / "Tvar vzpěru 1 (Tlak): λ = 21,65" (the Czech labels the program shows)."""
     if ms.kind == "modal":
+        nds = getattr(ms, "nodal_diameters", None)        # cyclic symmetry: nodal diameter of the mode
+        if nds is not None and k < len(nds):
+            return f"Mode shape {k + 1} (ND {int(nds[k])}): {mode_value_text(ms, k)}"
         return f"Mode shape {k + 1}: {mode_value_text(ms, k)}"
+    if ms.kind == NLB_KIND:
+        if k == 0:
+            return f"Nonlinear buckling ({ms.case}): imperfection"
+        return f"Nonlinear buckling ({ms.case}): {mode_value_text(ms, k)}"
     return f"Buckling mode {k + 1} ({ms.case}): {mode_value_text(ms, k)}"
+
+
+def nlb_info_html(ms, k: int, info: dict | None) -> str:
+    """Summary of a nonlinear buckling frame + the ultimate factor."""
+    rows = []
+    umax = float(np.linalg.norm(np.asarray(ms.shapes[k], float), axis=1).max()) if len(ms.shapes[k]) else 0.0
+    if k == 0:
+        rows.append(f"<b>Imperfection</b> (initial shape added to the mesh): max {fmt(umax, 4)} mm")
+    else:
+        rows.append(f"<b>Nonlinear buckling</b> – load factor <b>λ = {fmt(float(ms.values[k]), 5)}</b>, "
+                    f"max displacement {fmt(umax, 4)} mm (from the imperfect geometry)")
+    if info:
+        r = info.get("result") or {}
+        if r.get("ultimate_factor") is not None:
+            rows.append(f"Ultimate load factor <b>λ_u = {fmt(float(r['ultimate_factor']), 5)}</b> ({info.get('kind', '')}) – "
+                        f"{html.escape(str(info.get('status_text', '')))}")
+        if info.get("linear_factor"):
+            rows.append(f"Linear buckling λ_cr = {fmt(float(info['linear_factor']), 5)}"
+                        + (f", λ_u/λ_cr = {fmt(float(r['knockdown']), 4)}" if r.get("knockdown") else ""))
+        if r.get("first_yield_factor") is not None:
+            rows.append(f"First yield (max von Mises = Re) at λ = {fmt(float(r['first_yield_factor']), 5)}")
+        imp = info.get("imperfection") or {}
+        if imp:
+            rows.append(f"Imperfection e0 = {fmt(float(imp.get('e0_mm', 0.0)), 4)} mm ({html.escape(str(imp.get('kind', '')))})")
+    rows.append(f"<span style='color:#b36b00'>! {NLB_NOTE}</span>")
+    return "<br>".join(rows)
+
+
+def parse_modes(text: str) -> tuple[list[int], list[float]]:
+    """"1" | "1, 2*0.5" | "1, 3*-0.3" → ([1, 2], [1.0, 0.5]); ValueError on a bad entry."""
+    modes, weights = [], []
+    for tok in (text or "").replace(";", ",").split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if "*" in tok:
+            a, b = tok.split("*", 1)
+            m, w = int(a.strip()), float(b.strip().replace(",", "."))
+        else:
+            m, w = int(tok), 1.0
+        if m < 1:
+            raise ValueError(tok)
+        modes.append(m)
+        weights.append(w)
+    if not modes:
+        raise ValueError(text)
+    return modes, weights
+
+
+def format_modes(modes, weights) -> str:
+    out = []
+    for i, m in enumerate(modes or [1]):
+        w = float(weights[i]) if weights and i < len(weights) else 1.0
+        out.append(f"{int(m)}" if w == 1.0 else f"{int(m)}*{w:g}")
+    return ", ".join(out)
 
 
 def mass_fractions(ms) -> np.ndarray | None:
@@ -56,6 +131,8 @@ def mode_quantity(shape: np.ndarray, qi: int) -> np.ndarray:
 
 def mode_info_html(ms, k: int, study=None) -> str:
     """Summary of the selected shape for the results panel."""
+    if ms.kind == NLB_KIND:
+        return nlb_info_html(ms, k, getattr(ms, "info", None))
     v = float(ms.values[k])
     rows = []
     if ms.kind == "modal":
@@ -132,11 +209,143 @@ class EigenBox(QWidget):
         f.addRow(self.b_note)
         lay.addWidget(g)
         self.buckling_group = g
+        self._build_nonlinear(lay)
         for w in (self.m_on, self.b_on):
             w.toggled.connect(self.on_change)
         for w in (self.m_modes, self.m_fmin, self.m_fmax, self.b_modes):
             w.valueChanged.connect(self.on_change)
         self.b_case.currentIndexChanged.connect(self.on_change)
+
+    def _build_nonlinear(self, lay):
+        """Section "Nonlinear buckling with imperfection" (Study.nlbuckling, fea_core.imperfect)."""
+        self.n_on = QCheckBox("compute nonlinear buckling with imperfection (GNIA / GMNIA)")
+        help_tip(self.n_on, "Large-deformation analysis of the imperfect structure up to the ultimate load factor",
+                 "<b>Nonlinear buckling with imperfection</b><p>The mesh is copied and its nodes are moved by the imperfection "
+                 "(scaled linear buckling mode(s) of the case, amplitude e0). Then the load of the case is increased by the load "
+                 "factor λ with large deformations (NLGEOM); with plastic materials this is a GMNIA, otherwise a GNIA. Results: "
+                 "the load–displacement curve of the monitored point, the ultimate factor λ_u and the deformed shapes.</p>"
+                 "<p>CalculiX has no arc-length (Riks) method – load control is used: the ultimate factor is the last converged "
+                 "increment (a lower bound), the post-buckling branch is not traced.</p>"
+                 "<p><b>The imperfection shape and amplitude are your responsibility</b> (EN 1993-1-5 Annex C, EN 1993-1-6, "
+                 "EN 1993-1-1 5.3).</p>")
+        g = Section("Buckling (nonlinear, imperfection)", check=self.n_on,
+                    tip="Nonlinear buckling: imperfect geometry, large deformations, load–displacement curve",
+                    help="Nonlinear buckling (GNIA / GMNIA): imperfection from the buckling modes, NLGEOM with load control, "
+                         "ultimate load factor and load–displacement curve.")
+        f = QFormLayout(g.body)
+        self.n_case = QComboBox()
+        self.n_case.setToolTip("Load case multiplied by the load factor λ")
+        f.addRow("Load case", self.n_case)
+        self.n_kind = QComboBox()
+        for txt, key in (("buckling mode(s) of the case", "modes"), ("half-sine bow (set by script)", "bow"),
+                         ("shape from a CSV file (set by script)", "file"), ("none (perfect geometry)", "none")):
+            self.n_kind.addItem(txt, key)
+        self.n_kind.setToolTip("Shape of the initial geometric imperfection")
+        f.addRow("Imperfection", self.n_kind)
+        self.n_modes = QLineEdit("1")
+        help_tip(self.n_modes, "Buckling modes and weights, e.g. 1 or 1, 2*0.5 (negative weight = opposite sign)",
+                 "Numbers of the linear buckling modes combined into the imperfection, optionally with a weight after *: "
+                 "<i>1</i>, <i>1, 2*0.5</i>, <i>2*-1</i>. The combination is scaled so that its maximum is e0.")
+        f.addRow("Modes", self.n_modes)
+        self.n_amp_kind = QComboBox()
+        self.n_amp_kind.addItem("e0 in mm", "mm")
+        self.n_amp_kind.addItem("e0 = L / ratio", "ratio")
+        self.n_amp_kind.setToolTip("Give the amplitude e0 directly or as a fraction of the length L")
+        f.addRow("Amplitude", self.n_amp_kind)
+        self.n_amp = dspin(1.0, 0.0, 1e4, 4, 0.1, " mm")
+        self.n_amp.setToolTip("Imperfection amplitude e0 = max displacement of the shape [mm]")
+        f.addRow("e0", self.n_amp)
+        self.n_ratio = dspin(300.0, 1.0, 1e6, 1, 50.0)
+        self.n_ratio.setToolTip("e0 = L / ratio (e.g. 1000 for a member bow, 200 for plates)")
+        f.addRow("L /", self.n_ratio)
+        self.n_len = dspin(0.0, 0.0, 1e7, 2, 10.0, " mm", special="largest model dimension")
+        self.n_len.setToolTip("Reference length L for the ratio (0 = largest dimension of the model)")
+        f.addRow("Length L", self.n_len)
+        self.n_flip = QCheckBox("opposite direction of the imperfection")
+        self.n_flip.setToolTip("Multiply the imperfection by −1")
+        f.addRow(self.n_flip)
+        self.n_max = dspin(0.0, 0.0, 1e9, 4, 1.0, special="1.1 × linear λ_cr")
+        self.n_max.setToolTip("Maximum load factor of the ramp (0 = 1.1 × first linear buckling factor)")
+        f.addRow("λ max", self.n_max)
+        self.n_inc = QSpinBox()
+        self.n_inc.setRange(2, 10000)
+        self.n_inc.setValue(20)
+        self.n_inc.setToolTip("Initial number of increments to λ max (ccx adapts them automatically)")
+        f.addRow("Increments", self.n_inc)
+        self.n_mon = QLineEdit("")
+        self.n_mon.setPlaceholderText("automatic (max imperfection)")
+        help_tip(self.n_mon, "Monitored point x, y, z [mm] (empty = node of the largest imperfection)",
+                 "Point of the load–displacement curve; the nearest mesh node is used. Empty = node with the largest imperfection, "
+                 "direction = direction of the imperfection there.")
+        f.addRow("Monitored point", self.n_mon)
+        self.n_note = QLabel(NLB_NOTE)
+        self.n_note.setWordWrap(True)
+        self.n_note.setStyleSheet("color:#b36b00")
+        f.addRow(self.n_note)
+        lay.addWidget(g)
+        self.nlbuckling_group = g
+        self.n_on.toggled.connect(self.on_change)
+        self.n_flip.toggled.connect(self.on_change)
+        for w in (self.n_amp, self.n_ratio, self.n_len, self.n_max, self.n_inc):
+            w.valueChanged.connect(self.on_change)
+        for w in (self.n_case, self.n_kind, self.n_amp_kind):
+            w.currentIndexChanged.connect(self.on_change)
+        for w in (self.n_modes, self.n_mon):
+            w.editingFinished.connect(self.on_change)
+
+    def _nl_widgets(self):
+        return (self.n_case, self.n_kind, self.n_modes, self.n_amp_kind, self.n_amp, self.n_ratio, self.n_len, self.n_flip,
+                self.n_max, self.n_inc, self.n_mon)
+
+    def _fill_nonlinear(self, st):
+        s = st.nlbuckling
+        self.n_on.setChecked(bool(s.enabled))
+        self.n_case.clear()
+        self.n_case.addItem("as linear buckling / first case", None)
+        for lc in st.load_cases:
+            self.n_case.addItem(lc.name, lc.name)
+        self.n_case.setProperty("_i18n_done", True)
+        if s.case is not None and self.n_case.findData(s.case) < 0:
+            self.n_case.addItem(f"{s.case} (does not exist)", s.case)
+        self.n_case.setCurrentIndex(max(0, self.n_case.findData(s.case)) if s.case is not None else 0)
+        self.n_kind.setCurrentIndex(max(0, self.n_kind.findData(s.imperfection)))
+        self.n_modes.setText(format_modes(s.modes, s.weights))
+        by_mm = bool(s.amplitude and float(s.amplitude) > 0)
+        self.n_amp_kind.setCurrentIndex(0 if by_mm else 1)
+        if by_mm:
+            self.n_amp.setValue(float(s.amplitude))
+        self.n_ratio.setValue(float(s.amplitude_ratio or 300.0))
+        self.n_len.setValue(float(s.length or 0.0))
+        self.n_flip.setChecked(float(s.sign or 1.0) < 0)
+        self.n_max.setValue(float(s.max_factor or 0.0))
+        self.n_inc.setValue(int(s.increments))
+        self.n_mon.setText("" if s.monitor_point is None else ", ".join(f"{float(v):g}" for v in s.monitor_point))
+
+    def nonlinear_settings(self, old):
+        """NonlinearBucklingSettings from the form (fields the form does not show are kept from `old`)."""
+        import dataclasses
+        try:
+            modes, weights = parse_modes(self.n_modes.text())
+        except ValueError:
+            modes, weights = list(old.modes), list(old.weights)
+        mon = old.monitor_point
+        txt = self.n_mon.text().strip()
+        if not txt:
+            mon = None
+        else:
+            try:
+                vals = [float(v) for v in txt.replace(";", ",").split(",") if v.strip()]
+                mon = vals if len(vals) == 3 else old.monitor_point
+            except ValueError:
+                pass
+        by_mm = self.n_amp_kind.currentData() == "mm"
+        return dataclasses.replace(
+            old, enabled=self.n_on.isChecked(), case=self.n_case.currentData(), imperfection=self.n_kind.currentData(),
+            modes=modes, weights=weights, amplitude=float(self.n_amp.value()) if by_mm else 0.0,
+            amplitude_ratio=float(self.n_ratio.value()), length=float(self.n_len.value()) or None,
+            sign=-1.0 if self.n_flip.isChecked() else 1.0, max_factor=float(self.n_max.value()) or None,
+            increments=int(self.n_inc.value()), monitor_point=mon,
+            monitor_dir=old.monitor_dir if mon == old.monitor_point else None)
 
     def refresh(self):
         st = self.win.study
@@ -158,6 +367,7 @@ class EigenBox(QWidget):
             if b.case is not None and self.b_case.findData(b.case) < 0:
                 self.b_case.addItem(f"{b.case} (does not exist)", b.case)
             self.b_case.setCurrentIndex(max(0, self.b_case.findData(b.case)) if b.case is not None else 0)
+            self._fill_nonlinear(st)
         finally:
             self._filling = False
         self._enable()
@@ -168,6 +378,16 @@ class EigenBox(QWidget):
         for w in (self.b_case, self.b_modes):
             w.setEnabled(self.b_on.isChecked())
         self.b_note.setVisible(self.b_on.isChecked())
+        on = self.n_on.isChecked()
+        for w in self._nl_widgets():
+            w.setEnabled(on)
+        if on:
+            by_mm = self.n_amp_kind.currentData() == "mm"
+            self.n_amp.setEnabled(by_mm)
+            self.n_ratio.setEnabled(not by_mm)
+            self.n_len.setEnabled(not by_mm)
+            self.n_modes.setEnabled(self.n_kind.currentData() == "modes")
+        self.n_note.setVisible(on)
 
     def settings(self) -> tuple[ModalSettings, BucklingSettings]:
         return (ModalSettings(self.m_on.isChecked(), int(self.m_modes.value()), float(self.m_fmin.value()),
@@ -180,9 +400,11 @@ class EigenBox(QWidget):
         if st is None or self._filling:
             return
         m, b = self.settings()
-        if m.to_dict() == st.modal.to_dict() and b.to_dict() == st.buckling.to_dict():
+        n = self.nonlinear_settings(st.nlbuckling) if (self.n_on.isChecked() or st.nlbuckling.enabled) else st.nlbuckling
+        if m.to_dict() == st.modal.to_dict() and b.to_dict() == st.buckling.to_dict() \
+                and n.to_dict() == st.nlbuckling.to_dict():
             return
-        st.modal, st.buckling = m, b
+        st.modal, st.buckling, st.nlbuckling = m, b, n
         self.win.changed()
 
 
@@ -203,7 +425,38 @@ class ModesTable(QWidget):
         self.note = QLabel("")
         self.note.setWordWrap(True)
         v.addWidget(self.note)
+        self.nl_label = QLabel("")                    # nonlinear buckling: ultimate factor + curve
+        self.nl_label.setWordWrap(True)
+        v.addWidget(self.nl_label)
+        self.nl_plot = LazyPlot()
+        self.nl_plot.setToolTip("Load factor λ over the displacement of the monitored point")
+        v.addWidget(self.nl_plot)
+        self.nl_label.hide()
+        self.nl_plot.hide()
         self._rows: list[tuple[int, int]] = []
+
+    def plot_curve(self, info: dict) -> None:
+        """Load–displacement curve of the nonlinear buckling (λ over u of the monitored point), λ_u and λ_cr marked."""
+        c = info.get("curve") or {}
+        lam, u = np.asarray(c.get("lambda") or [], float), np.asarray(c.get("u_mm") or [], float)
+        if not len(lam):
+            self.nl_plot.hide()
+            return
+        self.nl_plot.show()
+        ax = self.nl_plot.axes()
+        ax.plot(np.abs(u), lam, "o-", ms=3, lw=1.4, color="#2f6fd0", label="λ(u)")
+        r = info.get("result") or {}
+        if r.get("ultimate_factor") is not None:
+            i = int(r.get("ultimate_index", int(np.argmax(lam))))
+            ax.plot([abs(u[i])], [lam[i]], "s", color="#d23b3b", label=f"λ_u = {fmt(float(r['ultimate_factor']), 4)}")
+        if info.get("linear_factor"):
+            ax.axhline(float(info["linear_factor"]), ls="--", lw=1, color="#888888",
+                       label=f"λ_cr = {fmt(float(info['linear_factor']), 4)}")
+        ax.set_xlabel("Displacement of the monitored point [mm]")
+        ax.set_ylabel("Load factor λ")
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=7)
+        self.nl_plot.canvas.draw_idle()
 
     def fill(self, results):
         t = self.table
@@ -211,13 +464,19 @@ class ModesTable(QWidget):
         t.setRowCount(0)
         self._rows = []
         notes = []
+        nl_info = ((getattr(results, "info", None) or {}).get("nlbuckling") if results is not None else None)
         for j, ms in enumerate(results.modes if results is not None else []):
             fr = mass_fractions(ms)
             cum = np.cumsum(fr, axis=0) if fr is not None else None
+            if ms.kind == NLB_KIND and getattr(ms, "info", None) is None:
+                ms.info = nl_info                     # Results.load does not attach it to the shapes
             for k in range(len(ms.values)):
                 r = t.rowCount()
                 t.insertRow(r)
-                name = f"{k + 1}" if ms.kind == "modal" else f"buckling {k + 1} ({ms.case})"
+                if ms.kind == NLB_KIND:
+                    name = "nonlinear: imperfection" if k == 0 else f"nonlinear, increment {k}"
+                else:
+                    name = f"{k + 1}" if ms.kind == "modal" else f"buckling {k + 1} ({ms.case})"
                 vals = [name, fmt(float(ms.values[k]), 5)]
                 if fr is not None and k < len(fr):
                     vals += [pct(c) for c in fr[k]] + [pct(c) for c in cum[k]]
@@ -236,6 +495,18 @@ class ModesTable(QWidget):
                 notes.append(f"<span style='color:#b36b00'>! {LINEAR_NOTE}</span>")
         t.blockSignals(False)
         self.note.setText("<br>".join(notes))
+        if nl_info:
+            r = nl_info.get("result") or {}
+            txt = (f"<b>Nonlinear buckling ({html.escape(str(nl_info.get('kind', '')))})</b>: ultimate load factor "
+                   f"<b>λ_u = {fmt(r.get('ultimate_factor'), 5)}</b> – {html.escape(str(nl_info.get('status_text', '')))}")
+            if r.get("first_yield_factor") is not None:
+                txt += f"<br>First yield at λ = {fmt(float(r['first_yield_factor']), 5)}"
+            self.nl_label.setText(txt + f"<br><span style='color:#b36b00'>! {NLB_NOTE}</span>")
+            self.nl_label.show()
+            self.plot_curve(nl_info)
+        else:
+            self.nl_label.hide()
+            self.nl_plot.hide()
 
     def on_row(self, r):
         if 0 <= r < len(self._rows):

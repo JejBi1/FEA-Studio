@@ -545,7 +545,11 @@ class OccView(QWidget):
         self.ctx.Display(lbl, False)
         self.ctx.Deactivate(lbl)
         self._overlay += [v, lbl]
-        self.ctx.UpdateCurrentViewer()
+        upd = getattr(self, "_update", None)          # FeaView: one redraw at the end of a batch
+        if upd is not None:
+            upd()
+        else:
+            self.ctx.UpdateCurrentViewer()
 
     def screenshot(self, path):
         return self.view.Dump(path)

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Sequence
 
 import numpy as np
 
@@ -178,7 +177,15 @@ def format_plastic_ccx(spec: PlasticitySpec, Re: float, E: float) -> list[str]:
     if hard not in ("ISOTROPIC", "KINEMATIC"):
         hard = "ISOTROPIC"
     lines = [f"*PLASTIC, HARDENING={hard}"]
+    for s, ep in plastic_table(spec, Re, E):
+        lines.append(f"{s:.4f}, {ep:.6f}")
+    return lines
 
+
+def plastic_table(spec: PlasticitySpec, Re: float, E: float) -> list[tuple[float, float]]:
+    """The hardening table (true stress [MPa], equivalent plastic strain [–]) exactly as it is written to *PLASTIC
+    (the GUI curve and the report show the same points the solver gets). Beyond the last point the stress stays constant.
+    """
     table = spec.table
     if not table:
         if spec.model == "bilinear":
@@ -202,10 +209,7 @@ def format_plastic_ccx(spec: PlasticitySpec, Re: float, E: float) -> list[str]:
     # Make sure the first point has a plastic strain of 0.0
     if abs(table[0][1]) > 1e-12:
         table = [(table[0][0], 0.0)] + [(s, ep) for s, ep in table if ep > 0]
-
-    for s, ep in table:
-        lines.append(f"{s:.4f}, {ep:.6f}")
-    return lines
+    return [(float(s), float(ep)) for s, ep in table]
 
 
 def assess_plastic_strain_en1993(peeq: np.ndarray, limit: float = 0.05) -> dict[str, float]:
@@ -231,28 +235,30 @@ def assess_local_failure_asme(
     R: float = 0.65,
     material_type: str = "ferritic",
     eps_L0: float | None = None,
+    alpha_sl: float | None = None,
     **kwargs,
 ) -> dict[str, float]:
     """Assessment of local failure according to ASME VIII-2 Part 5 §5.3.3 (Protection Against Local Failure).
 
-    Limit plastic strain at a given stress triaxiality:
-      eps_L = eps_Lu * exp[ - (m2 / (1 + m2)) * ((sigma_1 + sigma_2 + sigma_3) / (3 * sigma_e) - 1/3) ]
+    Limit plastic strain at a given stress triaxiality (5.3.3.1, Step 2):
+      eps_L = eps_Lu * exp[ - (alpha_sl / (1 + m2)) * ((sigma_1 + sigma_2 + sigma_3) / (3 * sigma_e) - 1/3) ]
 
     where:
       (sigma_1 + sigma_2 + sigma_3) / (3 * sigma_e) = stress triaxiality (s_hyd / s_vM),
-      m2 = 0.60 * (1 - R) for ferritic steels (Table 5.7, where R = Sy / Su),
-      m2 = 0.75 * (1 - R) for austenitic stainless steels,
-      eps_Lu is the material parameter of the ductility limit (Table 5.7, default value 0.30).
+      Table 5.7 (R = Sy / Su): ferritic steel m2 = 0.60 * (1 - R), alpha_sl = 2.2;
+      austenitic stainless steel / nickel alloys m2 = 0.75 * (1 - R), alpha_sl = 0.6,
+      eps_Lu is the uniaxial strain limit (Table 5.7; here default 0.30 – see fea_core.plasticity_eval for the
+      table values). Per-node / per-material evaluation for the GUI and the report: fea_core.plasticity_eval.
     """
     if eps_L0 is not None:
         eps_Lu = eps_L0  # backward compatibility
 
+    mat_lower = material_type.lower()
+    austenitic = "austenit" in mat_lower or "stainless" in mat_lower
     if m2 is None:
-        mat_lower = material_type.lower()
-        if "austenit" in mat_lower or "stainless" in mat_lower:
-            m2 = 0.75 * (1.0 - R)
-        else:
-            m2 = 0.60 * (1.0 - R)
+        m2 = 0.75 * (1.0 - R) if austenitic else 0.60 * (1.0 - R)
+    if alpha_sl is None:
+        alpha_sl = 0.6 if austenitic else 2.2
 
     if sigma_tensor.ndim < 2 or sigma_tensor.shape[-1] != 6 or peeq.size == 0:
         return {"max_utilization": 0.0, "ok": True}
@@ -264,7 +270,7 @@ def assess_local_failure_asme(
     with np.errstate(divide="ignore", invalid="ignore"):
         triax = np.where(vm > 1e-3, s_hyd / vm, 0.0)
         # Limit according to ASME VIII-2 Part 5 §5.3.3
-        exponent = - (m2 / (1.0 + m2)) * (triax - 1.0 / 3.0)
+        exponent = - (alpha_sl / (1.0 + m2)) * (triax - 1.0 / 3.0)
         exponent = np.clip(exponent, -10.0, 10.0)
         eps_limit = eps_Lu * np.exp(exponent)
         utilization = np.where(eps_limit > 1e-6, peeq / eps_limit, 0.0)
@@ -275,7 +281,70 @@ def assess_local_failure_asme(
         "ok": max_util <= 1.0,
         "eps_Lu": float(eps_Lu),
         "m2": float(m2),
+        "alpha_sl": float(alpha_sl),
     }
+
+
+MODELS = ("bilinear", "multilinear", "ramberg_osgood", "hollomon")
+
+
+def validate_material(m) -> tuple[list[str], list[str]]:
+    """Check of the plasticity definition of one material (errors, warnings) – the GUI form and check() use the same rules.
+    No fallback values: a model that needs Re (bilinear, Ramberg-Osgood, Hollomon) without Re is an error.
+    """
+    errors, warnings = [], []
+    if not getattr(m, "is_plastic", False):
+        return errors, warnings
+    who = f"Material '{m.name}'"
+    if not isinstance(m.plastic, dict):
+        return [f"{who}: the plasticity definition is not readable"], warnings
+    spec = PlasticitySpec.from_dict(m.plastic)
+    if spec.model not in MODELS:
+        errors.append(f"{who}: unknown plasticity model '{spec.model}' (bilinear, multilinear, ramberg_osgood, hollomon)")
+        return errors, warnings
+    if spec.hardening.lower() not in ("isotropic", "kinematic"):
+        errors.append(f"{who}: unknown hardening '{spec.hardening}' (isotropic, kinematic)")
+    if getattr(m, "is_ortho", False) or getattr(m, "is_print", False):
+        errors.append(f"{who}: plasticity is available for isotropic materials only (not orthotropic / 3D printing)")
+    if spec.model == "multilinear" or spec.table:
+        tab = spec.table
+        if not tab:
+            errors.append(f"{who}: the multilinear hardening table is empty")
+        else:
+            if abs(tab[0][1]) > 1e-12:
+                errors.append(f"{who}: the first point of the hardening table must have plastic strain 0 (the yield point)")
+            if any(s <= 0 or not math.isfinite(s) or not math.isfinite(ep) or ep < 0 for s, ep in tab):
+                errors.append(f"{who}: the hardening table needs positive stresses and non-negative plastic strains")
+            if any(b[1] <= a[1] for a, b in zip(tab, tab[1:])):
+                errors.append(f"{who}: plastic strains in the hardening table must increase from row to row")
+            if any(b[0] < a[0] for a, b in zip(tab, tab[1:])):
+                errors.append(f"{who}: stresses in the hardening table must not decrease (softening is not supported)")
+            if m.Re and abs(tab[0][0] - m.Re) > 0.05 * m.Re:
+                warnings.append(f"{who}: yield stress of the hardening table ({tab[0][0]:g} MPa) differs from Re = {m.Re:g} MPa "
+                                "– the safety factor to Re and the curve disagree")
+    else:
+        if not m.Re or m.Re <= 0:
+            errors.append(f"{who}: the plasticity model '{spec.model}' needs the yield strength Re")
+        if spec.model == "bilinear":
+            if spec.Et is None:
+                errors.append(f"{who}: bilinear plasticity needs the tangent modulus Et")
+            elif spec.Et < 0 or spec.Et >= m.E:
+                errors.append(f"{who}: tangent modulus Et = {spec.Et:g} MPa must be in the range 0 ≤ Et < E = {m.E:g} MPa")
+        elif spec.model == "ramberg_osgood":
+            if not spec.K_prime or not spec.n_prime or spec.K_prime <= 0 or spec.n_prime <= 0:
+                errors.append(f"{who}: Ramberg-Osgood needs positive K and n")
+            elif m.Re and spec.K_prime <= m.Re:
+                errors.append(f"{who}: Ramberg-Osgood coefficient K = {spec.K_prime:g} MPa must be greater than Re = {m.Re:g} MPa")
+        elif spec.model == "hollomon":
+            if not spec.Rm or not spec.A or spec.Rm <= 0 or spec.A <= 0:
+                errors.append(f"{who}: Hollomon needs the tensile strength Rm and the elongation A")
+            elif m.Re and spec.Rm <= m.Re:
+                errors.append(f"{who}: Hollomon needs Rm = {spec.Rm:g} MPa greater than Re = {m.Re:g} MPa")
+    if not errors and spec.hardening.lower() == "kinematic" and spec.model != "bilinear":
+        warnings.append(f"{who}: kinematic hardening is verified for the bilinear curve only (verification PL4)")
+    if not (0 < spec.limit_strain < 1):
+        errors.append(f"{who}: the plastic strain limit must be between 0 and 1 (EN 1993-1-5: 0.05)")
+    return errors, warnings
 
 
 def check(study, part_names: list[str]) -> tuple[list[str], list[str]]:
@@ -287,6 +356,7 @@ def check(study, part_names: list[str]) -> tuple[list[str], list[str]]:
     an error is reported.
     """
     errors, warnings = [], []
+    seen = set()
     for p in part_names:
         try:
             m = study.material_of(p)
@@ -295,6 +365,11 @@ def check(study, part_names: list[str]) -> tuple[list[str], list[str]]:
         spec = PlasticitySpec.from_dict(m.plastic) if isinstance(getattr(m, "plastic", None), dict) else None
         if spec is None or not getattr(m, "is_plastic", False):
             continue
+        if m.name not in seen:
+            seen.add(m.name)
+            e, w = validate_material(m)
+            errors += e
+            warnings += w
         if spec.hardening.lower() == "kinematic":
             if not study.contact_settings.nlgeom:
                 explicitly_disabled = (

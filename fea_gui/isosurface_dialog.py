@@ -1,14 +1,13 @@
 """Dialog for displaying and exporting isosurfaces of the results (A5: display of results)."""
 from __future__ import annotations
 
-from pathlib import Path
 import numpy as np
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QDoubleSpinBox,
     QPushButton, QComboBox, QFileDialog, QMessageBox, QGroupBox
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QTimer
 
 from fea_core.isosurface import extract_isosurface
 from . import theme

@@ -16,7 +16,7 @@ from .session import FeaError, Session
 
 ABS_ZERO = -273.15
 AUTO_NAMES = {"fixed_temperature": "temperature", "heat_flux": "tok", "heat_flow": "tok", "convection": "convection",
-              "radiation": "radiation"}
+              "radiation": "radiation", "cavity_radiation": "cavity"}
 UNITS = ("Heat: temperature °C, heat flux W/m², power W, heat transfer coefficient W/(m²·K), conductivity λ W/(m·K), expansion α 1/K, specific heat c_p J/(kg·K), time s.")
 
 
@@ -68,15 +68,28 @@ def describe_case(st, c) -> dict:
     return d
 
 
+def conductance_overview(st) -> list[dict]:
+    """Contact conductances: interfaces of the Heat step + contact pairs with h_c (they apply to all thermal cases)."""
+    rows = [{"name": c.name, "side_a": c.selection, "side_b": c.master, "h_W_m2K": c.conductance,
+             "R_m2K_W": c.resistance, "source": "interface"} for c in st.thermal.conductances]
+    rows += [{"name": c.name, "side_a": c.a, "side_b": c.b, "h_W_m2K": c.conductance, "R_m2K_W": 1.0 / c.conductance,
+              "source": "contact_pair"} for c in st.contacts if c.conductance]
+    return rows
+
+
 def thermal_overview(st) -> dict:
     from .tools_study import describe_load
     th = st.thermal
-    return {"reference_temperature_C": th.reference_temperature,
-            "initial_temperature_C": th.initial_temperature if th.initial_temperature is not None
-            else f"= reference ({th.reference_temperature:g})",
-            "cases": [describe_case(st, c) for c in th.cases],
-            "temperature_loads": [{"load_case": lc.name, **describe_load(l)} for lc in st.load_cases
-                                  for l in lc.loads if l.kind == "thermal"]}
+    d = {"reference_temperature_C": th.reference_temperature,
+         "initial_temperature_C": th.initial_temperature if th.initial_temperature is not None
+         else f"= reference ({th.reference_temperature:g})",
+         "cases": [describe_case(st, c) for c in th.cases],
+         "temperature_loads": [{"load_case": lc.name, **describe_load(l)} for lc in st.load_cases
+                               for l in lc.loads if l.kind == "thermal"]}
+    cond = conductance_overview(st)
+    if cond:
+        d["contact_conductances"] = cond
+    return d
 
 
 def get_thermal_case(st, name: str, create: bool = True):
@@ -277,10 +290,95 @@ def register(mcp, sess: Session) -> None:
             return out(add_thermal_bc(sess, case, "heat_generation", part=part, value=p))
 
     @mcp.tool(structured_output=False)
-    def fea_thermal_remove(case: str, name: str, kind: str | None = None) -> str:
-        """Removes a thermal condition by selection name (part name for a source); kind fixed_temperature | heat_flux | convection | radiation | heat_generation restricts it (default: all with that name). The face selection stays."""
+    def fea_thermal_add_cavity(case: str, selection: str | list | dict, emissivity: float, cavity: str = "cavity",
+                               closed: bool = False, ambient_C: float = 20.0, name: str | None = None) -> str:
+        """Cavity radiation (surface-to-surface, view factors by CalculiX) of faces in thermal state `case`; call once per face group with its own emissivity, faces with the same `cavity` name radiate to each other. closed=True: fully enclosed cavity (view factors normalized to 1, no exchange with ambient – the state still needs a heat sink); closed=False: open cavity, the opening sees ambient_C [degC]. emissivity 0-1. Nonlinear (ccx iterations). Heat per face in the results (balance.cavity_faces)."""
+        e = _num(emissivity, "emissivity")
+        if not 0 < e <= 1:
+            raise FeaError("emissivity must be in the interval (0; 1]")
+        amb = _temp(ambient_C, "ambient_C")
+        cav = str(cavity or "").strip()
+        if not cav:
+            raise FeaError("cavity: a cavity name is required (faces with the same name radiate to each other)")
+        with sess.use():
+            d = add_thermal_bc(sess, case, "cavity_radiation", selection, name, emissivity=e, ambient=amb,
+                               cavity_name=cav, closed=bool(closed))
+            c, _ = get_thermal_case(sess.require_study(), d["thermal_case"], create=False)
+            same = [b for b in c.loads if b.kind == "cavity_radiation" and b.cavity_name == cav]
+            changed = [b.selection for b in same if (b.closed, b.ambient) != (bool(closed), amb)]
+            for b in same:                                # one cavity = one setting of closed / ambient
+                b.closed, b.ambient = bool(closed), amb
+            d["cavity"] = {"name": cav, "closed": bool(closed), "faces": [b.selection for b in same],
+                           "emissivities": [b.emissivity for b in same]}
+            if changed:
+                d["note"] = f"closed / ambient_C also updated on the other faces of cavity '{cav}': {', '.join(map(str, changed))}"
+            if len(same) < 2 and closed:
+                d["warning"] = "A closed cavity needs at least two faces (or a face that sees itself) – add the other faces with the same cavity name"
+            return out(d)
+
+    @mcp.tool(structured_output=False)
+    def fea_thermal_add_contact_conductance(side_a: str, side_b: str | None = None, h_W_m2K: float | None = None,
+                                            pressure_MPa: float = 1.0, roughness_um: float = 3.0,
+                                            tim: str | None = None, name: str | None = None) -> str:
+        """Thermal contact conductance h_c [W/(m2*K)] of an interface (temperature jump dT = q/h_c); applies to ALL thermal states. side_a, side_b: two part names (bonded interface – one part is then meshed separately and tied mechanically by *TIE) or two face selections; side_a = a contact pair name with side_b omitted sets h_c of that pair. h_W_m2K omitted = indicative estimate from the materials, pressure_MPa, roughness_um and tim ('paste' | 'pad'). Typical: steel dry 1000-3000, bolted 5000, paste 25000. Remove: fea_thermal_remove(case='', name, kind='contact_conductance')."""
+        from ..thermal.interfaces import ConductanceError, set_interface, suggest
         with sess.use():
             st = sess.require_study()
+            parts = sess.part_names()
+            pair = next((c for c in st.contacts if c.name == side_a), None)
+            if pair is not None and not side_b:
+                sug = suggest(st, pair.a, pair.b, parts, _num(pressure_MPa, "pressure_MPa"),
+                              _num(roughness_um, "roughness_um"), tim)
+                h = _num(h_W_m2K, "h_W_m2K") if h_W_m2K is not None else sug["h_W_m2K"]
+                if h <= 0:
+                    raise FeaError("h_W_m2K must be a positive contact conductance [W/(m²·K)]")
+                pair.conductance = h
+                sess.changed()
+                d = {"contact_pair": pair.name, "h_W_m2K": h, "applies_to": "all thermal states"}
+                if h_W_m2K is None:
+                    d["suggestion"] = sug
+                if pair.kind in ("bonded", "none"):
+                    d["warning"] = f"Contact pair '{pair.name}' is of type '{pair.kind}' – it creates no contact faces, h_c has no effect; use the two part names instead"
+                return out(d)
+            if not side_b:
+                raise FeaError(f"side_b is required ('{side_a}' is not a contact pair; pairs: {', '.join(c.name for c in st.contacts) or 'none'})")
+            sug = suggest(st, side_a, side_b, parts, _num(pressure_MPa, "pressure_MPa"), _num(roughness_um, "roughness_um"), tim)
+            h = _num(h_W_m2K, "h_W_m2K") if h_W_m2K is not None else sug["h_W_m2K"]
+            try:
+                item, sep, replaced = set_interface(st, side_a, side_b, h, name, parts)
+            except ConductanceError as e:
+                raise FeaError(str(e)) from None
+            sess.changed()
+            d = {"conductance": {"name": item.name, "side_a": item.selection, "side_b": item.master,
+                                 "h_W_m2K": item.conductance, "R_m2K_W": item.resistance},
+                 "replaced": replaced, "applies_to": "all thermal states"}
+            if h_W_m2K is None:
+                d["suggestion"] = sug
+            if sep:
+                d["separate_mesh_part"] = sep
+                d["note"] = (f"Part '{sep}' is now meshed separately (the interface needs two sets of nodes); mechanically it stays tied by *TIE "
+                             "(non-conforming mesh, ccx backend). The mesh will be regenerated.")
+            if not st.thermal.cases:
+                d["warning"] = "No thermal state yet – create one (fea_thermal_case_create) with a heat sink"
+            return out(d)
+
+    @mcp.tool(structured_output=False)
+    def fea_thermal_remove(case: str, name: str, kind: str | None = None) -> str:
+        """Removes a thermal condition by selection name (part name for a source); kind fixed_temperature | heat_flux | convection | radiation | cavity_radiation | heat_generation restricts it (default: all with that name). kind='contact_conductance' removes an interface conductance by its name or a contact pair's h_c (case ignored). The face selection stays."""
+        with sess.use():
+            st = sess.require_study()
+            if kind == "contact_conductance":
+                th = st.thermal
+                n0 = len(th.conductances)
+                th.conductances = [c for c in th.conductances if c.name != name]
+                pairs = [c for c in st.contacts if c.name == name and c.conductance]
+                for c in pairs:
+                    c.conductance = None
+                if len(th.conductances) == n0 and not pairs:
+                    raise FeaError(f"Contact conductance '{name}' does not exist (defined: {', '.join(r['name'] for r in conductance_overview(st)) or 'none'})")
+                sess.changed()
+                return out({"removed": name, "contact_conductances": conductance_overview(st),
+                            "note": "parts made separate for the interface stay separately meshed (fea_mesh_separate_parts)"})
             c, _ = get_thermal_case(st, case, create=False)
             grp = _group(kind) if kind else None
             keep = [b for b in c.loads if not (bc_key(b)[1] == name and (grp is None or bc_key(b)[0] == grp))]

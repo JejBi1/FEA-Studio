@@ -8,7 +8,7 @@ import json
 import numpy as np
 import pytest
 
-from fea_core.study import Study, Material, Fixed, Force, Pressure, LoadCase, RemoteSupport
+from fea_core.study import Study, Material, Force, Pressure, LoadCase
 from fea_core.contacts.model import ContactPair, AnalysisSettings, LoadStep, Motion, ContactSettings
 from fea_core.contacts.check import check
 from fea_core.contacts.run import step_plans, scaled_case

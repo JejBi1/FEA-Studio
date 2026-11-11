@@ -11,14 +11,13 @@ import math
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, QGridLayout, QHBoxLayout,
-                               QHeaderView, QLabel, QLineEdit, QListWidget, QMessageBox, QPushButton, QSpinBox,
+                               QLabel, QLineEdit, QListWidget, QMessageBox, QPushButton, QSpinBox,
                                QSizePolicy, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from fea_core.beams.model import (DOF_NAMES, LOCAL_NAMES, FrameConnection, FrameMember, FrameNode, FrameSupport,
                                   SectionDef)
 from fea_core.i18n import tr
 
-from . import theme
 from .widgets import LazyPlot, dspin, fit_tabs, fmt, panel_header, scroll_body, table, Section, help_tip
 
 C_MEMBER = (45, 70, 110)

@@ -11,6 +11,7 @@ The number of parallel jobs is limited by free memory (estimate of ccx PARDISO m
 from __future__ import annotations
 
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,8 +32,40 @@ def ccx_memory_gb(ndof: int) -> float:
     return 0.2 + 1.2 * (max(ndof, 1) / 214e3) ** 1.32
 
 
+_tls = threading.local()
+
+
+@contextmanager
+def budget(workers: int, threads: int):
+    """In this thread at most `workers` concurrent ccx jobs with `threads` threads each (a share of the machine – other
+    independent jobs of the same calculation run beside it, see fea_core.ccx.concurrent). plan() then plans inside the
+    share without measuring the memory again (the share was planned with it) and run_ccx without an explicit thread count
+    uses workers × threads.
+    """
+    old = getattr(_tls, "budget", None)
+    _tls.budget = (max(1, int(workers)), max(1, int(threads)))
+    try:
+        yield
+    finally:
+        _tls.budget = old
+
+
+def current_budget() -> tuple[int, int] | None:
+    return getattr(_tls, "budget", None)
+
+
+def budget_threads() -> int | None:
+    """Thread count of one ccx job in this thread's share (None = no share → config.NUM_THREADS)."""
+    b = current_budget()
+    return None if b is None else min(b[0] * b[1], config.NUM_THREADS)
+
+
 def plan(n_steps: int, ndof: int, free_gb: float | None = None, cores: int | None = None) -> tuple[int, int]:
     """(number of parallel jobs, threads per job). (1, NUM_THREADS) = count the old way with one job."""
+    b = current_budget()
+    if b is not None and cores is None and free_gb is None:      # inside a share of the machine (ccx.concurrent)
+        n = max(1, min(n_steps, b[0]))
+        return (n, b[1]) if n > 1 else (1, budget_threads())
     cores = cores or config.NUM_THREADS
     if n_steps < 2 or cores < 2 * MIN_THREADS:
         return 1, cores

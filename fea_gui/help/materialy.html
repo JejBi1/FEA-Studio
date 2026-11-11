@@ -163,6 +163,32 @@ designations between standards (ČSN, EN, W.Nr., DIN, AISI…).</p>
 <tr><td>Beech wood</td><td>14 000 / 1 600 / 900</td><td>1 200 / 850 / 250</td><td>0.45 / 0.50 / 0.70</td><td>120 / 60</td><td>DIN 68364 / Wood Handbook (hardwood, 12 % moisture)</td></tr>
 </table>
 
+<h2><a name="plasticity"></a>Plasticity (elastoplastic metal)</h2>
+<p>In the <b>Material properties</b> window tick <b>Plasticity (elastoplastic metal)</b> to compute the material beyond the yield point
+(von Mises yield condition with hardening). The study then runs as a <b>nonlinear</b> CalculiX analysis (no superposition of load cases,
+no NGSolve) and the results get the <b>equivalent plastic strain PEEQ</b>.</p>
+<table class="grid">
+<tr><th>Field</th><th>Meaning</th><th>Default</th></tr>
+<tr><td>Model</td><td><b>Bilinear</b> – yield at Re (field above), then a straight line; <b>Multilinear</b> – table of points;
+<b>Ramberg-Osgood</b> – σ = K·(ε_pl + (Re/K)^(1/n))^n from Re; <b>Hollomon</b> – power curve through Re and Rm at the uniform elongation ≈ A/2 (estimate).</td><td>bilinear</td></tr>
+<tr><td>Hardening</td><td><b>Isotropic</b> – monotonic loading; <b>Kinematic</b> – load reversal and cycles (Bauschinger effect).
+Kinematic hardening is computed correctly by CalculiX only with large deformations – NLGEOM is switched on automatically. Verified for the bilinear curve (PL4).</td><td>isotropic</td></tr>
+<tr><td>Slope given as / Slope</td><td>Bilinear: tangent modulus E<sub>t</sub> of the tensile curve (dσ/dε) or plastic modulus H = dσ/dε<sub>pl</sub> = E·E<sub>t</sub>/(E − E<sub>t</sub>);
+always stored as E<sub>t</sub>. 0 = perfectly plastic.</td><td>E/100</td></tr>
+<tr><td>Table σ true – ε_pl</td><td>Multilinear: TRUE stress [MPa] and equivalent PLASTIC strain [–]; first row = yield point with ε_pl = 0, strains increase,
+stresses do not decrease. <b>Paste</b> takes two columns from Excel / CSV (tab, “;” with decimal comma, or “,”).
+<b>Engineering → true</b> converts an engineering tensile curve (σ, total ε) by σ = σ_eng(1 + ε), ε_pl = ln(1 + ε) − σ/E (valid up to necking).</td><td>points of the bilinear curve</td></tr>
+<tr><td>K, n / Rm, A</td><td>Ramberg-Osgood coefficient (K &gt; Re) and exponent; Hollomon tensile strength (Rm &gt; Re) and elongation A [%].</td><td>700 MPa, 0.2 / Rm of the material, 20 %</td></tr>
+<tr><td>Strain limit</td><td>Limit of PEEQ for the EN 1993-1-5 Annex C check in Results.</td><td>5 %</td></tr>
+<tr><td>Add unloading step</td><td>Creates the load history (Contacts step → Nonlinear analysis – steps): the load cases one after another and a final step with scale 0.
+The stress of that step is the <b>residual stress</b> after unloading.</td><td></td></tr>
+</table>
+<p>The window checks the definition at once (the same rules as the readiness check: missing Re, E<sub>t</sub> ≥ E, a decreasing table, K ≤ Re… are errors)
+and draws the tensile curve the solver gets (true stress – total strain). Beyond the last point of the curve the stress stays constant (perfectly plastic).
+Plasticity is for isotropic materials only (not orthotropic or 3D printing). A material with plasticity is saved to your library with it.</p>
+<p class="warn"><b>Caution:</b> the curve is the main source of uncertainty – use true stress – plastic strain data of the actual material and condition.
+No damage, rupture, strain-rate or temperature dependence is modelled.</p>
+
 <h2>Friction between materials</h2>
 <p>The friction coefficient belongs to a pair of surfaces, not to one material, so the form does not have it. For <a href="kontakty.html">contacts</a> (μ = 0 in the pair form = from the library) and joint friction in <a href="pohyb.html">mechanisms</a> the program takes μ from the <b>friction library</b> by material pair and purpose: for force transmitted by friction (joint slip, press fit) the lower bound μ_min; for mechanism resistance the upper bound μ_max. Values and indicative damping: <a href="treni.html">Friction and damping</a>; your own measured values go to <b>Tools → Calculators… → Friction library</b>.</p>
 

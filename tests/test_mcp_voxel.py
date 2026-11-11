@@ -4,7 +4,6 @@ Fast: estimate of the size on a synthetic result (structured tet10 mesh, without
 Slow: the bar X1 (PLA, tension 10 MPa) through MCP – calculation, detail 3×3×2 mm, images, protocol.
 """
 import json
-from pathlib import Path
 
 import pytest
 

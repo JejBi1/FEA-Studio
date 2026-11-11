@@ -3,9 +3,12 @@
 The solver (ccx, PARDISO, hypre) gets the memory the program does not hold (see CLAUDE.md, "RAM of the program").
 Each check runs in a fresh interpreter, so the import set is not influenced by other tests.
 """
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,12 +28,18 @@ def _loaded_after(code: str) -> list[str]:
     return line.split()[1:]
 
 
+def _needs(name: str):
+    return pytest.mark.skipif(importlib.util.find_spec(name) is None, reason=f"optional package {name} is not installed")
+
+
+@_needs("mcp")
 def test_mcp_server_idle_does_not_import_numba_or_scipy():
     """build_server (all tools registered) without the solver libraries; the raster kernels compile on the first picture."""
     heavy = _loaded_after("import fea_core.mcp.server as srv\nsrv.build_server()\n")
     assert heavy == [], f"MCP server imports at idle: {heavy}"
 
 
+@_needs("numba")
 def test_raster_kernels_compile_on_first_call():
     """The rasteriser module imports nothing heavy; the kernel itself is compiled (and numba imported) on the first call."""
     code = ("import sys, numpy as np\n"
@@ -72,6 +81,7 @@ def test_release_unused_gives_working_set_back(monkeypatch):
     del a
 
 
+@_needs("PySide6")
 def test_gui_import_does_not_import_solver_libraries():
     """The GUI module is imported without numba, scipy, matplotlib, the MCP SDK and the REST stack (they come on use)."""
     heavy = _loaded_after("import fea_gui.main\n")

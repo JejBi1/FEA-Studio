@@ -1,11 +1,9 @@
 """Tests of the Dynamic IPC Bridge (control from an LLM / MCP and detection of the GUI)."""
-import json
-import threading
-import time
-from unittest.mock import MagicMock
 
-import anyio
 import pytest
+
+pytest.importorskip("mcp")                       # module mcp (the IPC bridge is exercised through the MCP server)
+import anyio  # noqa: E402
 
 import fea_core.ipc as ipc_mod
 from fea_core.ipc import (

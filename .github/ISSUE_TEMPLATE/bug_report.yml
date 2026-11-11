@@ -1,0 +1,77 @@
+name: Bug report
+description: The program crashes, shows an error or gives a wrong result
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. **Security problems: do not open an issue** – see SECURITY.md (private vulnerability reporting).
+        Please do not attach confidential CAD models or personal data; a small synthetic model is enough.
+  - type: input
+    id: version
+    attributes:
+      label: FEA Studio version
+      description: Help → About FEA Studio (the heading of the dialog)
+      placeholder: "1.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: modules
+    attributes:
+      label: Installed modules
+      description: "Output of `python -m fea_core.modules` (or Tools → Program modules), e.g. core, gui, accel, pardiso"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options:
+        - GUI
+        - Calculation / solver
+        - Results / report
+        - Import (STEP, native CAD, Fusion add-in)
+        - MCP server / REST API
+        - Installer / update
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do? Which step of the study, which load / constraint / analysis type?
+      placeholder: |
+        1. Open example 1
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behaviour
+      description: For a wrong result give the value you expected and its reference (hand calculation, literature, other program).
+    validations:
+      required: true
+  - type: textarea
+    id: crashlog
+    attributes:
+      label: Crash log
+      description: |
+        After a crash or an unexpected error the program writes `crash-<time>.log`. Open the folder with
+        **Help → About FEA Studio → Open log folder** (Windows `%LOCALAPPDATA%\FEAStudio\logs`,
+        Linux `~/.local/share/FEAStudio/logs`) and paste the content of the newest log here (or attach the file).
+        For solver problems the Solver log tab of the program helps too.
+      render: text
+  - type: textarea
+    id: files
+    attributes:
+      label: Files
+      description: Attach a small project (.fea) or STEP that shows the problem, if you can share it.

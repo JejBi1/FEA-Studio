@@ -9,8 +9,7 @@ import html
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel,
-                               QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
+                               QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from .safe_browser import SafeTextBrowser
 from . import theme

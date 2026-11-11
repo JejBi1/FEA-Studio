@@ -36,7 +36,7 @@ def run_dynamics(study, mesh, workdir: Path, log, on_line=None, cancel=None) -> 
                           basis.eff_mass, basis.rf_sum, basis.checks, basis.model_mass, basis.prestress)
     out.probes = R.probe_operators(study, mesh, ds.probes)
     # terms of the excitation of the harmonic and transient response + residual static vectors (one static job)
-    groups, all_terms, res_cases, res_labels = {}, [], [], []
+    groups, res_cases, res_labels = {}, [], []
     for name, spec in (("harmonic", ds.harmonic), ("transient", ds.transient)):
         if not spec.enabled or not spec.excitation:
             continue

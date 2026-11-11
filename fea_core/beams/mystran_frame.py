@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .fem import FrameError, build, nodal_loads
+from .fem import FrameError, build
 from ..mystran import _f, run_mystran, MystranError
 from ..ccx import deck_text
 

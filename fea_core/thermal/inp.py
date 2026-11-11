@@ -14,13 +14,13 @@ from pathlib import Path
 import numpy as np
 
 from ..config import solver_name
-from ..ccx.inp import InpMap, write_mesh, write_sets, _fmt, _write_ids
+from ..ccx.inp import InpMap, write_mesh, _fmt, _write_ids
 from ..mesh import Mesh
 from ..study import Study
 from .loads import curved_area, generation_density
 from ..ccx import deck_text
 from .model import (ThermalCase, FixedTemperature, HeatFlux, HeatFlow, Convection, Radiation,
-                    CavityRadiation, ContactConductance, HeatGeneration,
+                    CavityRadiation, HeatGeneration,
                     K_TO_CCX, FLUX_TO_CCX, POWER_TO_CCX, CP_TO_CCX, STEFAN_BOLTZMANN_CCX, ABSOLUTE_ZERO,
                     MAX_CAVITIES, is_cavity, bc_selections, cavity_key)
 
@@ -52,69 +52,37 @@ def conductivity_fraction(study: Study, mesh: Mesh) -> np.ndarray:
 
 
 def thermal_contact_conductances(study: Study, mesh: Mesh) -> list[tuple[str, str, float]]:
-    """(slave, master, hc_W_m2K) of the contacts with a defined thermal conductance h_c."""
-    out: list[tuple[str, str, float]] = []
-    seen = set()
-
-    # mapping from the detection of the contacts in the mesh (by 'pair' and 'name')
-    contacts_report: dict[str, dict] = {}
-    for r in mesh.report.get("contacts", []):
-        if r.get("pair"):
-            contacts_report[r["pair"]] = r
-        if r.get("name"):
-            contacts_report[r["name"]] = r
-
-    # 1. Kontakty ze study.contacts s definovanou conductance
-    for c in getattr(study, "contacts", []):
-        if not getattr(c, "enabled", True):
-            continue
-        hc = getattr(c, "conductance", None)
-        if hc is not None and float(hc) > 0:
-            sl, ms = None, None
-            if c.name in contacts_report:
-                cr = contacts_report[c.name]
-                sl, ms = cr.get("slave"), cr.get("master")
-            elif c.a in mesh.surfaces and c.b in mesh.surfaces:
-                sl, ms = c.a, c.b
-            elif c.a in mesh.part_names or c.b in mesh.part_names:
-                for r in mesh.report.get("contacts", []):
-                    if (r.get("part_a") in (c.a, c.b) and r.get("part_b") in (c.a, c.b)) or r.get("name") == c.name:
-                        sl, ms = r.get("slave"), r.get("master")
-                        break
-            if sl and ms and sl in mesh.surfaces and ms in mesh.surfaces and (sl, ms) not in seen:
-                out.append((sl, ms, float(hc)))
-                seen.add((sl, ms))
-
-    # 2. Possibly ContactConductance in the loads
-    for case in getattr(study.thermal, "cases", []):
-        for bc in case.loads:
-            if isinstance(bc, ContactConductance) and bc.conductance > 0:
-                sl, ms = bc.selection, bc.master
-                if sl in contacts_report:
-                    cr = contacts_report[sl]
-                    sl, ms = cr.get("slave"), cr.get("master")
-                if sl and ms and sl in mesh.surfaces and ms in mesh.surfaces and (sl, ms) not in seen:
-                    out.append((sl, ms, float(bc.conductance)))
-                    seen.add((sl, ms))
-
-    return out
+    """(slave, master, hc_W_m2K) of the contacts with a defined thermal conductance h_c (fea_core.thermal.interfaces)."""
+    from .interfaces import resolve
+    return [(it.slave, it.master, it.h_c) for it in resolve(study, mesh)]
 
 
 def thermal_ties(mesh: Mesh, conductances: list[tuple[str, str, float]] | None = None) -> list[tuple[str, str, float]]:
     """(slave, master, tolerance) of the faces connected in the thermal problem: *TIE of the separately meshed parts and contact pairs
     with a separate mesh (perfect thermal contact – the pairs with a contact conductance are excluded).
     """
+    from .interfaces import tri_keys, without
     cond_pairs = set()
+    cond_keys: set[tuple] = set()
     if conductances:
         for sl, ms, _ in conductances:
             cond_pairs.add((sl, ms))
             cond_pairs.add((ms, sl))
+            cond_keys |= tri_keys(mesh.surfaces[sl]) | tri_keys(mesh.surfaces[ms])
 
     out: list[tuple[str, str, float]] = []
     for t in mesh.report.get("ties", []):
         sl, ms = t["slave"], t["master"]
-        if (sl, ms) not in cond_pairs:
-            out.append((sl, ms, float(t["tolerance_mm"])))
+        if (sl, ms) in cond_pairs:
+            continue
+        s_tri, m_tri = without(mesh.surfaces[sl], cond_keys), without(mesh.surfaces[ms], cond_keys)
+        if len(s_tri) != len(mesh.surfaces[sl]) or len(m_tri) != len(mesh.surfaces[ms]):
+            # the faces of a conductance interface (fea_core.thermal.interfaces) leave the thermal *TIE (the mechanical one stays)
+            if not len(s_tri) or not len(m_tri):
+                continue
+            sl, ms = f"{sl}_th", f"{ms}_th"
+            mesh.surfaces[sl], mesh.surfaces[ms] = s_tri, m_tri
+        out.append((sl, ms, float(t["tolerance_mm"])))
 
     for r in mesh.report.get("contacts", []):
         sl, ms = r.get("slave"), r.get("master")

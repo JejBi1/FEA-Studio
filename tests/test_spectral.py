@@ -12,9 +12,11 @@ import pytest
 from scipy.integrate import quad
 from scipy.special import gamma as G
 
-from fea_core.dynamics import modal_ode, psd
-from fea_core.fatigue import kernel, spectral as sp
-from fea_core.fatigue.sn import SNCurve
+pytest.importorskip("numba")                     # module accel (fatigue kernels)
+
+from fea_core.dynamics import modal_ode, psd  # noqa: E402
+from fea_core.fatigue import kernel, spectral as sp  # noqa: E402
+from fea_core.fatigue.sn import SNCurve  # noqa: E402
 
 
 def _structural_psd(f, c2):

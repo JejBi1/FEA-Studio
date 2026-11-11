@@ -34,7 +34,7 @@ from OCP.TopExp import TopExp_Explorer
 from OCP.TopoDS import TopoDS_Compound
 from OCP.collections import Vec2_int as Graphic3d_Vec2i
 
-from .contour import BAND_COLORS, contour_bands, triangle_bands, triangles_face
+from .contour import BAND_COLORS, contour_bands, linear_triangles, triangle_bands, triangles_face
 from .viewer3d import OccView, rgb
 
 # light part colours (the user does not want dark models)
@@ -962,17 +962,24 @@ class FeaView(OccView):
 
     def show_contour(self, X: np.ndarray, tri: np.ndarray, values: np.ndarray, edges: np.ndarray,
                      title: str, fmt: str = "%.4g", edges_on: bool = False, reverse: bool = False,
-                     show_scale: bool = True, tris=None, outline=None):
+                     show_scale: bool = True, tris=None, outline=None, deform=None):
         """reverse = inverted colours (small value in red, e.g. safety).
 
         tris = (P, V) ready linear triangles (trimmed surface + section through the mesh, fea_core.section) instead of the
         surface X/tri; outline = segments (k, 2, 3) of the section outline (dark lines).
+        deform = (X0, U, s) with X = X0 + s·U (animation frames): the band cut depends only on the values, so the bands
+        are linear in X – they are cut once for X0 and U and every further scale is only B(X0) + s·B(U).
         """
         self.clear_results()
         colors = BAND_COLORS[::-1] if reverse else BAND_COLORS
         n = len(edges) - 1
         colors = [colors[round(k * (len(colors) - 1) / max(n - 1, 1))] for k in range(n)]
-        bands = triangle_bands(tris[0], tris[1], edges) if tris is not None else contour_bands(X, tri, values, edges)
+        if tris is not None:
+            bands = triangle_bands(tris[0], tris[1], edges)
+        elif deform is not None:
+            bands = self._deformed_bands(tri, values, edges, *deform)
+        else:
+            bands = contour_bands(X, tri, values, edges)
         for k, P in enumerate(bands):
             face = triangles_face(P)
             if face is None:
@@ -994,6 +1001,18 @@ class FeaView(OccView):
             self._show_scale(edges, title, fmt, colors)
         self._update()
         return colors
+
+    _band_cache = None
+
+    def _deformed_bands(self, tri, values, edges, X0, U, s):
+        """Bands of X0 + s·U from the bands of X0 and of U (cut once per field – see show_contour)."""
+        c = self._band_cache
+        inputs = (tri, values, edges, X0, U)
+        if c is None or not all(a is b or (a.shape == b.shape and np.array_equal(a, b)) for a, b in zip(c[0], inputs)):
+            lt = linear_triangles(tri)
+            V = values[lt]
+            c = self._band_cache = (inputs, triangle_bands(X0[lt], V, edges), triangle_bands(U[lt], V, edges))
+        return [b0 + s * bu for b0, bu in zip(c[1], c[2])]
 
     def _no_highlight(self, o):
         """Contour band without hover or selection highlight: a highlighted band would look like another value.
@@ -1127,9 +1146,78 @@ class FeaView(OccView):
         self._marks[key] = [o]
         self._update()
 
+    # ------------------------------------------------------------ animation frames
+    # Deformation animation: every frame (deformation level) is drawn once; its finished result objects are kept
+    # (erased, with their presentations) and the next visit of the same level only swaps the displayed objects.
+    _anim_cache = None          # level -> (objects [(obj, display mode, selection modes)], named markers)
+    _anim_ids: set = frozenset()
+
+    def anim_begin(self):
+        """Start caching animation frames (anim_store / anim_show)."""
+        self.anim_end()
+        self._anim_cache = {}
+        self._anim_ids = set()
+
+    def anim_reset(self):
+        """Displayed result changed (quantity, case, section…): drop the cached frames, keep caching on."""
+        if self._anim_cache is not None:
+            self.anim_end()
+            self._anim_cache = {}
+            self._anim_ids = set()
+
+    def anim_end(self):
+        """Stop caching; cached objects that are not on the screen are removed from the context."""
+        cache, self._anim_cache = self._anim_cache, None
+        self._anim_ids = frozenset()
+        self._band_cache = None
+        if not cache:
+            return
+        shown = {id(o) for o in self._result_objs}
+        for objs, _marks in cache.values():
+            for o, _mode, _sel in objs:
+                if id(o) not in shown:
+                    self.ctx.Remove(o, False)
+
+    def anim_store(self, level) -> None:
+        """The result objects now on the screen are the frame of `level`."""
+        if self._anim_cache is None:
+            return
+        from OCP.collections import List_int
+        objs = []
+        for o in self._result_objs:
+            mode = 1 if self.ctx.IsDisplayed(o, 1) else 0
+            sel = List_int()
+            self.ctx.ActivatedModes(o, sel)
+            objs.append((o, mode, list(sel)))
+            self._anim_ids.add(id(o))
+        self._anim_cache[level] = (objs, dict(self._marks))
+
+    def anim_show(self, level) -> bool:
+        """Show the cached frame of `level` instead of the current result objects; False = not cached yet."""
+        if self._anim_cache is None or level not in self._anim_cache:
+            return False
+        objs, marks = self._anim_cache[level]
+        for o in self._result_objs:
+            if id(o) in self._anim_ids:
+                self.ctx.Erase(o, False)
+            else:
+                self.ctx.Remove(o, False)
+        for o, mode, sel in objs:
+            self.ctx.Display(o, mode, -1, False)
+            self.ctx.Deactivate(o)
+            for s in sel:
+                self.ctx.Activate(o, s, False)
+        self._result_objs = [o for o, _m, _s in objs]
+        self._marks = dict(marks)
+        self._update()
+        return True
+
     def clear_results(self):
         for o in self._result_objs:
-            self.ctx.Remove(o, False)
+            if id(o) in self._anim_ids:
+                self.ctx.Erase(o, False)        # kept for the next visit of its animation frame
+            else:
+                self.ctx.Remove(o, False)
         self._result_objs = []
         self._marks = {}
         if self._scale is not None:

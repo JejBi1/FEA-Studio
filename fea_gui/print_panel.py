@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                                QFormLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QMessageBox, QPushButton, QSlider, QSpinBox, QTableWidget,
-                               QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget)
+                               QTableWidgetItem, QVBoxLayout, QWidget)
 
 from fea_core import materials as matlib
 from fea_core.printing import PrintSpec

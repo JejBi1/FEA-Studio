@@ -41,6 +41,7 @@ class InpMap:
     frame: dict | None = None                                  # frame: {"fe": FrameFE, "base": 1st node}
     masses: list = field(default_factory=list)                 # point masses: [{"nodes", "point", "name"}]
     contacts: list = field(default_factory=list)               # contact pairs: [{"pair", "interaction", …}]
+    cyclic_nsets: dict = field(default_factory=dict)           # cyclic symmetry: selection -> support NSET without dependent nodes
 
 
 _ELEMENT_SCALE: "ElementScale | None" = None
@@ -340,7 +341,8 @@ def _write_bolt_connectors(f, bolts, m: InpMap, next_node: int, next_elem: int, 
 def _write_cylindrical(f, study: Study, mesh: Mesh, bolts) -> None:
     """Cylindrical supports as *EQUATION in global DOF (not *TRANSFORM – see fea_core.cylinder)."""
     from ..cylinder import support_equations
-    eqs = support_equations(study, mesh)
+    from ..cyclic import dependent_mask
+    eqs = support_equations(study, mesh, dependent_mask(study, mesh))   # cyclic symmetry: not on the dependent cut nodes
     if not eqs:
         return
     # a dependent DOF must not be in another constraint equation (remote point, bolt) → clear error
@@ -634,6 +636,9 @@ def write_inp(study: Study, mesh: Mesh, path: str | Path,
         if tgaps:                                     # spring nodes (SPRING1) need an initial temperature
             f.write("*INITIAL CONDITIONS, TYPE=TEMPERATURE\n" + "".join(f"{g}, {_fmt(t_ref)}\n" for g in tgaps))
         _write_cylindrical(f, study, mesh, bolts)
+        if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:   # cyclic symmetry (fea_core.cyclic)
+            from ..cyclic import write as write_cyclic
+            write_cyclic(f, study, mesh, m, procedure, _fmt)
         if study.active_contacts() and mesh.report.get("contacts"):     # contact pairs (fea_core.contacts)
             from ..contacts.inp import write_pairs
             next_node, next_elem = write_pairs(f, study, mesh, m, lambda k: m.surfaces[k], _fmt, next_node, next_elem)
@@ -671,7 +676,9 @@ def write_inp(study: Study, mesh: Mesh, path: str | Path,
             """zero = prescribed displacements zero (the preload state is homogeneous, superposes)."""
             f.write(f"*BOUNDARY{op}\n")
             for c in study.constraints:
-                ns = m.nsets[c.selection]
+                ns = m.cyclic_nsets.get(c.selection, m.nsets[c.selection])   # cyclic: without the dependent cut nodes
+                if ns is None:
+                    continue
                 if isinstance(c, Fixed):
                     f.write(f"{ns}, 1, 3\n")
                 elif isinstance(c, Displacement):

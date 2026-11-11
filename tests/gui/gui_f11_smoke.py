@@ -23,7 +23,7 @@ os.environ["APPDATA"] = str(OUT / "appdata")
 from PySide6.QtCore import Qt, QRect  # noqa: E402
 from PySide6.QtGui import QImage, QPainter  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QMessageBox, QMenu, QToolButton  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMessageBox, QMenu  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 FAIL: list[str] = []
@@ -45,7 +45,6 @@ def make_step(path):
 
 
 def main():
-    import fea_gui.main as gm
     from fea_gui.main import MainWindow, STAGES, STAGE, PHASES, PHASE_OF, OPTIONAL_STAGES, FRAME_ONLY_OFF
     for k in ("warning", "information", "critical"):
         setattr(QMessageBox, k, staticmethod(lambda parent, title, text, *a, **kw: print(f"[{title}] {text}")))

@@ -163,6 +163,7 @@ class Results:
     twod: object = None                                             # 2D calculation by a section (twod.Results2D)
     shell: object = None                                            # shell model (shell.ShellResults)
     dynamics: object = None                                         # dynamika (dynamics.DynamicsResults)
+    submodels: list = field(default_factory=list)                  # submodels (submodel_run.SubmodelResult)
     _tree: object = None
     _last_locate: tuple | None = None     # (point, element, xi) – the probe U, S of the same point does not look for the element again
 
@@ -323,12 +324,20 @@ class Results:
             self.dynamics.save(pdyn)
         elif pdyn.exists():
             pdyn.unlink()
+        psub = path.with_name(path.stem + "_sub.npz")
+        if self.submodels:
+            from .submodel_run import save_submodels
+            save_submodels(self.submodels, psub)
+        elif psub.exists():
+            psub.unlink()
         meta = {"steps": steps_meta, "thermal": thermal_meta, "modes": modes_meta, "warnings": self.warnings, "summary": self.summary(),
                 "joints": self.info.get("joints"), "printing": self.info.get("printing"),
                 "backend": self.info.get("backend"), "frame": self.info.get("frame"),
                 "nonlinear": self.info.get("nonlinear"), "topology": self.info.get("topology"),
                 "ccx_solver": self.info.get("ccx_solver"), "timings": self.info.get("timings"),
-                "twod": self.twod is not None, "shell": self.shell is not None, "dynamics": self.dynamics is not None}
+                "nlbuckling": self.info.get("nlbuckling"), "cyclic": self.info.get("cyclic"),
+                "twod": self.twod is not None, "shell": self.shell is not None, "dynamics": self.dynamics is not None,
+                **({"submodels": len(self.submodels)} if self.submodels else {})}
         arrays["meta"] = np.frombuffer(json.dumps(meta, ensure_ascii=False).encode("utf-8"), dtype=np.uint8)
         np.savez(path, **arrays)
 
@@ -358,7 +367,7 @@ class Results:
             st.curves = sm.get("curves") or {}
             steps.append(st)
         info = {k: meta[k] for k in ("joints", "printing", "backend", "frame", "nonlinear", "topology", "ccx_solver",
-                                         "timings")
+                                         "timings", "nlbuckling", "cyclic")
                 if meta.get(k)}
         thermal = [ThermalResult(tm["name"], d[f"T_{i}"], d[f"HFL_{i}"], tm.get("transient", False),
                                  tm.get("times", []), d[f"TF_{i}"] if tm.get("frames") else None,
@@ -377,6 +386,10 @@ class Results:
         if meta.get("dynamics"):
             from .dynamics.results import DynamicsResults
             dyn = DynamicsResults.load(path.with_name(path.stem + "_dyn.npz"))
+        subs = []
+        if meta.get("submodels"):
+            from .submodel_run import load_submodels
+            subs = load_submodels(path.with_name(path.stem + "_sub.npz"))
         _validate_loaded(mesh, steps, thermal)
         return cls(mesh, steps, meta.get("warnings", []), info, thermal, load_arrays(meta.get("modes"), d), twod,
-                   shell, dyn)
+                   shell, dyn, subs)

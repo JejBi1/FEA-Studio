@@ -521,7 +521,7 @@ def register(mcp, sess: Session) -> None:
     def fea_convergence_history(job_name: str | None = None) -> str:
         """Convergence history of the nonlinear CalculiX run (.cvg, .sta, stdout): increments and iterations, force residuals and displacement corrections, node of the largest residual (with coordinates), reason of divergence. job_name e.g. 'nl_b1', 'nl_seq' (None = all)."""
         with sess.use(op="convergence_history"):
-            st = sess.require_study()
+            sess.require_study()
             res = sess.results
             wd = sess.workdir or sess.base_dir
             from ..nl_convergence import read_convergence_job
@@ -612,30 +612,23 @@ def register(mcp, sess: Session) -> None:
             return out(out_data)
 
     @mcp.tool(structured_output=False)
-    def fea_plasticity_assess(step_index: int = 0, standard: str = "en1993") -> str:
-        """Plastic strain / local failure assessment of a state. standard: en1993 (EN 1993-1-5 annex C, 5 % plastic strain) | asme (ASME VIII-2 5.3.3)."""
+    def fea_plasticity_assess(step_index: int = 0, standard: str = "en1993", material_class: str = "",
+                              eps_Lu: float = 0.0, eps_cf: float = 0.0) -> str:
+        """Plastic strain / local failure assessment of a state, per node and material. standard: en1993 (EN 1993-1-5 annex C, PEEQ <= limit_strain, default 5 %) | asme (ASME VIII-2 5.3.3.1, triaxial strain limit, Table 5.7). material_class ferritic | austenitic ('' = from the material name), eps_Lu 0 = Table 5.7, eps_cf = forming strain."""
         with sess.use(op="plasticity assessment"):
             res = sess.require_results()
             if not res.steps or step_index >= len(res.steps):
                 raise FeaError(f"Step {step_index} does not exist")
-            step = res.steps[step_index]
-            peeq = step.fields.get("peeq")
-            if peeq is None:
+            if res.steps[step_index].fields.get("peeq") is None:
                 raise FeaError("There are no plastic strain data (PEEQ) in the given step. Was plasticity defined in the material?")
-            from ..plasticity import assess_plastic_strain_en1993, assess_local_failure_asme
-            if standard.lower() == "asme":
-                st = sess.study
-                R = 0.65
-                mat_type = "ferritic"
-                if st:
-                    for m in st.materials.values():
-                        if getattr(m, "is_plastic", False):
-                            if m.Re and m.Rm and m.Rm > 0:
-                                R = m.Re / m.Rm
-                            mat_type = m.name
-                            break
-                assessment = assess_local_failure_asme(step.S, peeq, R=R, material_type=mat_type)
-            else:
-                assessment = assess_plastic_strain_en1993(peeq)
-            return out(assessment)
+            from .. import plasticity_eval as PE
+            try:
+                a = PE.assess(sess.require_study(), res, step_index, standard,
+                              PE.AsmeParams(material_class or None, eps_Lu=eps_Lu or None, eps_cf=eps_cf))
+            except ValueError as e:
+                raise FeaError(str(e)) from None
+            d = PE.public(a)
+            if d["standard"] == "asme":
+                d["max_utilization"] = d["utilization"]       # key of the earlier version of the tool
+            return out(d)
 

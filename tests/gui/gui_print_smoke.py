@@ -188,7 +188,6 @@ def main():
         m = {o.name: o for o in run.outcomes}
         assert m["4 perimetry, mřížka 40 %"].mass_g > m["2 perimetry, gyroid 10 %"].mass_g
         assert m["4 perimetry, mřížka 40 %"].max_disp < m["2 perimetry, gyroid 10 %"].max_disp
-        from PySide6.QtWidgets import QScrollArea
         vb.rtable.selectRow(1)
         vb.set_open(True)                  # the Variants section is collapsed by default
         shot("p10_varianty", vb)

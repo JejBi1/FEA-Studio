@@ -13,8 +13,7 @@ Principle:
 """
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -26,8 +25,8 @@ from OCP.BRepTools import BRepTools
 from OCP.TopoDS import TopoDS_Shape
 from OCP.gp import gp_Ax2, gp_Pnt, gp_Dir
 
-from .geometry import Part, write_step, read_step, write_brep
-from .results import Results, StepResult, tet10_shape, von_mises
+from .geometry import Part, read_step
+from .results import Results, StepResult, tet10_shape
 from .study import Material
 from .mesh import Mesh, generate_mesh
 from .ccx.runner import run_ccx

@@ -19,10 +19,9 @@ import numpy as np
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDockWidget, QFileDialog, QFormLayout,
-                               QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QInputDialog,
-                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
-                               QPlainTextEdit, QPushButton, QSizePolicy, QSlider, QSpinBox, QSplitter, QStackedWidget, QTextBrowser,
-                               QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QAbstractItemView,
+                               QGridLayout, QHBoxLayout, QHeaderView, QInputDialog,
+                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox,
+                               QPlainTextEdit, QPushButton, QSizePolicy, QSlider, QSpinBox, QSplitter, QStackedWidget, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QAbstractItemView,
                                QFrame, QScrollArea, QTabWidget, QTableWidgetItem)
 
 from fea_core import config
@@ -47,8 +46,10 @@ from .frame_panel import FramePanel
 from . import frame_results as frs
 from . import twod_gui
 from . import shell_gui
+from . import submodel_dialog as smd
 from .joints_panel import JointsPanel, change_level, util_color
-from .eigen_gui import MODE_QUANTITIES, EigenBox, ModesTable, mode_info_html, mode_label, mode_quantity
+from .eigen_gui import (MODE_QUANTITIES, EigenBox, ModesTable, mode_info_html, mode_label, mode_quantity,
+                        mode_quantities)
 from .legend import Legend
 from .messages import MessagesPanel
 from . import i18n, theme
@@ -56,6 +57,7 @@ from fea_core.i18n import decimal, keep_names, tr
 from .print_panel import PrintPanel, PRINT_FIELDS
 from .thermal_panel import ThermalPanel, KIND_SHORT, describe_bc, describe_case
 from .user_settings import app_settings
+from . import session_files
 from .view import FeaView
 from .widgets import (C_HEX, Section, sci, TaskProgress, check_item, checked, compact, dspin, help_tip, panel_header,
                       fit_rows, scroll_body, set_checks, set_placeholder, table)
@@ -373,7 +375,10 @@ QUANTITIES = [
     ("Safety factor (Stress Tool)", "–"),
     # topology optimisation (BESO, StepResult.fields["topo_density"]) – at the end, old indices stay valid
     ("Topology – density", "–"), ("Topology – final shape", "–"),
+    # plasticity (StepResult.fields["peeq"], nonlinear CalculiX) – at the end, old indices stay valid
+    ("Equivalent plastic strain PEEQ", "–"),
 ]
+PEEQ_Q = "Equivalent plastic strain PEEQ"
 TOPO_Q = ("Topology – density", "Topology – final shape")
 TOPO_SHAPE_Q = "Topology – final shape"
 TOPO_MISSING = ("The result has no topology optimization – run it with the Topology (BESO)… button in the results panel.")
@@ -387,7 +392,7 @@ SAFETY_QTY = ("Safety factor to Re", "3D printing – safety factor (Tsai-Wu/Hil
 NO_MIN_QTY = ("von Mises", "Total displacement", "3D printing – failure index", "Heat flux |q|", "Stress error estimate",
               MODE_QUANTITIES[0][0], "Contact – pressure", "Contact – contact state", "Contact – opening",
               "Contact – slip", "Contact – frictional stress", "Safety factor – Tresca", "Safety factor – Mohr-Coulomb", "Safety factor (Stress Tool)",
-              "Topology – density", "Topology – final shape")   # without a minimum marker
+              "Topology – density", "Topology – final shape", "Equivalent plastic strain PEEQ")   # without a minimum marker
 # maximum places with singularity classification (fea_core.mcp.diagnostics): GUI quantity → diagnostics field;
 # other mechanical quantities (displacement, safety, print) → von Mises
 HS_STRESS = {"von Mises": "mises", "1st principal stress S1": "s1", "3rd principal stress S3": "s3", "Stress σx": "sxx",
@@ -685,6 +690,8 @@ class MainWindow(QMainWindow):
         self.refresh_all()
         from .tour import install_help                   # Help bar (F1), example guide, manual
         install_help(self)
+        from .extras import install_extras              # Tools: parametric study, job queue; View: Python console; recent files
+        install_extras(self)
         compact(self.panel_stack)                        # narrower panels (menus, long form rows)
         self._started = True                             # optional panels built later: compact + form tips in _build_lazy_panel
         # Dynamic IPC Bridge (control from an LLM / MCP)
@@ -2256,6 +2263,9 @@ class MainWindow(QMainWindow):
         from .ortho_box import OrthoBox
         self.ortho_box = OrthoBox(self)          # general orthotropic material (Material.ortho, ortho_csys)
         lay.addWidget(self.ortho_box)
+        from .plasticity_box import PlasticityBox
+        self.plasticity_box = PlasticityBox(self)    # elastoplastic metal (Material.plastic, fea_core.plasticity)
+        lay.addWidget(self.plasticity_box)
         lay.addStretch(1)
         h = QHBoxLayout()
         b1 = QPushButton("Assign to selected")
@@ -2283,6 +2293,7 @@ class MainWindow(QMainWindow):
         for w in (self.m_name, self.m_src):
             w.textChanged.connect(self.update_mat_summary)
         self.ortho_box.check.toggled.connect(self.update_mat_summary)
+        self.plasticity_box.check.toggled.connect(self.update_mat_summary)
         self.update_mat_summary()
 
     def open_material_dialog(self):
@@ -2308,6 +2319,8 @@ class MainWindow(QMainWindow):
             lines.append("<i>" + tr("orthotropic material") + "</i>")
         elif self._mat_print:
             lines.append("<i>" + tr("printed material – print properties in the 3D printing step") + "</i>")
+        if self.plasticity_box.isChecked():
+            lines.append("<i>" + tr("elastoplastic material – nonlinear analysis") + "</i>")
         self.mat_summary.setText("<br>".join(lines))
 
     # ------------------------------------------------------------------ Constraints panel
@@ -2374,6 +2387,9 @@ class MainWindow(QMainWindow):
         lay.addWidget(g)
         self._panel_remote_support(lay)
         self._panel_elastic(lay)
+        from .cyclic_gui import CyclicBox             # cyclic symmetry of a sector (fea_core.cyclic)
+        self.cyclic_box = CyclicBox(self)
+        lay.addWidget(self.cyclic_box)
         h = QHBoxLayout()
         b = QPushButton("Faces from selection")
         b.setToolTip("Replace the faces of the selected support with the current selection")
@@ -2925,6 +2941,9 @@ class MainWindow(QMainWindow):
         self.solve_info = QLabel("")
         self.solve_info.setWordWrap(True)
         lay.addWidget(self.solve_info)
+        from .nl_monitor import NlMonitor           # convergence of a nonlinear analysis (A7), live and from the results
+        self.nl_monitor = NlMonitor(self)
+        lay.addWidget(self.nl_monitor)
         lay.addStretch(1)
 
     # ------------------------------------------------------------------ Results panel
@@ -3036,6 +3055,12 @@ class MainWindow(QMainWindow):
         b.clicked.connect(self.open_voxel_dialog)
         self.btn_voxel = b
         add_btn(b)
+        b = QPushButton("Submodel…")
+        help_tip(b, "Finer local model of a region driven by this result (box or sphere)",
+                 "Submodel: the parts are cut by a box or a sphere around the critical spot and meshed finer; the displacement of this result is prescribed on the cut faces, supports and loads inside the region are transferred. Cut check = submodel vs global stress at the cut.")
+        b.clicked.connect(self.open_submodel_dialog)
+        self.btn_submodel = b
+        add_btn(b)
         b = QPushButton("Section force…")
         help_tip(b, "Resultant internal forces and moments in a cut (Free Body Cut)",
                  "Calculation of resultant internal forces and moments in a section (Free Body Cut, A3): N, Vy, Vz, Mx, My, Mz")
@@ -3064,6 +3089,12 @@ class MainWindow(QMainWindow):
         b_vec.clicked.connect(self.open_vectors_dialog)
         self.btn_vec = b_vec
         add_btn(b_vec)
+
+        b = QPushButton("Plasticity assessment…")
+        help_tip(b, "PEEQ check per EN 1993-1-5 (5 %) and ASME VIII-2 local failure, residual stress")
+        b.clicked.connect(self.open_plasticity_dialog)
+        self.btn_plast = b
+        add_btn(b)
 
         b_topo = QPushButton("Topology (BESO)...")
         b_topo.setToolTip("Topology optimization to lighten the structure for 3D printing (BESO, C4a)")
@@ -3304,7 +3335,7 @@ class MainWindow(QMainWindow):
             return
         if not self.confirm_discard():
             return
-        path = Path(path)
+        path = opened = Path(path)
         old_study = self.study
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
@@ -3348,6 +3379,7 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.reset_undo()
         self.update_title()
+        session_files.note_opened(self, opened)    # File → Recent files
         self.set_stage(STAGE["Materials"] if self.results is None else STAGE["Results"])
 
     def _load_model(self, step: Path | None, study: Study | None, results, parts=None, geo_warn=None):
@@ -3545,6 +3577,7 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.update_title()
         self.log_msg(f"Saved: {path}")
+        session_files.note_saved(self, path)       # recent files; the autosave of this session is no longer needed
         link = self.study.cad_link
         if link is not None and link.document_id:    # the CAD add-in finds the project even without a running GUI
             from fea_core.cad_link.registry import remember
@@ -3894,6 +3927,7 @@ class MainWindow(QMainWindow):
             f"<i>{self.ortho_box.describe(m)}</i>" if m.is_ortho else "")
         self._mat_form.setRowVisible(self.m_print, bool(self.m_print.text()))
         self.ortho_box.load(m)
+        self.plasticity_box.load(m)
         self.update_mat_summary()
 
     def on_mat_find(self, text):
@@ -4003,7 +4037,8 @@ class MainWindow(QMainWindow):
         return Material(name, E, nu, self.m_rho.value() * 1e-12,
                         Re=self.m_Re.value() or None, Rm=self.m_Rm.value() or None, source=self.m_src.text(),
                         k=self.m_k.value() or None, alpha=(self.m_alpha.value() * 1e-6) or None,
-                        cp=self.m_cp.value() or None, ortho=ortho, ortho_csys=ocs, **self._mat_print)
+                        cp=self.m_cp.value() or None, ortho=ortho, ortho_csys=ocs, plastic=self.plasticity_box.values(),
+                        **self._mat_print)
 
     def save_user_material(self):
         name = self.m_name.text().strip()
@@ -4013,9 +4048,12 @@ class MainWindow(QMainWindow):
         if name in {m.name for m in matlib.LIBRARY}:
             msg(self, APP_NAME, "A built-in material cannot be overwritten – choose a different name.")
             return
-        m = self.material_from_form(name)
         try:
+            m = self.material_from_form(name)
             matlib.save_user_material(m)
+        except ValueError as e:                  # unreadable plasticity table
+            msg(self, APP_NAME, str(e))
+            return
         except matlib.UserLibraryError as e:          # an unreadable library file is not overwritten
             msg(self, APP_NAME, str(e), QMessageBox.Critical)
             return
@@ -4182,7 +4220,11 @@ class MainWindow(QMainWindow):
             msg(self, APP_NAME, "Select parts in the list.")
             return
         name = self.m_name.text().strip() or "Material"
-        m = self.material_from_form(name)
+        try:
+            m = self.material_from_form(name)
+        except ValueError as e:                  # unreadable plasticity table
+            msg(self, APP_NAME, str(e))
+            return
         self.study.materials[name] = m
         for r in rows:
             self.study.part_materials[self.parts[r].name] = name
@@ -5554,6 +5596,9 @@ class MainWindow(QMainWindow):
         if name in CONTACT_Q:                         # contact (F8): pressure, status, opening, slip, friction stress
             v = st.fields.get(CONTACT_Q[name])
             return np.full(len(st.U), np.nan) if v is None else np.asarray(v, float)
+        if name == PEEQ_Q:                            # plasticity: equivalent plastic strain (nodal, from ccx)
+            v = st.fields.get("peeq")
+            return np.full(len(st.U), np.nan) if v is None else np.maximum(np.asarray(v, float), 0.0)
         if name in TOPO_Q:                            # topology optimisation: nodal density 0 to 1
             v = st.fields.get("topo_density")
             return np.full(len(st.U), np.nan) if v is None else np.asarray(v, float)
@@ -5590,6 +5635,8 @@ class MainWindow(QMainWindow):
             i = int(rest[0])
             ok = self.study is not None and hasattr(self.study, "combinations") and 0 <= i < len(self.study.combinations)
             return ("combination", i) if ok else None
+        if kind == "sub":                           # submodel (Results.submodels, submodel_dialog)
+            return smd.current(self.results, rest)
         i = int(rest[0])
         r2 = self.results.twod
         n = (len(self.results.steps) if kind == "step" else len(self.results.thermal) if kind == "thermal" else
@@ -5609,8 +5656,11 @@ class MainWindow(QMainWindow):
             return [(n, u) for n, u, _ in twod_gui.quantities(res.twod)]
         if kind == "shell":
             return [(n, u) for n, u, _, _ in shell_gui.SHELL_Q]
+        if kind == "sub":
+            return smd.QLIST
         if kind == "mode":
-            return MODE_QUANTITIES if solids else [frs.MODE_FRAME_Q]
+            return mode_quantities(res.modes[cur[1][0]]) if solids and cur else (MODE_QUANTITIES if solids
+                                                                                  else [frs.MODE_FRAME_Q])
         if kind == "dyn":
             return dynr.QUANTS[cur[1][0]]
         has_frame = res is not None and any(st.frame for st in res.steps)
@@ -5753,8 +5803,22 @@ class MainWindow(QMainWindow):
     def show_result(self):
         if self.results is None or STAGES[self.stage] != "Results":
             return
+        from .cyclic_gui import full_results          # cyclic symmetry: the sector shown as the full 360° model
+        full = full_results(self)
+        if full is None:
+            return self._show_result()
+        sector, self.results = self.results, full
+        try:
+            return self._show_result()
+        finally:
+            self.results = sector
+
+    def _show_result(self):
         res = self.results
         self._probe = self._probe_exact = None
+        if not getattr(self, "_anim_frame", False):   # the displayed result changed → cached animation frames are stale
+            self.view.anim_reset()
+            self._anim_state = {}
         cur = self.current_result()
         if cur is None:
             self.res_info.setHtml("<i>The results contain no load case or thermal case.</i>")
@@ -5773,6 +5837,8 @@ class MainWindow(QMainWindow):
             return self.show_twod_result(si, qi)
         if kind == "shell":
             return self.show_shell_result(si, qi)
+        if kind == "sub":
+            return smd.show(self, si, qi)
         if kind == "step" and (len(m.nodes) == 0 or frs.is_frame_quantity(qname)):
             return self.show_frame_result(si, qi)
         if kind == "mode" and len(m.nodes) == 0:
@@ -5800,8 +5866,9 @@ class MainWindow(QMainWindow):
         elif kind == "mode":
             ms = res.modes[si[0]]
             shape = np.asarray(ms.shapes[si[1]], float)
-            qm = min(qi, len(MODE_QUANTITIES) - 1)
-            name, unit = MODE_QUANTITIES[qm]
+            mq = mode_quantities(ms)                  # normalised shape | nonlinear buckling displacement [mm]
+            qm = min(qi, len(mq) - 1)
+            name, unit = mq[qm]
             vals = mode_quantity(shape, qm)
             scale = self.deformation_scale(shape)
             X = m.nodes + scale * shape
@@ -5847,6 +5914,8 @@ class MainWindow(QMainWindow):
                        "The case has no contact pairs (Contacts step) – the contact quantity is not available."
                        if name in CONTACT_Q else
                        TOPO_MISSING if name in TOPO_Q else
+                       "The result has no plastic strain – tick Plasticity in the Material properties window and solve again."
+                       if name == PEEQ_Q else
                        "The quantity is not available in the result (no printed part).")
             self._r_view = (scale, st.U)
             if not anim_frame:                         # animation frame: only the deformed bands change
@@ -5898,7 +5967,8 @@ class MainWindow(QMainWindow):
         else:
             edges = band_edges(vmin, vmax, self.r_bands.value())
         colors = self.view.show_contour(X, tri, vals, edges, f"{name} [{unit}]", edges_on=self.r_edges.isChecked(),
-                                        reverse=(name in SAFETY_QTY), show_scale=False, tris=tris, outline=outline)
+                                        reverse=(name in SAFETY_QTY), show_scale=False, tris=tris, outline=outline,
+                                        deform=(m.nodes, st.U, scale) if anim_frame and tris is None else None)
         self.legend.set_data(f"{name} [{unit}]", edges, colors, lambda v: fmt(float(v)))
         if self.r_outline.isChecked():
             self.view.show_parts(True, 0.85)
@@ -6174,6 +6244,13 @@ class MainWindow(QMainWindow):
         from .section_dialog import SectionForceDialog
         dlg = SectionForceDialog(self)
         dlg.exec()
+
+    def open_plasticity_dialog(self):
+        if not self.results or not self.results.steps:
+            msg(self, APP_NAME, "First solve the study.")
+            return
+        from .plasticity_dialog import PlasticityDialog
+        PlasticityDialog(self).exec()
 
     def open_criteria_selection_dialog(self):
         if not getattr(self, "parts", None):
@@ -6615,6 +6692,7 @@ class MainWindow(QMainWindow):
             self.joints_panel.refresh()
             self.twod_box.refresh()
             self.shell_box.refresh()
+            self.cyclic_box.refresh()
             self.thermal_panel.refresh()
             for attr in ("contact_panel", "dynamics_panel", "motion_panel"):
                 if self._built(attr) is not None:
@@ -6676,6 +6754,8 @@ class MainWindow(QMainWindow):
                 if self.results.shell is not None:         # shell model
                     for j, s3 in enumerate(self.results.shell.steps):
                         self.r_step.addItem(f"Shells: {s3.name}", f"shell:{j}")
+                for txt, data in smd.r_step_items(self.results):   # submodels ("sub:k")
+                    self.r_step.addItem(txt, data)
                 for j, ms in enumerate(self.results.modes):  # natural and buckling mode shapes (eigen.ModeSet)
                     for k in range(len(ms.values)):
                         self.r_step.addItem(mode_label(ms, k), f"mode:{j}:{k}")
@@ -6791,6 +6871,9 @@ class MainWindow(QMainWindow):
                     p = self.face_prop(pi, fi)
                     seg += self.spring_segments(self.arrow_point(p), p["normal"], 0.35 * L, c.direction == "all")
                 v.add_lines(f"c:{c.selection}", seg, C_ELASTIC, 2.0)
+        if stage == "Constraints":                    # cyclic symmetry: cut faces and axis
+            from .cyclic_gui import show_3d as show_cyclic
+            show_cyclic(self)
         lc = self.current_lc()
         if lc:
             from fea_core import csys as csys_mod
@@ -8044,16 +8127,19 @@ class MainWindow(QMainWindow):
 
 
     def toggle_animation(self):
-        """Deformation animation: one frame = a whole `show_result` (the contours are computed again, the view cannot do it otherwise).
-        The timer therefore runs frame by frame: the next is scheduled only after the previous one is drawn, with an interval
-        of max(50 ms, 1.5 × frame time), so the main thread is not at 100 % for a large model.
+        """Deformation animation: LEVELS deformation levels per cycle; the first visit of a level is a whole `show_result`,
+        its result objects are then kept by the view (FeaView.anim_store) and later visits only swap the displayed objects
+        (anim_show). Any other redraw of the result drops the cached frames (show_result → anim_reset).
+        The timer runs frame by frame: the next is scheduled only after the previous one is drawn, with a period of at
+        least 33 ms and an idle time of at least the frame time, so the main thread is not at 100 % for a large model.
         The phase advances by the real time (for slow frames the animation only gets coarser, it does not run slower).
         """
         import time
         if not hasattr(self, "_anim_timer"):
             from PySide6.QtCore import QTimer
             PERIOD = 1.6                 # s, duration of one cycle of the deflection enlargement
-            MIN_MS = 50                  # shortest interval between frames
+            MIN_MS = 33                  # shortest period of the frames (~30 fps)
+            LEVELS = 40                  # deformation levels per cycle (21 distinct frames, each drawn once)
             self._anim_timer = QTimer(self)
             self._anim_timer.setSingleShot(True)
             self._anim_timer.setInterval(MIN_MS)
@@ -8063,6 +8149,8 @@ class MainWindow(QMainWindow):
             def stop(redraw=True):
                 self._anim_running = False
                 self._anim_timer.stop()
+                self.view.anim_end()
+                self._anim_state = {}
                 self._anim_factor = 1.0
                 self.btn_anim.setText("Animate...")
                 if redraw:
@@ -8075,11 +8163,24 @@ class MainWindow(QMainWindow):
                 t0 = time.perf_counter()
                 dt = min(t0 - self._anim_last, PERIOD / 8)       # a long delay (modal window) does not move the phase
                 self._anim_last = t0
-                self._anim_phase = (self._anim_phase + 2 * math.pi * dt / PERIOD) % (2 * math.pi)
-                self._anim_factor = 0.5 * (1.0 + math.sin(self._anim_phase - math.pi / 2))
+                step = 2 * math.pi * dt / PERIOD
+                warm = len(self._anim_state) < LEVELS // 2 + 1
+                if warm:                             # first cycle: the frames are built level by level (none skipped)
+                    step = min(step, 2 * math.pi / LEVELS)
+                self._anim_phase = (self._anim_phase + step) % (2 * math.pi)
+                k = int(round(self._anim_phase / (2 * math.pi) * LEVELS)) % LEVELS
+                level = min(k, LEVELS - k)                       # the factor is symmetric in the phase
+                self._anim_factor = 0.5 * (1.0 - math.cos(2 * math.pi * level / LEVELS))
                 self._anim_frame = True              # show_result keeps the summary, hotspot table and contact box
                 try:
-                    self.show_result()
+                    with self.view.batch():          # cached frame: only the displayed objects are swapped
+                        if self.view.anim_show(level):
+                            self._probe, self._hs_X, self._r_view, self._probe_exact = self._anim_state[level]
+                        else:
+                            self.show_result()
+                            self.view.anim_store(level)
+                            self._anim_state[level] = (self._probe, getattr(self, "_hs_X", None), self._r_view,
+                                                       self._probe_exact)
                 except Exception:
                     stop(redraw=False)           # otherwise the error would repeat 20× per second
                     raise
@@ -8087,7 +8188,8 @@ class MainWindow(QMainWindow):
                     self._anim_frame = False
                 frame = time.perf_counter() - t0
                 if self._anim_running:
-                    self._anim_timer.start(max(MIN_MS, int(1500 * frame)))
+                    # period ≥ MIN_MS; idle time ≥ the frame (cached frames) / ≥ half of it (first cycle)
+                    self._anim_timer.start(max(MIN_MS - int(1000 * frame), int((500 if warm else 1000) * frame)))
 
             self._anim_timer.timeout.connect(on_tick)
             self._anim_stop = stop
@@ -8097,6 +8199,8 @@ class MainWindow(QMainWindow):
             self._anim_running = True
             self._anim_phase = 0.0
             self._anim_last = time.perf_counter()
+            self.view.anim_begin()
+            self._anim_state = {}
             self.btn_anim.setText("Stop animation")
             self._anim_timer.start()
 
@@ -8128,6 +8232,19 @@ class MainWindow(QMainWindow):
                 step, label = r, f"K{cur[1] + 1:02d}: {comb.name}"
         dlg = VectorsDialog(self, self.results, si, step=step, label=label)
         dlg.exec()
+
+    def open_submodel_dialog(self):
+        if self.results is None or not self.results.steps or len(self.results.mesh.nodes) == 0:
+            msg(self, APP_NAME, "The submodel needs a solved load case of a 3D model (Solve step).")
+            return
+        dlg = getattr(self, "_submodel_dlg", None)
+        if dlg is None:
+            dlg = self._submodel_dlg = smd.SubmodelDialog(self)
+        else:
+            dlg.refresh()
+        dlg.show()
+        dlg.raise_()
+        dlg.draw_region()
 
     def open_topo_dialog(self):
         if self.study is None:

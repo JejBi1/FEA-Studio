@@ -155,7 +155,13 @@ def _skipped(key) -> bool:
 
 
 def is_gui_running(pipe_path: str | None = None) -> bool:
-    """Checks whether the GUI application is open and listening on the IPC pipe / socket (< 0.1 ms)."""
+    """Checks whether the GUI application is open and listening on the IPC pipe / socket (< 0.1 ms).
+
+    FEA_MCP_NO_GUI=1 = the user's GUI (default pipe) is never used – an MCP server that must stay headless (tests: otherwise every
+    tool call of the test suite would run in whatever FEA Studio window is open on the machine). An explicit pipe_path is checked.
+    """
+    if pipe_path is None and os.environ.get("FEA_MCP_NO_GUI", "").strip() not in ("", "0"):
+        return False
     try:
         p = pipe_path or get_pipe_path()
         if not (os.path.exists(p) and token_path(_name_of(p)).is_file()):

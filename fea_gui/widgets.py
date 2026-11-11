@@ -14,7 +14,7 @@ import os
 
 from PySide6.QtCore import QEvent, QObject, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QCheckBox,
+from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QCheckBox,
                                QDoubleSpinBox, QFrame, QHBoxLayout, QHeaderView, QLabel, QListWidgetItem, QMenu,
                                QProgressBar, QScrollArea, QSizePolicy, QStackedWidget, QTabWidget, QTableView, QTableWidget, QToolButton,
                                QTreeView, QVBoxLayout, QWidget)
@@ -584,11 +584,11 @@ class Section(QFrame):
         is w itself. Returns True when something was expanded (the layout is recomputed at once, the geometry is valid).
         """
         opened = []
-        p, child = w, None
+        p = w
         while p is not None:
             if isinstance(p, Section) and not p.is_open() and p is not w and not p.is_header_part(w):
                 opened.append(p)
-            p, child = p.parentWidget(), p
+            p = p.parentWidget()
         for s in opened:
             s.set_open(True)
         from .popout import raise_for

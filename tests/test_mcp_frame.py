@@ -5,7 +5,6 @@ Fast tests without a calculation; calculations of the members (ccx, ~1–3 s) an
 """
 import json
 import math
-from pathlib import Path
 
 import pytest
 

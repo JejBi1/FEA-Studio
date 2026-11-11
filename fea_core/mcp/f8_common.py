@@ -13,17 +13,17 @@ from .session import FeaError
 
 TYPE_ALIASES = {
     "bonded": "bonded", "pevne spojeno": "bonded", "rigidly bonded": "bonded", "spojeno": "bonded", "tie": "bonded",
-    "no_separation": "no_separation", "no separation": "no_separation", "no separation": "no_separation",
+    "no_separation": "no_separation", "no separation": "no_separation",
     "no separation (sliding)": "no_separation", "sliding": "no_separation",
-    "frictionless": "frictionless", "frictionless": "frictionless", "frictionless": "frictionless",
-    "frictionless contact": "frictionless", "frictionless contact": "frictionless", "separation": "frictionless",
+    "frictionless": "frictionless",
+    "frictionless contact": "frictionless", "separation": "frictionless",
     "frictional": "frictional", "s trenim": "frictional", "with friction": "frictional", "friction": "frictional",
-    "friction": "frictional", "frictional contact": "frictional", "styk s trenim": "frictional", "friction": "frictional",
+    "frictional contact": "frictional", "styk s trenim": "frictional",
     "rough": "rough", "no slip": "rough", "no-slip contact": "rough",
-    "interference": "interference", "presah": "interference", "interference": "interference", "shrink_fit": "interference",
+    "interference": "interference", "presah": "interference", "shrink_fit": "interference",
     "lisovany spoj": "interference", "press fit": "interference", "interference (press fit)": "interference",
     "compression_only": "compression_only", "compression only": "compression_only", "support": "compression_only",
-    "compression only (support)": "compression_only", "compression only": "compression_only",
+    "compression only (support)": "compression_only",
     "none": "none", "no interaction": "none", "free": "none",
     "pevně spojeno": "bonded", "bez odtrzeni": "no_separation", "bez odtržení": "no_separation",
     "bez odtržení (klouže)": "no_separation", "bez treni": "frictionless", "bez tření": "frictionless",
@@ -166,9 +166,9 @@ def touching(sess, a: str, b: str, tol: float) -> dict | None:
 
 # ===================================================================== dynamics – excitation and profiles
 
-EXC_KINDS = {"force": "force", "force": "force", "force": "force", "base_acc": "base_acc", "zrychleni": "base_acc",
-             "acceleration": "base_acc", "acceleration": "base_acc", "base_disp": "base_disp", "displacement": "base_disp",
-             "displacement": "base_disp", "sila": "force", "síla": "force", "zrychlení": "base_acc", "posuv": "base_disp"}
+EXC_KINDS = {"force": "force", "base_acc": "base_acc", "zrychleni": "base_acc",
+             "acceleration": "base_acc", "base_disp": "base_disp", "displacement": "base_disp",
+             "sila": "force", "síla": "force", "zrychlení": "base_acc", "posuv": "base_disp"}
 EXC_LABELS = {"force": "force (load case × profile)", "base_acc": "base acceleration",
               "base_disp": "base displacement"}
 EXC_KEYS = {"kind", "case", "dof", "direction", "table", "unit", "scale", "phase_deg", "phase", "sine_profile"}

@@ -19,7 +19,8 @@ TIP_MAX = 125            # the English source texts are longer than the Czech on
 CHECKED = ["widgets", "guide", "tour", "theme", "main", "eigen_gui", "twod_gui", "shell_gui", "ortho_box",
            "dynamics_panel", "contact_panel", "dyn_results", "print_panel", "print_variants", "print_sweep",
            "thermal_panel", "fatigue_panel", "pragtic_dialog", "frame_panel", "frame_results", "motion_panel",
-           "joints_panel", "messages"]
+           "joints_panel", "messages", "plasticity_box", "plasticity_dialog", "param_dialog", "queue_dialog",
+           "nl_monitor", "extras", "session_files", "imprint_dialog", "console_panel"]
 # not rewritten yet (A2–A5 tick them off; whoever is clean, only "XPASS")
 PENDING: set[str] = set()          # F11 completed (18. 10. 2026) – all modules strictly
 

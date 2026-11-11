@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .model import FrameMember, FrameNodeLoad, FrameMemberLoad, DOF_NAMES, LOCAL_NAMES
+from .model import FrameNodeLoad, FrameMemberLoad, DOF_NAMES, LOCAL_NAMES
 
 G_RATIO_EPS = 1e-3
 KAPPA_EB = 1e9
@@ -406,7 +406,7 @@ def load_resultant(study, fe: FrameFE, lc, c0) -> tuple[np.ndarray, np.ndarray]:
             Ms += np.asarray(l.moment, float) + np.cross(p - c0, l.force)
     for i, (qa, qb) in segment_loads(study, fe, lc).items():
         sg = fe.segs[i]
-        xa, xb = X[sg.a], X[sg.b]
+        xa = X[sg.a]
         F = sg.L * (qa + qb) / 2
         # centroid of the trapezoidal load by components: ∫ s·q ds = L²(qa + 2qb)/6
         Fs += F

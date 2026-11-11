@@ -7,7 +7,7 @@ import html
 
 import numpy as np
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QListWidget,
-                               QMessageBox, QPushButton, QVBoxLayout, QWidget)
+                               QMessageBox, QPushButton)
 
 from fea_core.i18n import tr
 from fea_core.twod.model import KIND_LABEL, TwoDSettings, make_frame

@@ -6,7 +6,7 @@
 	"description": {
 		"": "Send to FEA Studio: exports the active design (or the selected parts) to STEP with body names, materials, colours and attributes, and opens it in FEA Studio (REST API or GUI); updates the geometry of a linked study."
 	},
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"runOnStartup": true,
 	"supportedOS": "windows",
 	"editEnabled": true,

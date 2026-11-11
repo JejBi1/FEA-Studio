@@ -12,7 +12,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QPushButton,
-                               QSplitter, QTextBrowser, QVBoxLayout, QWidget)
+                               QSplitter, QVBoxLayout, QWidget)
 
 from .safe_browser import SafeTextBrowser
 HELP_DIR = Path(__file__).resolve().parent / "help"

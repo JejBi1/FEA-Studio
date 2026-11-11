@@ -8,6 +8,7 @@ of the polygons. Smoothing of the edges = resampling (rendered at a larger resol
 from __future__ import annotations
 
 import functools
+import threading
 
 import numpy as np
 
@@ -24,9 +25,15 @@ def _kernel(fn):
     @functools.wraps(fn)
     def run(*args):
         if not compiled:
-            compiled.append(need("numba", "accel").njit(cache=True)(fn))
+            with _compile_lock:                  # pictures drawn in parallel threads compile the kernel once
+                if not compiled:
+                    # nogil: the kernels touch only their arrays → pictures can be rasterised in parallel threads
+                    compiled.append(need("numba", "accel").njit(cache=True, nogil=True)(fn))
         return compiled[0](*args)
     return run
+
+
+_compile_lock = threading.Lock()
 
 
 @_kernel
@@ -112,6 +119,36 @@ def raster_lines(ax, ay, az, bx, by, bz, cols, alpha, width, bias, depth_test, o
                         continue
                     for c in range(3):
                         cbuf[yy, xx, c] = cbuf[yy, xx, c] * (1.0 - alpha) + cols[i, c] * alpha
+
+
+@_kernel
+def _to_rgb8(img, k, out):
+    """uint8 picture of the colour buffer: block mean k×k, clip 0..1, ×255, truncation – the same operations in the same
+    order as `(np.clip(downsample(img, k), 0, 1) * 255).astype(np.uint8)` (bit-identical), without the float64 temporaries.
+    """
+    H, W, C = out.shape
+    inv = k * k
+    for y in range(H):
+        for x in range(W):
+            for c in range(C):
+                a = 0.0
+                for i in range(k):
+                    for j in range(k):
+                        a += img[y * k + i, x * k + j, c]
+                if k != 1:
+                    a = a / inv
+                if a < 0.0:
+                    a = 0.0
+                elif a > 1.0:
+                    a = 1.0
+                out[y, x, c] = np.uint8(a * 255.0)
+
+
+def to_rgb8(img: np.ndarray, k: int) -> np.ndarray:
+    """Final picture (H, W, 3) uint8 from the supersampled colour buffer (see _to_rgb8)."""
+    out = np.empty((img.shape[0] // k, img.shape[1] // k, img.shape[2]), np.uint8)
+    _to_rgb8(img, int(k), out)
+    return out
 
 
 def downsample(img: np.ndarray, k: int) -> np.ndarray:

@@ -14,7 +14,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
                                QHBoxLayout, QHeaderView, QInputDialog, QLabel, QListWidget, QListWidgetItem,
                                QMessageBox, QPushButton, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
-                               QTextBrowser, QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget)
 
 from fea_core.joints import tables
 from fea_core.joints.model import WeldSpec

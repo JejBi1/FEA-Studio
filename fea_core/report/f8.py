@@ -64,8 +64,12 @@ def assumptions(study, res) -> list[str]:
         items += [
             "Nonlinear analysis (contact): load cases cannot be superposed, the safety factor is a stress margin, not a load multiplier; fatigue by superposition of load cases is not available.",
             "Penalty contact: the normal stiffness K and the stick slope λ allow a small penetration p/K and elastic slip τ/λ; Coulomb friction with the specified (estimated) coefficient μ, independent of velocity and temperature.",
-            "In the thermal analysis, parts in contact pairs are joined by perfect thermal contact (contact conductance is not modelled).",
         ]
+        if study.thermal.cases:
+            from .thermal_extras import has_conductance
+            items.append("In the thermal analysis, contact pairs with a contact conductance h_c have a temperature jump ΔT = q / h_c at the interface; the other contact pairs are joined by perfect thermal contact."
+                         if has_conductance(study) else
+                         "In the thermal analysis, parts in contact pairs are joined by perfect thermal contact (no contact conductance specified).")
     if study.dynamics.enabled:
         items += [
             "Dynamics: linear model, modal superposition with a truncated basis (higher modes statically / by missing mass), base excitation moves all supported nodes equally (rigid fixture).",
@@ -112,7 +116,7 @@ def summary_bullets(D, sess) -> None:
 def _field_image(sess, values, label, unit, src, img_dir: Path, name: str, warnings, parts=None, status=None,
                  U=None, view="iso"):
     from ..mcp.f8_scenes import field_scene
-    from ..mcp.render import render
+    from .images import render
     try:
         scene, _ = field_scene(sess, values, label, unit, src, U=U, parts=parts, status=status)
         img_dir.mkdir(parents=True, exist_ok=True)

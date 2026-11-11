@@ -3,7 +3,6 @@
 Fast: settings, validation, recognition of the plate, readiness. Slow: A1 (tube Lamé as axisymmetric) and Sh1 (cantilever
 from a plate) through MCP – calculation, results, probes, segment, linearisation, images, errors of the 3D tools, the protocol.
 """
-import json
 import math
 
 import pytest

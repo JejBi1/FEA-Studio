@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 from scipy.integrate import quad, solve_ivp
 
-from fea_core.dynamics import modal_ode, psd, shock
+pytest.importorskip("numba")                     # module accel (the dynamics kernels compile with Numba)
+
+from fea_core.dynamics import modal_ode, psd, shock  # noqa: E402
 
 TWO_PI = 2.0 * np.pi
 

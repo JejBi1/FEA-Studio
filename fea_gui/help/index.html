@@ -34,7 +34,7 @@ Panels have collapsible sections. Step dot: <b>green</b> = done, <b>orange</b> =
 <tr><td><a href="pruty.html">6. Beams</a></td><td>nodes, members (Timoshenko), EN cross-sections, supports, EN 1993-1-1 check (optional; also without CAD)</td></tr>
 <tr><td><a href="vazby.html">7. Supports</a></td><td>fixed, displacement, symmetry, cylindrical, remote, elastic (compression-only support is in Contacts)</td></tr>
 <tr><td><a href="pohyb.html">8. Motion</a></td><td>bodies, joints (also from geometry), drivers, animation, joint reactions, transfer to FEA (optional)</td></tr>
-<tr><td><a href="teplo.html">9. Heat</a></td><td>steady-state / transient heat conduction, radiation to the surroundings (optional)</td></tr>
+<tr><td><a href="teplo.html">9. Heat</a></td><td>steady-state / transient heat conduction, radiation to the surroundings and in cavities, contact conductance of interfaces (optional)</td></tr>
 <tr><td><a href="zatizeni.html">10. Loads</a></td><td>load cases: force, pressure, gravity, remote force, bearing load, temperature, rotation, inertia from a mechanism, member loads, EN 1990 combinations</td></tr>
 <tr><td><a href="dynamika.html">11. Dynamics</a></td><td>damping, harmonic and transient response, random vibration (ASD), shock, added mass (optional)</td></tr>
 <tr><td><a href="sit.html">12. Mesh</a></td><td>element size, local refinement, mesh quality</td></tr>
@@ -48,24 +48,25 @@ Panels have collapsible sections. Step dot: <b>green</b> = done, <b>orange</b> =
 <h2>What the program computes and what it does not</h2>
 <ul>
 <li><b>Linear:</b> elasticity (small deformations, isotropic and orthotropic / printed), superposition of load cases, fatigue, heat conduction
-and thermal stress, bolts as preloaded beams, welds as solids, beams (Timoshenko), 2D section, shells, natural frequencies, linear buckling,
+and thermal stress, bolts as preloaded beams, welds as solids, beams (Timoshenko), 2D section, shells, natural frequencies, linear and nonlinear buckling (imperfection, GNIA / GMNIA),
 EN 1990 combinations (STR/GEO, EQU, SLS).</li>
 <li><b>Nonlinear and advanced</b> (no superposition; always CalculiX): <a href="kontakty.html">contact</a> (separation, friction, interference, compression only; perfect heat conduction across closed pairs),
 bolted-joint interfaces as contact (opening, slip), large deformations, topology optimization (BESO with sensitivity filtering and penalization),
-step sequence with prescribed motion (force–travel curve).</li>
+step sequence with prescribed motion (force–travel curve), <a href="materialy.html#plasticity">metal plasticity</a> (bilinear, multilinear table,
+Ramberg-Osgood, Hollomon; isotropic / kinematic hardening) with the equivalent plastic strain PEEQ, residual stress after unloading and the
+<a href="vysledky.html#plasticity">EN 1993-1-5 Annex C / ASME VIII-2 assessment</a>.</li>
 <li><b>Dynamics:</b> <a href="dynamika.html">harmonic and transient response, random vibration, shock, sine sweep and spectral fatigue</a>
 by modal superposition (linear model, no contact), added mass.</li>
 <li><b>Mechanisms:</b> <a href="pohyb.html">rigid-body kinematics and dynamics</a> (Exudyn) – joint reactions, drivers, friction, animation,
 transfer of an instant or the whole history to FEA; optionally flexible bodies (Craig–Bampton) and body contact (Chrono module).</li>
+<li><b>Submodel:</b> <a href="vysledky.html#submodel">finer local model of a critical region</a> (box or sphere) driven by the
+global displacement on the cut, with a cut check – Results step, button Submodel… (also MCP <code>fea_submodel_run</code>).</li>
 <li><b>Calculators without FEA</b> (Tools menu): beams, friction, Hertzian contact, press fit, snap-fit, mechanisms, damping from measurement, drop – see <a href="ovladani.html">Controls</a>.</li>
-<li id="api-only"><b>Only via the MCP server / Python API</b> (not in this window): material plasticity (bilinear and multilinear hardening – material
-property <code>plastic</code>, e.g. <code>custom_props</code> of <code>fea_materials_assign</code>) and its assessment (EN 1993-1-5 Annex C plastic strain,
-ASME VIII-2 local failure – <code>fea_plasticity_assess</code>); submodeling (<code>fea_core.submodel</code>, Python API only); thermal contact conductance
-(<code>ContactPair.conductance</code>) and radiation between faces in a cavity (<code>CavityRadiation</code>) – Python API / study file only;
+<li id="api-only"><b>Only via the MCP server / Python API</b> (not in this window):
 measured ε-N parameters (<code>FatigueSettings.en_params</code>); implicit dynamics of a step sequence with contact (<code>LoadStep.dynamic</code>, Python API / study file only). See <a href="automatizace.html">Automation</a>.</li>
 <li><b>Not included:</b> modal (superposition) dynamics with contact, velocity-dependent friction in FEA contact (Coulomb only), gyroscopic effects and spin softening in the Campbell diagram.</li>
 </ul>
-<p class="warn"><b>Note:</b> stress above yield in a linear analysis is not real – it only means yielding starts (real plastic deformation needs a plastic material – <a href="#api-only">MCP / Python API</a>).
+<p class="warn"><b>Note:</b> stress above yield in a linear analysis is not real – it only means yielding starts (real plastic deformation needs a plastic material – <a href="materialy.html#plasticity">Materials → Plasticity</a>).
 Peaks in sharp inner corners, at edges of fixed supports and under point forces are singularities (they grow with refinement; the maxima table marks them).
 Contact stiffness K and friction μ are estimates, damping has sensitivity ±50 %: check results by sensitivity.</p>
 

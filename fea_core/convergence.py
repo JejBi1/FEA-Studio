@@ -103,6 +103,7 @@ def reduced_study(study, spec: ConvergenceSpec):
     st = copy.deepcopy(study)
     vspec = dataclasses.replace(spec)
     st.buckling.enabled = False
+    st.nlbuckling.enabled = False                     # nonlinear buckling with imperfection (F9 C2) – not a convergence quantity
     st.modal.enabled = study.modal.enabled and spec.quantity == "frequency"
     if getattr(st, "dynamics", None) is not None:
         st.dynamics.enabled = False

@@ -22,7 +22,7 @@ from .results import Results
 class Job:
     id: str
     name: str
-    study: Study
+    study: Study | None
     out_dir: Path
     status: str = "pending"          # pending | running | completed | failed | cancelled
     created_at: float = field(default_factory=time.time)
@@ -33,6 +33,9 @@ class Job:
     error: str | None = None
     log: list[str] = field(default_factory=list)
     cancel_event: threading.Event = field(default_factory=threading.Event)
+    source: Path | None = None       # project .fea (submit_project)
+    output: Path | None = None       # solved project .fea (submit_project)
+    log_path: Path | None = None     # output of the solver process (submit_project)
 
     @property
     def duration_s(self) -> float | None:
@@ -54,6 +57,9 @@ class Job:
             "out_dir": str(self.out_dir),
             "study_name": self.study.name if hasattr(self.study, "name") else "",
             "summary": self.summary,
+            "source": str(self.source) if self.source else None,
+            "output": str(self.output) if self.output else None,
+            "log": str(self.log_path) if self.log_path else None,
         }
 
 
@@ -139,6 +145,53 @@ class JobQueue:
         self._futures[job_id] = future
         return job
 
+    def submit_project(self, source: Path | str, output: Path | str | None = None, name: str | None = None,
+                       command: Callable[[Path, Path], list[str]] | None = None) -> Job:
+        """Queues a .fea project: solved by `python -m fea_core solve-project` in its own process, the result saved to
+        `output` (default `<name>_results.fea` next to the project). command(source, output) = replacement of the command (tests)."""
+        src = Path(source)
+        if src.suffix.lower() != ".fea" or not src.is_file():
+            raise ValueError(f"Not a .fea project: {src}")
+        out = Path(output) if output else src.with_name(f"{src.stem}_results.fea")
+        if out.resolve() == src.resolve():
+            raise ValueError("The output must differ from the source project")
+        job_id = uuid.uuid4().hex[:8]
+        from .config import user_data_dir
+        work = user_data_dir() / "queue" / job_id
+        _cleanup_old(work.parent)
+        work.mkdir(parents=True, exist_ok=True)
+        job = Job(id=job_id, name=name or src.stem, study=None, out_dir=work, source=src, output=out,
+                  log_path=work / "solve.log")
+        cmd = (command or project_command)(src, out)
+
+        def _worker():
+            with self._lock:
+                if job.status == "cancelled":
+                    return
+                job.status = "running"
+                job.started_at = time.time()
+            try:
+                rc = run_process(cmd, job.log_path, job.cancel_event)
+                if job.cancel_event.is_set() or rc is None:
+                    job.status = "cancelled"
+                    job.error = "Job was cancelled by the user"
+                elif rc != 0 or not out.is_file():
+                    job.status = "failed"
+                    job.error = log_tail(job.log_path) or f"The solver process ended with code {rc}"
+                else:
+                    job.summary = {"output": str(out)}
+                    job.status = "completed"
+            except Exception as e:  # noqa: BLE001 – the job fails, the queue continues
+                job.status = "failed"
+                job.error = str(e)
+            finally:
+                job.finished_at = time.time()
+
+        with self._lock:
+            self.jobs[job_id] = job
+        self._futures[job_id] = self._executor.submit(_worker)
+        return job
+
     def get_job(self, job_id: str) -> Job | None:
         with self._lock:
             return self.jobs.get(job_id)
@@ -196,3 +249,66 @@ class JobQueue:
             "failed": sum(1 for j in jobs if j.status == "failed"),
             "cancelled": sum(1 for j in jobs if j.status == "cancelled"),
         }
+
+
+def project_command(source: Path, output: Path) -> list[str]:
+    import sys
+    return [sys.executable, "-m", "fea_core", "solve-project", str(source), "-o", str(output)]
+
+
+def _kill_tree(pid: int) -> None:
+    try:
+        import psutil
+        proc = psutil.Process(pid)
+        for c in proc.children(recursive=True):
+            try:
+                c.kill()
+            except psutil.Error:
+                pass
+        proc.kill()
+    except Exception:  # noqa: BLE001 – the process already ended
+        pass
+
+
+def run_process(cmd: list[str], log_path: Path, cancel: threading.Event | None = None) -> int | None:
+    """Runs a helper process (cwd = program root) with output to `log_path`; cancel → the whole process tree is killed
+    (ccx / Gmsh started by the solver too). Returns the return code, None = cancelled."""
+    import subprocess
+    from . import config
+    with open(log_path, "w", encoding="utf-8", errors="replace") as out:
+        p = subprocess.Popen(cmd, cwd=config.PROJECT_ROOT, env=config.child_env(), stdout=out, stderr=subprocess.STDOUT,
+                             creationflags=config.NO_WINDOW)
+        while True:
+            try:
+                p.wait(timeout=0.2)
+                break
+            except subprocess.TimeoutExpired:
+                pass
+            if cancel is not None and cancel.is_set():
+                _kill_tree(p.pid)
+                p.wait()
+                return None
+    return p.returncode
+
+
+def log_tail(path: Path | None, lines: int = 6) -> str:
+    """Last lines of a log (the error of a failed job)."""
+    try:
+        txt = Path(path).read_text(encoding="utf-8", errors="replace").strip().splitlines()
+    except (OSError, TypeError):
+        return ""
+    err = [s for s in txt if s.startswith("ERROR")]
+    return "\n".join(err[-2:] if err else txt[-lines:])
+
+def _cleanup_old(folder: Path, days: float = 30.0) -> None:
+    """Logs of queue jobs older than `days` are deleted (the solved projects are elsewhere, next to the source)."""
+    import shutil
+    if not folder.is_dir():
+        return
+    limit = time.time() - days * 86400.0
+    for d in folder.iterdir():
+        try:
+            if d.is_dir() and d.stat().st_mtime < limit:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass

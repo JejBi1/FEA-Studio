@@ -51,7 +51,7 @@ FUZZ_HEAVY = {
     "fea_solve_run", "fea_job_start", "fea_mesh_generate", "fea_mesh_convergence", "fea_print_sweep",
     "fea_print_variants_run", "fea_print_rank_build_direction", "fea_print_refine", "fea_print_voxel_run",
     "fea_topo_opt_run", "fea_motion_run", "fea_fatigue_run", "fea_report_word", "fea_motion_check_dof",
-    "fea_results_export",
+    "fea_results_export", "fea_param_study_run", "fea_submodel_run",
 }
 
 # KNOWN BUGS in files that could not be fixed while the test was prepared (another agent is editing them): (tool, regular expression of the
@@ -264,6 +264,10 @@ def geo(tmp_path_factory):
     g["wires"] = d / "wires.step"
     write_step([Part("Kostka", box(0, 0, 0, 100, 100, 20)), Part("Tyc", box(40, 45, 20, 20, 10, 500))], d / "rod.step")
     g["rod"] = d / "rod.step"
+    from verification.cyclic_cases import ring_sector       # 45° sector of a ring (cyclic symmetry, N = 8)
+    import math as _m
+    write_step([Part("Sektor", solid(ring_sector(20.0, 60.0, 0.0, 8.0, _m.pi / 4)))], d / "sector.step")
+    g["sector"] = d / "sector.step"
     return g
 
 
@@ -564,7 +568,11 @@ async def scen_model(T: ToolTester, sess: Session, geo, tmp_path: Path):
     await T.ok("fea_thermal_add_radiation", case="Ohrev", selection="horni", emissivity=0.8)
     await T.ok("fea_thermal_add_heat_flux", case="Ohrev", selection="spodni", flux_W_m2=100)
     await T.ok("fea_thermal_add_heat_generation", case="Ohrev", part="Deska", power_W=1.0)
+    await T.ok("fea_thermal_add_cavity", case="Ohrev", selection="spodni", emissivity=0.7, cavity="dutina", closed=False)
+    await T.ok("fea_thermal_add_contact_conductance", side_a="levy", side_b="pravy", h_W_m2K=2000.0, name="styk")
     await T.ok("fea_thermal_list")
+    await T.ok("fea_thermal_remove", case="", name="styk", kind="contact_conductance")
+    await T.ok("fea_thermal_remove", case="Ohrev", name="spodni", kind="cavity_radiation")
     await T.ok("fea_load_add_temperature", case_name="Tah", thermal_case="Ohrev")
     await T.ok("fea_load_remove", case_name="Tah", name="teplota")
     await T.ok("fea_thermal_remove", case="Ohrev", name="spodni")
@@ -637,6 +645,8 @@ async def scen_static(T: ToolTester, sess: Session, geo, tmp_path: Path):
     await T.ok("fea_load_add_force", case_name="Tlak2", name="pravy2", selection={"x": 60}, force=[-500, 0, 0])
     await T.ok("fea_modal_set", modes=3, f_max_Hz=50000)
     await T.ok("fea_buckling_set", case_name="Tlak2", modes=2)
+    await T.fea("fea_nlbuckling_set", case_name="neni")                 # unknown case → understandable error
+    await T.ok("fea_nlbuckling_set", case_name="Tlak2", amplitude_ratio=500, max_factor=2.0, increments=4)
     await T.ok("fea_mesh_generate", global_size=5.0, timeout_s=300)
     await T.ok("fea_mesh_info")
     await T.ok("fea_check_readiness")
@@ -666,12 +676,28 @@ async def scen_static(T: ToolTester, sess: Session, geo, tmp_path: Path):
     await T.raw("fea_results_render_image", field="safety", step="Tah", view="multi", return_image=False,
                 output_path=str(tmp_path / "safety.png"), width=640, height=360)
 
+    # --- submodel around the hole (pressure on the top face is transferred into the region)
+    await T.ok("fea_submodel_results")                              # none yet
+    await T.raw("fea_submodel_run", center=[30, 20, 2.5], size_mm=[20, 20, 7], mesh_size_mm=1.5, step="Tlak",
+                     return_image=False)
+    await T.ok("fea_submodel_run", center="max", shape="sphere", radius_mm=8, mesh_size_mm=1.5, step="Tah",
+               return_image=False)
+    await T.ok("fea_submodel_results", index=0)
+    await T.raw("fea_submodel_render", field="s1", output_path=str(tmp_path / "sub.png"), width=640, height=360)
+    await T.fea("fea_submodel_render", field="temperature")
+    await T.ok("fea_submodel_delete", index=1)
+
     # --- modes and buckling
     modes = await T.ok("fea_results_modes")
     assert modes["mode_sets"], modes
     await T.ok("fea_results_modes", kind="buckling")
     await T.raw("fea_results_render_mode", mode=1, kind="modal", output_path=str(tmp_path / "m1.png"), width=640, height=360)
     await T.raw("fea_results_render_mode", mode=1, kind="buckling", field="uz", output_path=str(tmp_path / "b1.png"),
+                width=640, height=360)
+    nlb = await T.ok("fea_results_nlbuckling")                       # nonlinear buckling with imperfection (F9 C2)
+    assert nlb["ultimate_load_factor"] and nlb["curve"]["lambda"], nlb
+    await T.raw("fea_results_nlbuckling", plot=True, output_path=str(tmp_path / "nlb.png"))
+    await T.raw("fea_results_render_mode", mode=2, kind="nonlinear", output_path=str(tmp_path / "nl2.png"),
                 width=640, height=360)
 
     # --- kombinace + export
@@ -707,12 +733,52 @@ async def scen_static(T: ToolTester, sess: Session, geo, tmp_path: Path):
     await T.ok("fea_topo_opt_run", target_volume_fraction=0.8, filter_radius=4.0, max_iterations=3, timeout_s=900,
                output_stl=str(tmp_path / "topo.stl"))
 
+    # --- parametric study (buckling is enabled → no linear shortcut: one analysis per point; E sweep likewise)
+    p = await T.ok("fea_param_study_run", parameters=[{"kind": "load_factor", "values": [1, 2]}], timeout_s=900)
+    assert len(p["points"]) == 2 and abs(p["points"][1]["max_disp"] / p["points"][0]["max_disp"] - 2) < 1e-3, p
+    p = await T.ok("fea_param_study_run", parameters=[{"kind": "material_prop", "target": "Ocel S235", "field": "E",
+                                                       "values": "105000:210000:2"}], timeout_s=900)
+    assert p["points"][0]["max_disp"] > 1.9 * p["points"][1]["max_disp"], p
+    await T.fea("fea_param_study_run", "does not exist", parameters=[{"kind": "case_factor", "target": "nope", "values": [2]}])
+    await T.ok("fea_param_study_results")
+    await T.ok("fea_param_study_apply", index=0)
+
 
 @pytest.mark.slow
 def test_scenario_static(tmp_path, geo):
     async def body(T, sess):
         await scen_static(T, sess, geo, tmp_path)
     run_scenario("static", tmp_path, body)
+
+
+# ===================================================================== scenario: cyclic symmetry (sector of a ring)
+
+def test_scenario_cyclic(tmp_path, geo):
+    import math as _m
+
+    async def body(T, sess):
+        await T.ok("fea_study_new", step_path=str(geo["sector"]), workdir=str(tmp_path / "wd"), material="Ocel S235")
+        await T.fea("fea_cyclic_results")                                          # no results yet
+        await T.ok("fea_constraint_add_fixed", name="otvor", selection={"radius": 20})
+        await T.ok("fea_load_add_rotation", case_name="w", axis_point=[0, 0, 0], axis_direction=[0, 0, 1], omega=500.0)
+        right = {"normal": [-_m.sin(_m.pi / 4), _m.cos(_m.pi / 4), 0]}
+        await T.fea("fea_cyclic_set", left={"y": 0}, right={"y": 0})               # the same face twice
+        d = await T.ok("fea_cyclic_set", left={"y": 0}, right=right)
+        assert d["cyclic"]["sectors"] == 8
+        await T.ok("fea_cyclic_get")
+        await T.ok("fea_mesh_generate", global_size=8.0)
+        await T.ok("fea_solve_run", timeout_s=600)
+        r = await T.ok("fea_cyclic_results")
+        assert r["states"][0]["cut_force_N"] is not None
+        await T.raw("fea_cyclic_render_full", field="mises", output_path=str(tmp_path / "full.png"), width=480, height=320)
+        await T.ok("fea_modal_set", modes=2)
+        await T.ok("fea_cyclic_set", left="cyclic_left", right="cyclic_right", nodal_diameters=[0, 2])
+        await T.ok("fea_solve_run", timeout_s=600)
+        r = await T.ok("fea_cyclic_results")
+        assert {row["nodal_diameter"] for row in r["frequencies"]} == {0, 2}
+        await T.raw("fea_cyclic_render_full", mode=1, output_path=str(tmp_path / "mode.png"), width=480, height=320)
+        await T.ok("fea_cyclic_remove")
+    run_scenario("cyclic", tmp_path, body)
 
 
 # ===================================================================== scenario: frame system (without geometry)

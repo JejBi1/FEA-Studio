@@ -21,6 +21,9 @@ def mesh_inputs(study, geometry: bool = True) -> dict:
         out["geometry"] = d.get("geometry")
     if d.get("imprints"):                         # bolt-free split of faces (only when they are – an older signature does not change)
         out["imprints"] = d["imprints"]
+    cyc = d.get("cyclic")
+    if cyc and cyc.get("enabled", True):          # cyclic symmetry: periodic mesh of the cut faces
+        out["cyclic"] = {k: cyc.get(k) for k in ("left", "right", "axis_point", "axis_dir", "sectors")}
     if study.contacts or study.joints.contact_joint:
         out["contacts"] = [{k: c.get(k) for k in CONTACT_MESH_FIELDS} for c in d.get("contacts", [])]
         cs = d.get("contact_settings") or {}

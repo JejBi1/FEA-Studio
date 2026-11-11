@@ -71,12 +71,17 @@ class ModeSet:
         d = {"kind": self.kind, "name": self.name, "case": self.case}
         if self.kind == "modal":
             d["frequencies_Hz"] = [float(v) for v in self.values]
+            if getattr(self, "nodal_diameters", None) is not None:      # cyclic symmetry
+                d["nodal_diameters"] = list(self.nodal_diameters)
+                d["multiplicity"] = list(getattr(self, "multiplicity", []))
             if self.eff_mass and self.total_mass:
                 tot = np.asarray(self.total_mass, float)
                 frac = np.asarray(self.eff_mass, float)[:, :3] / np.where(tot[:3] > 0, tot[:3], 1.0)
                 d["effective_mass_fraction_xyz"] = np.round(frac, 4).tolist()
                 d["cumulative_mass_fraction_xyz"] = np.round(frac.sum(axis=0), 4).tolist()
                 d["total_mass_kg"] = float(tot[0] * 1000.0)
+        elif self.kind == "nlbuckle":                # nonlinear buckling (fea_core.imperfect): λ of the stored increments
+            d["frame_load_factors"] = [float(v) for v in self.values]
         else:
             d["buckling_factors"] = [float(v) for v in self.values]
         return d
@@ -222,19 +227,22 @@ def run_eigen(study, mesh, workdir: Path, log, on_line=None, cancel=None, therma
     from .ccx.runner import run_ccx, CcxError
     from .config import CCX_EXE
     from .study import LoadCase
-    out: list[ModeSet] = []
     workdir = Path(workdir)
     workdir.mkdir(parents=True, exist_ok=True)
     exe = Path(study.solver.exe) if study.solver.exe else CCX_EXE
     n = len(mesh.nodes)
 
-    def run(job: str) -> None:
-        r = run_ccx(workdir, job, exe=exe, on_line=on_line, cancel=cancel)
+    def run(job: str, cancel_, on_line_) -> None:
+        r = run_ccx(workdir, job, exe=exe, on_line=on_line_, cancel=cancel_)
         if not r.finished or r.errors:
             raise CcxError(f"CalculiX ({job}) ended with an error:\n  " + "\n  ".join(r.errors or [f"code {r.returncode}"])
                            + f"\nlog: {r.log_path}")
 
-    if study.modal.enabled:
+    def cyclic_modal(cancel_, on_line_) -> ModeSet:
+        from .cyclic.modal import run_modal as run_cyclic_modal   # frequencies by nodal diameters (ccx cyclic symmetry)
+        return run_cyclic_modal(study, mesh, workdir, log, lambda job: run(job, cancel_, on_line_), _sub_study)
+
+    def modal(cancel_, on_line_) -> ModeSet:
         ms = study.modal
         log(f"Natural frequencies (CalculiX, {int(ms.modes)} modes)")
         st = _sub_study(study, [LoadCase("Natural frequencies", [])])
@@ -243,7 +251,7 @@ def run_eigen(study, mesh, workdir: Path, log, on_line=None, cancel=None, therma
             imap = write_inp(st, mesh, workdir / "modal.inp", procedure="modal", eigen_line=line)
         except ValueError as e:
             raise EigenError(str(e)) from None
-        run("modal")
+        run("modal", cancel_, on_line_)
         d = read_dat(workdir / "modal.dat", "modal")
         if not d["freq"]:
             raise EigenError("Natural frequencies: ccx returned no mode (try a different frequency range)")
@@ -265,8 +273,9 @@ def run_eigen(study, mesh, workdir: Path, log, on_line=None, cancel=None, therma
                     fs[j] /= m_
                     shapes[j] *= frd_max[j] / m_         # the shape of the bodies was normalised by its maximum only
             mset.frame_shapes = fs
-        out.append(mset)
-    if study.buckling.enabled and study.load_cases:
+        return mset
+
+    def buckle(cancel_, on_line_) -> ModeSet:
         bs = study.buckling
         names = [lc.name for lc in study.load_cases]
         k = names.index(bs.case) if bs.case in names else 0
@@ -282,12 +291,19 @@ def run_eigen(study, mesh, workdir: Path, log, on_line=None, cancel=None, therma
                       eigen_line=f"{int(bs.modes)}")
         except ValueError as e:
             raise EigenError(str(e)) from None
-        run("buckle")
+        run("buckle", cancel_, on_line_)
         d = read_dat(workdir / "buckle.dat", "buckle")
         if not d["factors"]:
             raise EigenError("Buckling: ccx returned no factor")
         shapes = _shapes(workdir / "buckle.frd", n, len(d["factors"]), skip_first=True)
-        out.append(ModeSet("buckling", f"Buckling – {lc.name}", d["factors"][:len(shapes)], shapes, case=lc.name))
+        return ModeSet("buckling", f"Buckling – {lc.name}", d["factors"][:len(shapes)], shapes, case=lc.name)
+
+    # the two jobs are independent → side by side when the machine has room for both (ccx.concurrent)
+    cyclic = getattr(study, "cyclic", None) is not None and study.cyclic.enabled
+    tasks = (([cyclic_modal] if cyclic else [modal]) if study.modal.enabled else []) \
+        + ([buckle] if study.buckling.enabled and study.load_cases else [])
+    from .ccx.concurrent import run_tasks
+    out = run_tasks(tasks, 3 * n, cancel, on_line)
     return out
 
 
@@ -305,6 +321,10 @@ def save_arrays(modes: list[ModeSet], arrays: dict) -> list[dict]:
         meta.append({"kind": m.kind, "name": m.name, "values": list(map(float, m.values)), "case": m.case,
                      "participation": m.participation, "eff_mass": m.eff_mass, "total_mass": m.total_mass,
                      **({"frame_xyz": getattr(m, "frame_xyz", None)} if own is not None else {})})
+        if getattr(m, "nodal_diameters", None) is not None:      # cyclic symmetry (fea_core.cyclic.modal)
+            arrays[f"MODEI_{j}"] = m.shapes_imag
+            meta[-1].update(nodal_diameters=list(m.nodal_diameters), multiplicity=list(m.multiplicity),
+                            sectors=int(m.sectors))
     return meta
 
 
@@ -316,5 +336,10 @@ def load_arrays(meta: list[dict], d: dict) -> list[ModeSet]:
         if f"MODEFO_{j}" in d and m.get("frame_xyz") is not None:
             ms.frame_shapes_own = d[f"MODEFO_{j}"]
             ms.frame_xyz = m["frame_xyz"]
+        if m.get("nodal_diameters") is not None and f"MODEI_{j}" in d:
+            ms.nodal_diameters = [int(v) for v in m["nodal_diameters"]]
+            ms.multiplicity = [int(v) for v in m.get("multiplicity") or [1] * len(ms.nodal_diameters)]
+            ms.sectors = int(m.get("sectors") or 0)
+            ms.shapes_imag = d[f"MODEI_{j}"]
         out.append(ms)
     return out

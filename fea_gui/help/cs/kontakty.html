@@ -39,6 +39,7 @@ Průnik u jiného typu než přesah je chyba sestavy (modelovaný závit, jmenov
 <tr><td>Tuhost lepení λ</td><td>Tangenciální tuhost při lpění [N/mm³]; pružný skluz = τ/λ.</td><td>auto = K/100</td></tr>
 <tr><td>Přesah / vůle</td><td>Jedna radiální hodnota na dvojici (přepíše mezeru z geometrie); záporná = přesah.</td><td>lisovaný spoj Ø20 H7/s6: −0,01 až −0,02 mm</td></tr>
 <tr><td>Přisunout uzly do kontaktu</td><td>Posune uzly závislé strany na nadřazenou (malé mezery z CAD). Nikdy u přesahu.</td><td></td></tr>
+<tr><td>Tepelná vodivost</td><td>Kontaktní vodivost h_c [W/(m²·K)] dvojice pro <a href="teplo.html#conductance">tepelný výpočet</a>: teplotní skok ΔT = q / h_c mezi plochami dvojice. 0 = dokonalý tepelný styk. <b>Navrhnout…</b> nabídne typické hodnoty a odhad z materiálů a tlaku. Ne pro dvojice „Pevně spojeno“ / „Bez interakce“ – spojené rozhraní dostane h_c v kroku Teplo.</td><td>ocel nasucho 1 000–3 000, šroubovaný spoj 5 000 W/(m²·K)</td></tr>
 <tr><td>Formulace</td><td>plocha-plocha (výchozí, tlak ±0,1 %), mortar (tvrdý kontakt, přesah), uzel-plocha (jen konvergence tření).</td><td>jedna na studii</td></tr>
 <tr><td>Síťování rozhraní</td><td>Zvlášť sítěné díly (nekonformní; nutné pro přesah) nebo konformní síť s rozděleným rozhraním (šroubové spoje).</td><td></td></tr>
 <tr><td>Velké deformace (NLGEOM)</td><td>Geometrická nelinearita – západka, vačka. Nelze s šrouby, válcovou a rozdělující podporou.</td><td></td></tr>

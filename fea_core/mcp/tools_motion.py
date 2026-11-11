@@ -294,7 +294,6 @@ def register(mcp, sess: Session) -> None:
             sug = joints_cad.suggest_from_geometry(st, sess.parts)
             if metadata_json:
                 import json
-                from pathlib import Path
                 try:
                     meta = json.loads(user_file(metadata_json, 16 << 20, "Metadata").read_text(encoding="utf-8"))
                 except (OSError, ValueError) as e:

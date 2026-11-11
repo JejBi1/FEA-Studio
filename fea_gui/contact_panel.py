@@ -9,17 +9,15 @@ faster (only the faces needed).
 from __future__ import annotations
 
 from html import escape
-import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout,
                                QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox,
                                QPushButton, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from fea_core.contacts.model import (CONTACT_LABELS, CONTACT_TYPES, ContactPair, LoadStep, Motion, MU_NONE)
-from fea_core.i18n import tr
+from fea_core.contacts.model import (CONTACT_LABELS, CONTACT_TYPES, ContactPair, LoadStep, Motion)
 
-from .widgets import (C_HEX, Section, dspin, fit_rows, fmt, help_tip, panel_header,
+from .widgets import (Section, dspin, fit_rows, fmt, help_tip, panel_header,
                       scroll_body, scroll_to, set_placeholder, table)
 
 APP = "FEA Studio"
@@ -266,6 +264,9 @@ class ContactPanel(QWidget):
         help_tip(self.p_slave, "Slave surface selection (nodes must not penetrate master)",
                  "Slave surface (nodes that must not penetrate master): automatic = finer mesh, if matched then softer material.")
         f.addRow("Slave", self.p_slave)
+        from .thermal_extras import conductance_row
+        self.p_hc, row = conductance_row(self, lambda: self.pair_sides())
+        f.addRow("Thermal conductance", row)
         self.p_enabled = QCheckBox("pair is active")
         self.p_enabled.setChecked(True)
         self.p_enabled.setToolTip("Unchecked = the pair is not passed to the analysis (parts then bonded / without contact)")
@@ -626,6 +627,8 @@ class ContactPanel(QWidget):
                 note.append("penetration in CAD!")
             if c.gap is not None:
                 note.append(f"{'penetration' if c.gap < 0 else 'gap'} {fmt(abs(c.gap), 3)} mm")
+            if c.conductance:
+                note.append(f"h_c {fmt(c.conductance, 4)} W/(m²·K)")
             vals = [c.name, c.a, c.b or "ground", CONTACT_LABELS.get(c.kind, c.kind), mu_txt,
                     "slip" if c.purpose == "slip" else "resistance",
                     fmt(c.stiffness, 4) if c.stiffness else "auto", fmt(c.stick_slope, 4) if c.stick_slope else "auto",
@@ -857,6 +860,7 @@ class ContactPanel(QWidget):
                                           "no_separation"))
         self.p_clr.setEnabled(self.p_clr_on.isEnabled() and self.p_clr_on.isChecked())
         self.p_adjust.setEnabled(kind != "interference")
+        self.p_hc.setEnabled(kind not in ("bonded", "none"))
         self.update_mu_info()
 
     def pair_from_form(self, name: str | None = None) -> ContactPair | None:
@@ -874,7 +878,12 @@ class ContactPanel(QWidget):
                            purpose=self.p_purpose.currentData(), materials=self.p_lib.currentData(),
                            stiffness=_num_or_none(self.p_K.value()), stick_slope=_num_or_none(self.p_lam.value()),
                            clearance=clr, adjust=self.p_adjust.isChecked() and kind != "interference",
-                           slave=self.p_slave.currentData(), enabled=self.p_enabled.isChecked())
+                           slave=self.p_slave.currentData(), enabled=self.p_enabled.isChecked(),
+                           conductance=_num_or_none(self.p_hc.value()) if kind not in ("bonded", "none") else None)
+
+    def pair_sides(self) -> tuple[str, str]:
+        """Sides A, B of the form (for the h_c estimate from the materials)."""
+        return self.p_a.currentText().strip(), self.p_b.currentText().strip()
 
     def add_pair(self):
         st = self.study
@@ -955,6 +964,7 @@ class ContactPanel(QWidget):
             self.p_clr.setValue(c.clearance or 0.0)
             self.p_adjust.setChecked(c.adjust)
             self.p_slave.setCurrentIndex(max(0, self.p_slave.findData(c.slave)))
+            self.p_hc.setValue(c.conductance or 0.0)
             self.p_enabled.setChecked(c.enabled)
         finally:
             self._filling = filling
@@ -1218,14 +1228,14 @@ class ContactPanel(QWidget):
         for k, c in enumerate(st.contacts):
             col = TYPE_COLORS.get(c.kind, (200, 200, 200))
             sel = k == self._row
-            tr = 0.15 if sel else (0.55 if self._row >= 0 else 0.35)
+            transp = 0.15 if sel else (0.55 if self._row >= 0 else 0.35)
             if not c.enabled:
-                tr = 0.8
+                transp = 0.8
             for side, other, tag in ((c.a, c.b, "A"), (c.b, c.a, "B")):
                 faces = self.side_faces(side, other)
                 if faces:
                     v.set_face_set(f"k:{k}:{tag}", faces, col, label=f"{c.name} ({tag})" if sel else None,
-                                   transparency=tr)
+                                   transparency=transp)
 
     def on_faces_picked(self, faces):
         """A click on a pair face in 3D selects the pair in the table (the face selection stays for "A / B from selection")."""

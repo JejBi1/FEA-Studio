@@ -41,6 +41,13 @@ $env:PYTHONIOENCODING = "utf-8"
 .venv\Scripts\python.exe -m verification.run_all V1 V7 K1 Y2 MB1</pre>
 <p>Ověřovací úlohy porovnají výsledky s analytickým řešením a vypíší tabulku shody – užitečné po instalaci nebo aktualizaci.</p>
 
+<h3>Export a výpočet na pozadí</h3>
+<pre>python -m fea_core export projekt.fea --format vtu|csv|all [--out SLOŽKA] [--dialect standard|excel] [--elements]
+python -m fea_core solve-project projekt.fea [-o spocteny.fea]</pre>
+<p><code>export</code> zapíše výsledky spočítaného projektu pro ParaView (.vtu pro každý zatěžovací stav + .pvd) a / nebo do CSV
+(stejné soubory jako export v GUI). <code>solve-project</code> projekt spočítá a uloží s výsledky jako jiný .fea (výchozí
+<code>&lt;název&gt;_results.fea</code>) – používá ho fronta výpočtů v GUI.</p>
+
 <h2>Skript v Pythonu</h2>
 <p>Šablony: <code>examples\create.py</code> a <code>verification\</code>. Plochy se vybírají geometricky (<code>find_faces</code>: díl, rovina x/y/z, poloměr válce, normála, vlastní podmínka), ne podle indexu, takže skript přežije změny modelu v CADu.</p>
 <pre>from fea_core import materials as matlib

@@ -15,7 +15,6 @@ import argparse
 import re
 import sys
 from datetime import date
-from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -520,7 +519,7 @@ class _Writer:
         return w
 
     def table(self, b):
-        from docx.shared import Pt, RGBColor
+        from docx.shared import Pt
         rows = b.rows
         ncol = max(len(r) for r in rows)
         tab = self.doc.add_table(rows=0, cols=ncol)
@@ -575,7 +574,6 @@ class _Writer:
 
 def _cover(doc, sec, kind_title, subtitle, ver, edition, author, D):
     """Title page: a saturated blue area over the whole page (a table without page margins), a darker footer with the edition data."""
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.shared import Cm, Pt, RGBColor
     sec.page_width, sec.page_height = Cm(21), Cm(29.7)
     sec.left_margin = sec.right_margin = sec.top_margin = Cm(0)
@@ -630,7 +628,7 @@ def _cover(doc, sec, kind_title, subtitle, ver, edition, author, D):
 
 def _header_footer(sec, doc_title, ver, ver_full, edition, D):
     from docx.enum.text import WD_TAB_ALIGNMENT
-    from docx.shared import Cm, Pt, RGBColor
+    from docx.shared import Pt, RGBColor
     width = sec.page_width - sec.left_margin - sec.right_margin
     sec.header.is_linked_to_previous = False
     sec.footer.is_linked_to_previous = False
@@ -654,14 +652,12 @@ def _header_footer(sec, doc_title, ver, ver_full, edition, D):
 
 def _toc(doc, W: _Writer, chapters, D):
     """TOC field (Word adds the sections and page numbers when updating) with the stored clickable list of chapters."""
-    from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
     from docx.shared import Cm, Pt, RGBColor
-    title = doc.add_paragraph(D["toc"], style="FEA Obsah")
+    doc.add_paragraph(D["toc"], style="FEA Obsah")
     hint = doc.add_paragraph()
     W.runs(hint, [(D["toc_hint"], set())], color=PAL["muted"], size=9)
     _spacing(hint, 0, 10)
     n = len(chapters)
-    width = Cm(17)
     for i, (slug, name) in enumerate(chapters):
         par = doc.add_paragraph()
         par.paragraph_format.tab_stops.add_tab_stop(Cm(1.1))
@@ -698,7 +694,7 @@ def export_docx(path: str | Path, author: str = "", only: list[str] | None = Non
                 lang: str = "cs", kind: str | None = None) -> Path:
     from docx import Document
     from docx.enum.section import WD_SECTION
-    from docx.shared import Cm, Pt
+    from docx.shared import Cm
     from .help_pdf import TEXTS
 
     kind = kind or _kind(only)

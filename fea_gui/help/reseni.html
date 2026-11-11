@@ -7,7 +7,7 @@
 <ol>
 <li>Go through the readiness check. Red items block the analysis; orange ones are warnings.</li>
 <li>Keep <b>Solver: Automatic (recommended – direct / iterative by model)</b> unless you have a reason not to.</li>
-<li>For natural frequencies or buckling enable <b>Natural frequencies</b> / <b>Buckling (linear)</b>. Dynamics (<a href="dynamika.html">Dynamics</a>) and contacts (<a href="kontakty.html">Contacts</a>) are set in their own steps and run with the same button.</li>
+<li>For natural frequencies or buckling enable <b>Natural frequencies</b> / <b>Buckling (linear)</b> / <b>Buckling (nonlinear, imperfection)</b>. Dynamics (<a href="dynamika.html">Dynamics</a>) and contacts (<a href="kontakty.html">Contacts</a>) are set in their own steps and run with the same button.</li>
 <li>Click <b>Run analysis</b>. Follow progress in the <b>Solver log</b> dock and errors in the <b>Messages</b> dock.</li>
 </ol>
 
@@ -20,6 +20,7 @@
 <tr><td>Install solvers…</td><td>Only when a solver is missing: opens Tools → Program modules….</td><td>Restart after installing.</td></tr>
 <tr><td><b>Natural frequencies</b>: compute, Number of modes, From, To</td><td>Modal analysis (Hz, mode shapes, effective mass fractions) with the study's supports and densities.</td><td>6–20 modes; possible without load cases.</td></tr>
 <tr><td><b>Buckling (linear)</b>: compute, Load case, Number of modes</td><td>Critical load factors λ and buckling modes for the loads of the selected case.</td><td>LINEAR – no imperfections or plasticity (see below).</td></tr>
+<tr><td><b>Buckling (nonlinear, imperfection)</b>: compute, Load case, Imperfection, Modes, Amplitude (e0 in mm or L / ratio), Length L, opposite direction, λ max, Increments, Monitored point</td><td>Large-deformation analysis of the structure with an initial imperfection up to the ultimate load factor λ_u (GNIA; GMNIA with plastic materials).</td><td>e0 from the design code (e.g. L/1000 for members, by quality class for shells); λ max empty = 1.1 × λ_cr; 20 increments.</td></tr>
 <tr><td>Run analysis / Cancel</td><td>Starts in the background (active only when the check has no errors) / terminates it (Gmsh, CalculiX, NGSolve, hypre); no results.</td><td></td></tr>
 <tr><td><b>Stop and keep results</b></td><td>Nonlinear analysis only: stops CalculiX and keeps the last converged increment as a <b>partial result</b> (red label in Results).</td><td>A job without a converged increment ends with an error.</td></tr>
 <tr><td>Green bar</td><td>Progress in % with phase and elapsed time (also in the status bar).</td><td>Nonlinear steps advance by CalculiX increments.</td></tr>
@@ -45,17 +46,40 @@
 <h2>Natural frequencies and buckling</h2>
 <p><b>Natural frequencies</b> (CalculiX *FREQUENCY) use the statics mesh. Mass comes from densities (a part without density is an error); the supports come from the study. Without supports the body is free and the first 6 frequencies are ≈ 0 Hz (rigid-body motions; a warning). A study may contain only frequencies, without load cases. Results: <b>Mode shape n: f = … Hz</b> in <a href="vysledky.html#tvary">Results</a> and the <b>Mode shapes</b> tab.</p>
 <p><b>Linear buckling</b> (CalculiX *BUCKLE) computes factors λ: loads of the selected case × λ = critical load. Negative λ = instability under reversed loading. The case's thermal load is included.</p>
-<p class="warn"><b>Caution:</b> buckling is linear – stress stiffening only, no imperfections, plasticity or large deformations. Real capacity is often well below λ·load. For design use EN 1993-1-1, 6.3 (χ) or a nonlinear analysis.</p>
+<p class="warn"><b>Caution:</b> linear buckling has stress stiffening only – no imperfections, plasticity or large deformations. Real capacity is often well below λ·load. For design use EN 1993-1-1, 6.3 (χ) or the nonlinear buckling with imperfection below.</p>
+<h3><a name="nelinearni-vzper"></a>Nonlinear buckling with imperfection (GNIA / GMNIA)</h3>
+<p>The group <b>Buckling (nonlinear, imperfection)</b> computes the load-carrying capacity of the imperfect structure (like Abaqus *IMPERFECTION + static analysis, or ANSYS Eigenvalue Buckling → Static Structural with an initial imperfection):</p>
+<ol>
+<li>linear buckling of the chosen load case (reused when <b>Buckling (linear)</b> computes the same case; plasticity is ignored here) → λ_cr and the buckling modes;</li>
+<li>the imperfection = the chosen mode(s) <b>Modes</b> (<i>1</i>, or a combination <i>1, 2*0.5</i>) scaled to the amplitude e0 (in mm or L / ratio; L = largest model dimension unless given). The mesh is copied and its nodes are moved – the original mesh stays unchanged. A half-sine bow or a shape from a CSV file can be set through MCP / Python;</li>
+<li>a CalculiX step with large deformations (NLGEOM): the loads of the case × λ rise from 0 to λ max with automatic increments. With a plastic material (<code>plastic</code>, MCP / Python) it is a GMNIA, otherwise a GNIA.</li>
+</ol>
+<p>Results: the <b>Mode shapes</b> tab shows the <b>ultimate load factor λ_u</b>, the status (limit point / no limit point up to λ max / stopped), λ_u/λ_cr, first yield (max von Mises = Re) and the <b>load–displacement curve</b> of the monitored point; the <b>Load case</b> menu adds “Nonlinear buckling (case): imperfection” and the deformed shapes “Nonlinear buckling (case): λ = …” (displacement in mm from the imperfect geometry).</p>
+<p class="warn"><b>Caution:</b> the imperfection shape and amplitude are <b>your responsibility</b> – take them from the design code (EN 1993-1-5 Annex C, EN 1993-1-6 by the fabrication quality class, EN 1993-1-1 5.3.2 for members); the capacity depends strongly on them. CalculiX has <b>no arc-length (Riks) method</b>: the load is controlled, so at a limit point the increments shrink until CalculiX stops – λ_u is the last converged increment (a lower bound) and the descending branch is not traced. A vanishing slope at the end of the curve confirms a limit point. An elastic structure (GNIA) may have no limit point – judge it by deflection or by first yield.</p>
+<p>Verified: BK1 (elastic cantilever, amplification e0·r/(1 − r) within 1.1 %), BK2 (GNIA + first yield = EN 1993-1-1 buckling curve c, Ayrton–Perry), BK3 (GMNIA of a steel column vs an independent column-deflection-curve model): <code>python -m verification.run_all BK1 BK2 BK3</code>.</p>
 <p>Solid linear buckling in CalculiX includes shear flexibility and is closer to Engesser's theory. Other codes may give solid-model eigenvalues a few percent higher or lower (different element formulation); ~1–2 % differences between codes are expected. Verified by M1 (cantilever, free plate), M2 and B1 (Euler, plate): <code>python -m verification.run_all M1 M2 B1</code>.</p>
 
 <h2>Nonlinear analysis (contacts and plasticity)</h2>
-<p>Plasticity is defined only through the MCP server or the Python API (material key <code>plastic</code>, assessment <code>fea_plasticity_assess</code>); the GUI does not offer it. Plasticity with kinematic hardening switches large deformations (NLGEOM) on automatically; without NLGEOM CalculiX models the Bauschinger effect isotropically or diverges.</p>
+<p>A material with <a href="materialy.html#plasticity">Plasticity</a> (Material properties window) makes the study <b>nonlinear</b> – the load is applied in increments with equilibrium iterations, the results get PEEQ and the <a href="vysledky.html#plasticity">Plasticity assessment</a>. Load cases run as branches (each from zero) unless a load history is defined; <b>Add unloading step</b> in the Plasticity section creates the sequence with a final unloading step for the residual stress. Plasticity with kinematic hardening switches large deformations (NLGEOM) on automatically; without NLGEOM CalculiX models the Bauschinger effect isotropically or diverges.</p>
 <p>A study with contact pairs (or bolted interfaces as contact) is computed <b>nonlinearly</b> – always in CalculiX; the solver choice does not apply. Load cases run either <b>each separately</b> (branches, in parallel, after bolt preload) or as a <b>step sequence</b> in one job (contact and friction state carry over) – see <a href="kontakty.html">Contacts</a>. Superposition does not apply. The equilibrium check uses the undeformed position, with contact in the deformed one (NLGEOM always deformed); dynamic steps are not checked.</p>
 <ul>
 <li>Iterations in every increment make it slower; progress shows in the log and the green bar.</li>
 <li>If it does not converge, the <b>last converged increment</b> is kept as a partial result with the warning “PARTIAL RESULT (…): analysis not completed …” and advice in Messages. <b>Stop and keep results</b> does the same.</li>
 <li>Convergence advice (displacement control, smaller first increment, friction only in the next step) is on the <a href="kontakty.html">Contacts</a> page.</li>
 </ul>
+
+<h3><a name="konvergence_nl"></a>Convergence monitor</h3>
+<p>For a nonlinear analysis the Solve step shows the section <b>Convergence (nonlinear analysis)</b>: the residual force and
+the displacement correction of every CalculiX iteration (logarithmic scale), a dotted line at each new increment or cutback,
+and a summary line (increments, iterations, cutbacks, last residual). During the run it follows the job live (the .cvg / .sta
+files of the work folder); afterwards the history is saved with the results and shown again when the project is opened.
+A residual that stops falling or many cutbacks point to a chattering contact, a missing support or too large a step.</p>
+<h3><a name="fronta"></a>Job queue</h3>
+<p><b>Tools → Job queue…</b> solves several saved .fea projects one after another, each in its own background process
+(<code>python -m fea_core solve-project</code>) – you can keep working in the window. Each solved project is saved as
+<code>&lt;name&gt;_results.fea</code> next to the source (the source is not changed); <b>Open result</b> loads it, <b>Show log</b>
+opens the solver output, <b>Cancel job</b> kills the process. One job runs at a time (memory goes to the solver); quitting
+the program stops the queue.</p>
 
 <h2>Dynamics</h2>
 <p>If enabled in <a href="dynamika.html">Dynamics</a>, it runs after statics: modal basis in CalculiX (optionally prestressed), static correction for residual modes, then modal superposition (harmonic, transient, random, shock, sine-sweep fatigue). Point mass and dynamics always use CalculiX; not possible with contacts, 2D sections or shells. Results: <a href="vysledky.html#dynamika">Results</a> (“Dynamics: …” items, Dynamics tab).</p>
@@ -101,7 +125,7 @@
 <li>Thermal cases, each separately in CalculiX.</li>
 <li>Statics: one load case = one step. With bolts a <b>Bolt preload</b> case is added. With contacts: branches or a step sequence.</li>
 <li>Equilibrium check of each case.</li>
-<li>Natural frequencies, buckling and dynamic response, if enabled.</li>
+<li>Natural frequencies, buckling (linear and nonlinear with imperfection) and dynamic response, if enabled.</li>
 <li>Creep of printed parts, if enabled in <a href="tisk.html">3D printing</a>: long-term cases are computed again with reduced stiffness; a case “&lt;case&gt; – creep 1000 h, 30 °C” is added.</li>
 <li>Assessment of bolts and welds (<b>Joints – utilization</b> dock).</li>
 </ol>

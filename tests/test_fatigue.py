@@ -3,12 +3,14 @@ import math
 
 import numpy as np
 import pytest
-import rainflow
 
-from fea_core.fatigue import kernel
-from fea_core.fatigue.history import Channel, LoadHistory, read_csv_points
-from fea_core.fatigue.settings import FatigueSettings
-from fea_core.fatigue.sn import SNCurve, estimate_sn, marin, mean_corrected
+pytest.importorskip("numba")                     # module accel (fatigue kernels)
+import rainflow  # noqa: E402
+
+from fea_core.fatigue import kernel  # noqa: E402
+from fea_core.fatigue.history import Channel, LoadHistory, read_csv_points  # noqa: E402
+from fea_core.fatigue.settings import FatigueSettings  # noqa: E402
+from fea_core.fatigue.sn import SNCurve, estimate_sn, marin, mean_corrected  # noqa: E402
 
 
 def _sorted_cycles(c):

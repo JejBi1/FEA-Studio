@@ -9,7 +9,6 @@ other faces parallel to the axis (planar perpendicular, cylindrical with the axi
 """
 from __future__ import annotations
 
-import math
 
 import numpy as np
 

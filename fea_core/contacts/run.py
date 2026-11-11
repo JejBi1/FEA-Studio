@@ -77,7 +77,7 @@ def run_nonlinear(study, mesh, workdir: Path, warnings: list, log, on_line=None,
     from ..ccx import parallel
     from .. import config
     from ..results import Results
-    from ..solve import constraint_masks, make_step, read_remote, _read_printed, StudyError
+    from ..solve import constraint_masks, make_step, StudyError
     from ..joints.fem import bolt_models
     from ..study import LoadCase
     workdir = Path(workdir)
@@ -172,8 +172,6 @@ def run_nonlinear(study, mesh, workdir: Path, warnings: list, log, on_line=None,
         bounds = step_bounds(steps)
         refs = _step_ends(dat, "NREF", "U", bounds) if m.ref_nodes and dat.exists() else []
         rsup = _remote_ends(dat, m, bounds) if m.remote and dat.exists() else []
-        gp = {c["pair"]: print_series(dat, c["ground_set"]) for c in m.contacts if c.get("ground_set")} \
-            if dat.exists() else {}
         motion_curves = _motion_curves(study, m, dat, steps, bounds) if dat.exists() else {}
         cf = contact_print(dat) if dat.exists() and m.contacts else []
         sig_ip = []

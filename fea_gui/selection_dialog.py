@@ -12,10 +12,9 @@ Preview in the 3D window of the model and creation of a named selection (Study.s
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
-                               QVBoxLayout, QWidget)
+                               QVBoxLayout)
 
 from fea_core.i18n import tr
 from fea_core.selectors import find_faces

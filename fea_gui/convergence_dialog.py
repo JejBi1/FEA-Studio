@@ -10,7 +10,7 @@ from html import escape
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QMessageBox,
-                               QPushButton, QSpinBox, QTableWidgetItem, QTextBrowser, QVBoxLayout)
+                               QPushButton, QSpinBox, QTableWidgetItem, QVBoxLayout)
 
 from .safe_browser import SafeTextBrowser
 from . import theme
@@ -215,7 +215,6 @@ class ConvergenceDialog(QDialog):
 
     # ------------------------------------------------------------------ calculation
     def run(self):
-        from fea_core.study import Study
         from .workers import TaskThread
         win = self.win
         if win.study is None or self.thread is not None:

@@ -24,6 +24,9 @@ from .motion.model import Mechanism
 from .combinations import Combination
 from .imprint import Imprint
 from .cad_link.model import CadLink
+from .imperfect.model import NonlinearBucklingSettings
+
+from .cyclic import CyclicSymmetry
 
 # version of the study file: 2 = F8 (contacts, nonlinear steps, mechanism, dynamics, added mass); older versions
 # of the program ignore the keys of the new version → "features" says what would be lost (Study.load_warnings)
@@ -32,12 +35,13 @@ TOP_KEYS = {"format", "version", "features", "name", "geometry", "materials", "d
             "selections", "constraints", "load_cases", "mesh", "solver", "fatigue", "bolts", "welds", "joints",
             "ignored_parts", "printing", "thermal", "coordinate_systems", "modal", "buckling", "frame", "twod",
             "shell", "masses", "contacts", "contact_settings", "analysis", "mechanism", "dynamics", "assessment", "combinations", "imprints",
-            "cad_link", "hidden_parts"}
+            "cad_link", "hidden_parts", "nlbuckling", "cyclic"}
 FEATURE_LABELS = {
     "contacts": "contacts", "analysis": "nonlinear stepping", "mechanism": "motion (mechanism)",
     "dynamics": "dynamics", "masses": "added mass", "plastic": "material plasticity",
     "combinations": "load combination", "imprints": "face imprints", "assessment": "stress assessment",
-    "cad_link": "CAD link and geometry iterations"
+    "cad_link": "CAD link and geometry iterations", "nlbuckling": "nonlinear buckling with imperfection",
+    "cyclic": "cyclic symmetry"
 }
 
 
@@ -392,6 +396,9 @@ class Study:
     combinations: list[Combination] = field(default_factory=list) # kombinace (A2)
     imprints: list = field(default_factory=list)                 # otisky na plose (A10)
     cad_link: CadLink | None = None                              # link to CAD + geometry iterations (cad_link)
+    nlbuckling: NonlinearBucklingSettings = field(default_factory=NonlinearBucklingSettings)  # GNIA / GMNIA (imperfect)
+
+    cyclic: CyclicSymmetry | None = None                         # cyclic symmetry of a sector (fea_core.cyclic, C3)
 
     def __post_init__(self):
         self.load_warnings: list[str] = []      # warnings on loading (file from a newer version) – outside the JSON
@@ -472,6 +479,11 @@ class Study:
             out.append("assessment")
         if self.cad_link is not None:
             out.append("cad_link")
+        if self.nlbuckling != NonlinearBucklingSettings():
+            out.append("nlbuckling")
+
+        if self.cyclic is not None:
+            out.append("cyclic")
         return out
 
     def active_bolts(self) -> list[BoltSpec]:
@@ -564,11 +576,16 @@ class Study:
         if self.combinations:
             d["combinations"] = [c.to_dict() for c in self.combinations]
         if self.imprints:
-            d["imprints"] = [asdict(imp) if hasattr(imp, "__dataclass_fields__") else dict(imp) for imp in self.imprints]
+            d["imprints"] = [imp.to_dict() if hasattr(imp, "to_dict") else dict(imp) for imp in self.imprints]
         if self.cad_link is not None:
             d["cad_link"] = self.cad_link.to_dict()
         if self.hidden_parts:
             d["hidden_parts"] = list(self.hidden_parts)
+        if self.nlbuckling != NonlinearBucklingSettings():
+            d["nlbuckling"] = self.nlbuckling.to_dict()
+
+        if self.cyclic is not None:
+            d["cyclic"] = self.cyclic.to_dict()
         return d
 
     @classmethod
@@ -628,6 +645,9 @@ class Study:
             combinations=[Combination.from_dict(c) for c in d.get("combinations", [])],
             imprints=[Imprint.from_dict(imp) if isinstance(imp, dict) else imp for imp in d.get("imprints", [])],
             cad_link=CadLink.from_dict(d.get("cad_link")) if isinstance(d.get("cad_link"), dict) else None,
+            nlbuckling=NonlinearBucklingSettings.from_dict(d["nlbuckling"] if isinstance(d.get("nlbuckling"), dict) else None),
+
+            cyclic=CyclicSymmetry.from_dict(d.get("cyclic")),
         )
         st.load_warnings = warnings
         return st

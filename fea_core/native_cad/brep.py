@@ -26,7 +26,7 @@ from OCP.TopAbs import TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_SOLID, To
 from OCP.TopExp import TopExp
 from OCP.collections import IndexedMap_TopoDS_Shape_TopTools_ShapeMapHasher as TopTools_IndexedMapOfShape
 from OCP.TopoDS import TopoDS_Compound, TopoDS_Face, TopoDS_Shell, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire
-from OCP.gp import gp_Ax2, gp_Ax3, gp_Dir, gp_Lin, gp_Pnt, gp_Trsf, gp_Vec, gp_Mat, gp_XYZ
+from OCP.gp import gp_Ax2, gp_Ax3, gp_Dir, gp_Lin, gp_Pnt, gp_Trsf
 from OCP.collections import Array1_gp_Pnt, Array2_gp_Pnt, Array1_double, Array1_int, Array2_double
 from OCP.Geom import (Geom_BSplineCurve, Geom_BSplineSurface, Geom_Circle, Geom_ConicalSurface,
                       Geom_CylindricalSurface, Geom_Ellipse, Geom_Line, Geom_Plane, Geom_SphericalSurface,

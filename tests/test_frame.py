@@ -2,7 +2,6 @@
 with the own solver (beams/timoshenko.py) and in ccx (element U1, without Gmsh, ~1 s), assessment EN 1993-1-1 from the result,
 recognition of a prismatic body.
 """
-import math
 
 import numpy as np
 import pytest

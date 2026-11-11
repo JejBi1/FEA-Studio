@@ -292,7 +292,7 @@ def test_fit_tabs_shrinks_to_current_page(app):
 
 
 def test_scroll_to_reveals_and_scrolls(app):
-    from fea_gui.widgets import Section, scroll_to
+    from fea_gui.widgets import scroll_to
     sc = QtWidgets.QScrollArea()
     sc.setWidgetResizable(True)
     host = QtWidgets.QWidget()

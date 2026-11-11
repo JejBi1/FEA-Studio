@@ -6,7 +6,7 @@ from html import escape
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
-                               QLineEdit, QSplitter, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget)
+                               QLineEdit, QSplitter, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from fea_core.fatigue import pragtic
 from fea_core.i18n import decimal

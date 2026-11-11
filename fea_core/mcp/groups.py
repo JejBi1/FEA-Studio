@@ -16,11 +16,11 @@ CORE = "core"
 GROUPS: dict[str, str] = {
     "core": "study, geometry/faces, materials, constraints, loads, mesh, solve, results, report, jobs, GUI control",
     "model": "edge/point selections, imprints, coordinate systems, elastic support, orthotropy, bearing/hydrostatic/rotation/"
-             "edge/point loads, hide/ignore parts, mesh refinement/convergence",
+             "edge/point loads, hide/ignore parts, mesh refinement/convergence, cyclic symmetry",
     "results": "section force, export (VTU/CSV), results along a line + linearization, load combinations (EN 1990), "
-               "topology optimization, plasticity assessment, nonlinear convergence",
+               "topology optimization, plasticity assessment, nonlinear convergence, parametric study (DOE), submodel",
     "thermal": "heat conduction (steady/transient), thermal stress",
-    "modal": "natural frequencies, linear buckling, mode shapes",
+    "modal": "natural frequencies, linear and nonlinear buckling (imperfection), mode shapes",
     "fatigue": "fatigue (S-N, rainflow, critical plane)",
     "joints": "bolts and welds (VDI 2230, EN 1993-1-8, IIW)",
     "print": "3D printing (FDM): shell/infill, creep, variants, sweep, advice, voxel detail",
@@ -44,7 +44,9 @@ MODULES: list[tuple[str, str, tuple[str, ...]]] = [
     ("tools_mesh", "core", ("model",)),
     ("tools_results", "core", ("results",)),
     ("tools_eigen", "modal", ()),
+    ("tools_nlbuckle", "modal", ()),
     ("tools_paths", "results", ()),
+    ("tools_submodel", "results", ()),
     ("tools_fatigue", "fatigue", ()),
     ("tools_joints", "joints", ("print",)),
     ("tools_print", "print", ()),
@@ -59,6 +61,9 @@ MODULES: list[tuple[str, str, tuple[str, ...]]] = [
     ("tools_motion", "motion", ()),
     ("tools_gui", "core", ()),
     ("tools_cad", "cad", ()),
+    ("tools_param", "results", ()),
+
+    ("tools_cyclic", "model", ()),
     ("prompts", "core", ()),
 ]
 

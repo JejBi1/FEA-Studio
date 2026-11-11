@@ -5,7 +5,6 @@ Fast tests through the MCP protocol without a calculation; e2e (Gmsh + ccx) mark
 """
 import json
 import math
-from pathlib import Path
 
 import pytest
 

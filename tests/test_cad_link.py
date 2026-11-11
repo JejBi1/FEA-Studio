@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import typing
 
 import numpy as np
 import pytest

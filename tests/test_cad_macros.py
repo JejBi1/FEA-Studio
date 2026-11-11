@@ -246,7 +246,7 @@ def _check_structure(d: dict) -> None:
     assert isinstance(d["document"], str) and d["document"]
     assert d["units"] == "mm"
     assert isinstance(d["parts"], list) and d["parts"]
-    generic = {"default", "default", "body1", "solid1", "part1"}
+    generic = {"default", "body1", "solid1", "part1"}
     for p in d["parts"]:
         assert isinstance(p, dict)
         assert isinstance(p["name"], str) and p["name"]

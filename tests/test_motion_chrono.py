@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("exudyn")
 
-from fea_core.motion.model import Body, MotionJoint, JointFriction, Driver, MotionLoad, MotionRun, MotionContact  # noqa: E402
+from fea_core.motion.model import Body, MotionJoint, JointFriction, MotionRun, MotionContact  # noqa: E402
 from fea_core.motion.chrono_run import available  # noqa: E402
 from tests.test_motion import _study, _crank, G  # noqa: E402
 

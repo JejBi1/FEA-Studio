@@ -15,7 +15,7 @@ OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "gui_shell_out").resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 
 import numpy as np  # noqa: E402
-from PySide6.QtCore import QTimer, Qt  # noqa: E402
+from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
 FAIL: list[str] = []

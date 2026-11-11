@@ -3,8 +3,6 @@
 - GUI dialogs for the export, the imprints and the combinations
 - Word protocol with the table of the combinations
 """
-import json
-from pathlib import Path
 import numpy as np
 import pytest
 

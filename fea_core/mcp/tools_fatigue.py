@@ -1,7 +1,6 @@
 """Tool: fatigue analysis (ch. 7) over the results of the statics – superposition of the states, rainflow, Miner."""
 from __future__ import annotations
 
-from pathlib import Path
 
 import numpy as np
 

@@ -93,6 +93,40 @@ include = ["fea_core*", "fea_gui*", "examples*", "verification*"]
 fea_core = ["*.json", "data/*.json", "i18n/*.json", "i18n/*.md"]
 fea_gui = ["help/*.html", "help/*.png", "help/*.css", "help/cs/*.html", "help/cs/*.png", "help/cs/*.json"]
 
+[tool.ruff]
+# Lint only (no formatter): a conservative rule set for real errors. CI: .github/workflows/tests.yml (job "lint").
+target-version = "py311"
+line-length = 160
+extend-exclude = [
+    "stepview",                         # copy of a standalone viewer (source for taking over, not edited)
+    "scratch",
+    "tools",
+    "dist",
+    "verification/abaqus_extract*.py",  # run by the Python 2.7 of Abaqus
+    "verification/build_docs_abaqus_report.py",
+    "verification/generate_*.py",
+    "verification/make_*.py",
+    "verification/patch_build_docs.py",
+    "verification/prepare_dashboard.py",
+    "verification/update_report_solvers.py",
+]
+
+[tool.ruff.lint]
+# F = pyflakes (undefined names, unused imports / variables, ...), E9 = syntax errors, B = selected bugbear checks
+# that point at real bugs (loop variables, mutable defaults, useless expressions, return in finally, ...).
+# (B023 "function uses loop variable" is not selected: in this code base the closures are called inside the loop – 41 false positives.)
+select = ["F", "E9", "B003", "B004", "B006", "B012", "B015", "B016", "B018", "B020", "B021", "B025",
+          "B029", "B030", "B032", "B033", "B035"]
+ignore = [
+    "F403", "F405",                     # star imports (re-export modules)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]               # re-exports
+"fea_core/calc/convection.py" = ["F401"]  # adapter that re-exports fea_core.calc.thermal_convection
+"tests/**" = ["B018", "F811", "F841"]  # bare expressions used to trigger errors; pytest fixtures imported and used as arguments
+"verification/**" = ["F841"]           # reference scripts keep intermediate quantities of the hand calculation
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: verification cases with Gmsh and CalculiX"]

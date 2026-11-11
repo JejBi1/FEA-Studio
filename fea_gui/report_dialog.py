@@ -189,6 +189,7 @@ def export_report(win) -> None:
     sess = session_from(Study.from_dict(st.to_dict()), win.step_path, win.results, None, win.fat_panel.result,
                         win.joints_panel.assessment, workdir=tempfile.mkdtemp(prefix="fea_report_"),
                         motion=getattr(win, "motion_result", None))           # Motion section (mechanism)
+    sess.param_study = getattr(win, "param_study", None)                       # section Parametric study (param_dialog)
     th = ReportThread(sess, path, opts, win)
     th.log.connect(win.log_msg)
     open_after = dlg.open_after.isChecked()

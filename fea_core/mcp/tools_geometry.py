@@ -192,25 +192,35 @@ def register(mcp, sess: Session) -> None:
     @mcp.tool(structured_output=False)
     def fea_imprint_add(name: str, part: str, shape: str = "circle",
                         center: list[float] | None = None, normal: list[float] | None = None,
-                        radius: float = 10.0, width: float = 10.0, height: float = 10.0) -> str:
-        """Imprint/split face: splits a part surface into a new named face (also a selection) for loads, constraints, contacts. name, part, shape circle|rectangle, center [x,y,z] mm, normal (default [0,0,1]), radius [mm] (circle), width/height [mm] (rectangle; rotation not supported)."""
+                        radius: float = 10.0, width: float = 10.0, height: float = 10.0,
+                        points: list[list[float]] | None = None, size_mm: float | None = None) -> str:
+        """Imprint/split face: splits a planar part face into a new named face (also a selection) for loads, constraints, contacts. name, part, shape circle|rectangle|polygon, center [x,y,z] mm, normal (default [0,0,1]), radius [mm] (circle), width/height [mm] (rectangle, axes of the face frame x' = n x X, y' = n x x'; rotation not supported). polygon: points = [[u,v],...] in the face frame around center, or [[x,y,z],...] global points projected onto their plane (center/normal then optional). size_mm = element size on the imprint."""
         with sess.use(op="imprint_add"):
             st = sess.require_study()
             if any(imp.name == name for imp in st.imprints):
                 raise FeaError(f"An imprint named '{name}' already exists")
-            from ..imprint import Imprint
-            imp = Imprint(
-                name=name,
-                part=part,
-                shape=shape,
-                center=list(center) if center else [0.0, 0.0, 0.0],
-                normal=list(normal) if normal else [0.0, 0.0, 1.0],
-                radius=float(radius),
-                dx=float(width),
-                dy=float(height),
-            )
-            if imp.shape not in ("circle", "rectangle"):
-                raise FeaError(f"Unknown imprint shape '{imp.shape}' (circle | rectangle)")
+            from ..imprint import Imprint, ImprintError
+            try:
+                if shape == "polygon" and points and all(len(p) == 3 for p in points):
+                    imp = Imprint.polygon_from_3d(name, part, points, normal=normal, size=size_mm)
+                else:
+                    if points and any(len(p) != 2 for p in points):
+                        raise ImprintError("points: all [u, v] (face frame) or all [x, y, z] (global)")
+                    imp = Imprint(
+                        name=name,
+                        part=part,
+                        shape=shape,
+                        center=list(center) if center else [0.0, 0.0, 0.0],
+                        normal=list(normal) if normal else [0.0, 0.0, 1.0],
+                        radius=float(radius),
+                        dx=float(width),
+                        dy=float(height),
+                        size=float(size_mm) if size_mm else None,
+                        points=[[float(u), float(v)] for u, v in points] if shape == "polygon" and points else [],
+                    )
+                    imp.validate()
+            except ImprintError as e:
+                raise FeaError(str(e)) from None
             if imp.part not in sess.part_names():
                 raise FeaError(f"Part '{imp.part}' does not exist. Parts: {', '.join(sess.part_names())}")
             st.imprints.append(imp)

@@ -7,8 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget, QMessageBox,
-                               QPushButton, QSpinBox, QStackedWidget, QTableWidget, QTableWidgetItem, QTextBrowser,
-                               QVBoxLayout, QWidget)
+                               QPushButton, QSpinBox, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from fea_core.fatigue.history import Channel, read_csv_points
 from fea_core.fatigue.settings import (CP_CRITERION_LABELS, CP_RATIO_DUCTILE, EQUIVALENT_LABELS, MEAN_LABELS,

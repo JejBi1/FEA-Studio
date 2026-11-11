@@ -25,7 +25,7 @@ from fea_core.printing.variants import BASE_NAME
 
 from .print_variants import (BAD_BG, OK_BG, PARETO_BG, PREV_NAME, REC_BG, WARN_BG, _Runner, adopt_new_mesh,
                              adopt_results, adopt_variant, status_color, status_brush, study_key)
-from .widgets import (LazyPlot, Section, check_item, checked, fit_rows, fmt_dash as fmt, help_tip, set_checks,
+from .widgets import (LazyPlot, check_item, checked, fit_rows, fmt_dash as fmt, help_tip, set_checks,
                       set_placeholder, table)
 from .workers import TaskThread
 

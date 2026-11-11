@@ -13,7 +13,8 @@ STEP_NAME = "model.step"
 META_NAME = "model.json"          # metadata from CAD for model.step (cad_import.sidecar_path) – the face table of the add-in
 RESULT_FILES = ("results.npz", "results_mesh.npz", "results_2d.npz",   # results_2d only for a 2D calculation
                 "results_shell.npz", "results_shell.json",              # results_shell only for shells
-                "results_dyn.npz")                                       # results_dyn only with dynamics
+                "results_dyn.npz",                                       # results_dyn only with dynamics
+                "results_sub.npz")                                       # results_sub only with submodels
 MOTION_FILE = "results_motion.npz"                                     # result of a mechanism (fea_core.motion)
 PROJECT_FILES = (STEP_NAME, META_NAME, "study.json", *RESULT_FILES, MOTION_FILE)   # everything the project may contain
 

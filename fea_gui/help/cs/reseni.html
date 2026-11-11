@@ -7,7 +7,7 @@
 <ol>
 <li>Projděte seznam kontroly připravenosti. Červené položky výpočet blokují, oranžové jsou varování.</li>
 <li>Ponechte <b>Řešič: Automaticky (doporučeno – přímý / iterační podle modelu)</b>, pokud nemáte důvod jinak.</li>
-<li>Chcete-li vlastní frekvence nebo vzpěr, zapněte skupiny <b>Vlastní frekvence</b> / <b>Vzpěr (lineární)</b>. Dynamiku nastavte v kroku <a href="dynamika.html">Dynamika</a>, kontakty v kroku <a href="kontakty.html">Kontakty</a> – počítají se stejným tlačítkem.</li>
+<li>Chcete-li vlastní frekvence nebo vzpěr, zapněte skupiny <b>Vlastní frekvence</b> / <b>Vzpěr (lineární)</b> / <b>Vzpěr (nelineární, imperfekce)</b>. Dynamiku nastavte v kroku <a href="dynamika.html">Dynamika</a>, kontakty v kroku <a href="kontakty.html">Kontakty</a> – počítají se stejným tlačítkem.</li>
 <li>Klikněte na <b>Spustit výpočet</b>. Průběh sledujte v doku <b>Log řešiče</b>, chyby a varování v doku <b>Zprávy</b>.</li>
 </ol>
 
@@ -20,6 +20,7 @@
 <tr><td>Doinstalovat řešiče…</td><td>Jen když řešič chybí: otevře Nástroje → Moduly programu…</td><td>Po instalaci program restartujte.</td></tr>
 <tr><td><b>Vlastní frekvence</b>: počítat, Počet módů, Od, Do</td><td>Modální analýza (Hz, tvary, podíly efektivních hmot) s vazbami studie a hustotou materiálů.</td><td>Obvykle 6–20 módů; jde i bez zatěžovacích stavů.</td></tr>
 <tr><td><b>Vzpěr (lineární)</b>: počítat, Zatěžovací stav, Počet módů</td><td>Kritické součinitele λ a tvary vzpěru pro zatížení zvoleného stavu.</td><td>LINEÁRNĚ – bez imperfekcí a plasticity (níže).</td></tr>
+<tr><td><b>Vzpěr (nelineární, imperfekce)</b>: počítat, Zatěžovací stav, Imperfekce, Tvary, Amplituda (e0 v mm nebo L / poměr), Délka L, opačný směr, λ max, Přírůstky, Sledovaný bod</td><td>Výpočet s velkými deformacemi konstrukce s počáteční imperfekcí až do mezního součinitele zatížení λ_u (GNIA; s plastickým materiálem GMNIA).</td><td>e0 podle normy (např. L/1000 pro pruty, pro skořepiny podle třídy kvality); λ max prázdné = 1,1 × λ_cr; 20 přírůstků.</td></tr>
 <tr><td>Spustit výpočet / Zrušit</td><td>Spustí výpočet na pozadí (aktivní jen bez chyb v kontrole) / ukončí jej (Gmsh, CalculiX, NGSolve, hypre); bez výsledků.</td><td></td></tr>
 <tr><td><b>Zastavit a ponechat výsledky</b></td><td>Jen nelineární výpočet: zastaví CalculiX a ponechá poslední konvergovaný přírůstek jako <b>částečný výsledek</b> (červený štítek ve Výsledcích).</td><td>Úloha bez konvergovaného přírůstku skončí chybou.</td></tr>
 <tr><td>Zelená lišta</td><td>Průběh výpočtu v % s fází a uplynulým časem (i ve stavovém řádku).</td><td>Nelineární kroky postupují podle přírůstků CalculiXu.</td></tr>
@@ -45,17 +46,40 @@
 <h2>Vlastní frekvence a vzpěr</h2>
 <p><b>Vlastní frekvence</b> (CalculiX *FREQUENCY) používají síť statiky. Hmotnost plyne z hustot (díl bez hustoty = chyba); vazby z vazeb studie. Bez vazeb je těleso volné a prvních 6 frekvencí vyjde ≈ 0 Hz (tuhé pohyby; varování). Studie může obsahovat jen frekvence, bez zatěžovacích stavů. Výsledky: položka <b>Vlastní tvar n: f = … Hz</b> ve <a href="vysledky.html#tvary">Výsledcích</a> a záložka <b>Vlastní tvary</b>.</p>
 <p><b>Lineární vzpěr</b> (CalculiX *BUCKLE) počítá součinitele λ: zatížení zvoleného stavu × λ = kritické zatížení. Záporné λ = ztráta stability při obráceném zatížení. Tepelné zatížení stavu se zahrne.</p>
-<p class="warn"><b>Pozor:</b> vzpěr je lineární – jen napěťové tužení, bez imperfekcí, plasticity a velkých deformací. Skutečná únosnost bývá výrazně pod λ·zatížení. Pro návrh použijte EN 1993-1-1, 6.3 (χ), nebo nelineární výpočet.</p>
+<p class="warn"><b>Pozor:</b> lineární vzpěr má jen napěťové tužení – bez imperfekcí, plasticity a velkých deformací. Skutečná únosnost bývá výrazně pod λ·zatížení. Pro návrh použijte EN 1993-1-1, 6.3 (χ), nebo nelineární vzpěr s imperfekcí (níže).</p>
+<h3><a name="nelinearni-vzper"></a>Nelineární vzpěr s imperfekcí (GNIA / GMNIA)</h3>
+<p>Skupina <b>Vzpěr (nelineární, imperfekce)</b> počítá únosnost konstrukce s počáteční imperfekcí (obdoba Abaqus *IMPERFECTION + statický výpočet, nebo ANSYS Eigenvalue Buckling → Static Structural s počáteční imperfekcí):</p>
+<ol>
+<li>lineární vzpěr zvoleného stavu (převezme se, pokud <b>Vzpěr (lineární)</b> počítá týž stav; plasticita se zde neuvažuje) → λ_cr a tvary vzpěru;</li>
+<li>imperfekce = zvolené tvary <b>Tvary</b> (<i>1</i>, nebo kombinace <i>1, 2*0.5</i>) přeškálované na amplitudu e0 (v mm nebo L / poměr; L = největší rozměr modelu, není-li zadána). Síť se zkopíruje a její uzly se posunou – původní síť zůstane beze změny. Půlvlnu sinusového prohnutí nebo tvar ze souboru CSV lze zadat přes MCP / Python;</li>
+<li>krok CalculiXu s velkými deformacemi (NLGEOM): zatížení stavu × λ roste od 0 do λ max s automatickými přírůstky. S plastickým materiálem (<code>plastic</code>, MCP / Python) jde o GMNIA, jinak o GNIA.</li>
+</ol>
+<p>Výsledky: záložka <b>Vlastní tvary</b> ukazuje <b>mezní součinitel zatížení λ_u</b>, stav (mezní bod / bez mezního bodu do λ max / zastaveno), λ_u/λ_cr, první plastizaci (max. von Mises = Re) a <b>pracovní diagram</b> (zatížení – posun sledovaného bodu); nabídka <b>Zatěžovací stav</b> přidá „Nelineární vzpěr (stav): imperfekce“ a deformované tvary „Nelineární vzpěr (stav): λ = …“ (posun v mm od imperfektní geometrie).</p>
+<p class="warn"><b>Pozor:</b> tvar a amplituda imperfekce jsou <b>vaše odpovědnost</b> – převezměte je z normy (EN 1993-1-5 příloha C, EN 1993-1-6 podle třídy kvality výroby, EN 1993-1-1 5.3.2 pro pruty); únosnost na nich silně závisí. CalculiX <b>nemá metodu délky oblouku (Riks)</b>: zatížení se řídí silou, takže v mezním bodě se přírůstky zmenšují, až CalculiX skončí – λ_u je poslední konvergovaný přírůstek (dolní odhad) a sestupná větev se nesleduje. Nulový sklon konce křivky potvrzuje mezní bod. Pružná konstrukce (GNIA) mezní bod mít nemusí – posuďte ji podle průhybu nebo první plastizace.</p>
+<p>Ověřeno: BK1 (pružná konzola, zesílení e0·r/(1 − r) do 1,1 %), BK2 (GNIA + první plastizace = vzpěrnostní křivka c EN 1993-1-1, Ayrton–Perry), BK3 (GMNIA ocelového prutu proti nezávislému modelu průhybové křivky): <code>python -m verification.run_all BK1 BK2 BK3</code>.</p>
 <p>Plné prvky v CalculiXu zahrnují poddajnost ve smyku a blíží se Engesserově teorii. Jiné programy mohou u plných modelů dát vlastní čísla o několik procent vyšší nebo nižší (jiná formulace prvku); rozdíly ~1–2 % mezi programy jsou očekávané. Ověřeno úlohami M1 (konzola, volná deska), M2 a B1 (Euler, deska): <code>python -m verification.run_all M1 M2 B1</code>.</p>
 
 <h2>Nelineární výpočet (kontakty a plasticita)</h2>
-<p>Plasticita se zadává jen přes MCP server nebo Python API (klíč materiálu <code>plastic</code>, posouzení <code>fea_plasticity_assess</code>); GUI ji nenabízí. Plasticita s kinematickým zpevněním zapne velké deformace (NLGEOM) automaticky; bez NLGEOM CalculiX Bauschingerův efekt modeluje izotropně nebo diverguje.</p>
+<p>Materiál s <a href="materialy.html#plasticity">plasticitou</a> (okno Vlastnosti materiálu) dělá studii <b>nelineární</b> – zatížení se vnáší po přírůstcích s rovnovážnými iteracemi, výsledky obsahují PEEQ a <a href="vysledky.html#plasticity">posouzení plasticity</a>. Zatěžovací stavy běží jako větve (každý od nuly), pokud není zadaná historie zatěžování; <b>Přidat krok odlehčení</b> v oddílu Plasticita vytvoří posloupnost s krokem odlehčení na konci pro zbytkové napětí. Plasticita s kinematickým zpevněním zapne velké deformace (NLGEOM) automaticky; bez NLGEOM CalculiX Bauschingerův efekt modeluje izotropně nebo diverguje.</p>
 <p>Studie s kontaktními páry (nebo šroubové spáry jako kontakt) se počítá <b>nelineárně</b> – vždy v CalculiXu, volba řešiče se nepoužije. Zatěžovací stavy běží buď <b>každý zvlášť</b> (větve, paralelně, po předpětí šroubů), nebo jako <b>posloupnost kroků</b> v jedné úloze (stav kontaktu a tření se přenáší) – viz <a href="kontakty.html">Kontakty</a>. Superpozice neplatí. Kontrola rovnováhy se dělá v nedeformované poloze, s kontaktem v deformované (s NLGEOM vždy deformované); dynamické kroky se nekontrolují.</p>
 <ul>
 <li>Iterace v každém přírůstku výpočet prodlužují; průběh je v logu a na zelené liště.</li>
 <li>Pokud nekonverguje, ponechá se <b>poslední konvergovaný přírůstek</b> jako částečný výsledek s varováním „ČÁSTEČNÝ VÝSLEDEK (…): výpočet nedokončen …“ a radou v dokumentu Zprávy. Tlačítko <b>Zastavit a ponechat výsledky</b> dělá totéž.</li>
 <li>Rady ke konvergenci (řízení posuvem, menší první přírůstek, tření až v dalším kroku) jsou na stránce <a href="kontakty.html">Kontakty</a>.</li>
 </ul>
+
+<h3><a name="konvergence_nl"></a>Sledování konvergence</h3>
+<p>U nelineárního výpočtu ukazuje krok Výpočet oddíl <b>Konvergence (nelineární výpočet)</b>: zbytkovou sílu a korekci posuvu
+každé iterace CalculiXu (logaritmické měřítko), tečkovanou čáru u každého nového přírůstku nebo zkrácení kroku a souhrnný řádek
+(přírůstky, iterace, zkrácení, poslední zbytek). Během výpočtu průběžně sleduje úlohu (soubory .cvg / .sta v pracovní složce);
+potom se průběh uloží s výsledky a ukáže se znovu po otevření projektu. Zbytek, který přestane klesat, nebo mnoho zkrácení kroku
+ukazují na kmitající kontakt, chybějící uložení nebo příliš velký krok.</p>
+<h3><a name="fronta"></a>Fronta výpočtů</h3>
+<p><b>Nástroje → Fronta výpočtů…</b> spočítá několik uložených projektů .fea postupně, každý ve vlastním procesu na pozadí
+(<code>python -m fea_core solve-project</code>) – v okně můžete dál pracovat. Každý spočítaný projekt se uloží jako
+<code>&lt;název&gt;_results.fea</code> vedle zdroje (zdroj se nemění); <b>Otevřít výsledek</b> ho načte, <b>Zobrazit log</b>
+otevře výstup řešiče, <b>Zrušit úlohu</b> ukončí proces. Najednou běží jedna úloha (paměť patří řešiči); ukončení programu frontu
+zastaví.</p>
 
 <h2>Dynamika</h2>
 <p>Je-li zapnutá v <a href="dynamika.html">Dynamice</a>, počítá se po statice: modální báze v CalculiXu (volitelně s předpětím), statická korekce zbytkových módů a odezvy modální superpozicí (harmonická, přechodová, náhodné vibrace, ráz, únava rozmítáním). Bodová hmota a dynamika vždy používají CalculiX; nejde s kontakty, 2D řezem ani skořepinami. Výsledky: <a href="vysledky.html#dynamika">Výsledky</a> (položky „Dynamika: …“, záložka Dynamika).</p>
@@ -101,7 +125,7 @@
 <li>Tepelné stavy (jsou-li), každý zvlášť v CalculiXu.</li>
 <li>Statika: jeden zatěžovací stav = jeden krok. Se šrouby přibude stav <b>Předpětí šroubů</b>. S kontakty nelineárně – větve nebo posloupnost kroků.</li>
 <li>Kontrola rovnováhy každého stavu.</li>
-<li>Vlastní frekvence, vzpěr a dynamická odezva (jsou-li zapnuty).</li>
+<li>Vlastní frekvence, vzpěr (lineární i nelineární s imperfekcí) a dynamická odezva (jsou-li zapnuty).</li>
 <li>Tečení tištěných dílů (je-li zapnuto v <a href="tisk.html">3D tisku</a>): dlouhodobé stavy se počítají znovu se sníženou tuhostí; přibude stav „&lt;stav&gt; – tečení 1000 h, 30 °C“.</li>
 <li>Posouzení šroubů a svarů (dok <b>Spoje – využití</b>).</li>
 </ol>

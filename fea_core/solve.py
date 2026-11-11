@@ -71,6 +71,10 @@ def check_study(study: Study, part_names: list[str]) -> tuple[list[str], list[st
     e8, w8 = check_eigen(study, part_names)
     errors += e8
     warnings += w8
+    from .imperfect.run import check as check_nlbuckling       # nonlinear buckling with imperfection (F9 C2)
+    e8, w8 = check_nlbuckling(study, part_names)
+    errors += e8
+    warnings += w8
     from .beams.run import check as check_frame
     e11, w11 = check_frame(study)
     errors += e11
@@ -99,6 +103,10 @@ def check_study(study: Study, part_names: list[str]) -> tuple[list[str], list[st
     e15, w15 = check_plasticity(study, [p for p in part_names if p not in excl])
     errors += e15
     warnings += w15
+    from .cyclic import check as check_cyclic
+    e16, w16 = check_cyclic(study, part_names)
+    errors += e16
+    warnings += w16
     from .solvers import check_backend               # manually chosen solver: installed? can it do the study? (before meshing)
     errors += check_backend(study)
     warnings += list(getattr(study, "load_warnings", []))
@@ -455,6 +463,10 @@ def mesh_study(study: Study, parts, workdir: Path, cancel=None) -> tuple[Mesh, l
         sels.update(extra)
         warnings += jw
     msettings = asdict(study.mesh)
+    if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:   # periodic mesh of the cut faces
+        c = study.cyclic
+        msettings["periodic"] = {"left": c.left, "right": c.right, "axis_point": list(c.axis_point),
+                                 "axis_dir": list(c.axis_dir), "sectors": int(c.sectors)}
     if study.active_contacts():                   # parts of the contact pairs are meshed separately (without *TIE between them)
         from .contacts.detect import contact_parts
         cp = contact_parts(study)
@@ -743,6 +755,10 @@ def make_step(study: Study, mesh: Mesh, lc, U, S, RF, masks, refd=None, ref_forc
     allc = np.zeros((n, 3), bool)
     for msk in masks.values():
         allc |= msk
+    cyc = None
+    if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:
+        from .cyclic import post_step          # per-sector reactions, forces across the cut faces, stresses at the cut
+        RF, S, cyc = post_step(study, mesh, RF, F, S, allc)
     R = np.where(allc, RF - F, 0.0)
     # cylindrical support: reaction = projection of RF − F onto the constrained directions (radial / tangential / axial) at the nodes;
     # a selection with clamping / displacement is computed in global components
@@ -775,6 +791,8 @@ def make_step(study: Study, mesh: Mesh, lc, U, S, RF, masks, refd=None, ref_forc
         mom = np.cross(np.asarray(Xg, float) - c0, np.asarray(Fg, float)).sum(axis=0)
         rmom[name] = mom
         Rp, Mp = Rp + reac[name], Mp + mom
+    if cyc is not None:                                    # forces across the cut faces of the sector (neighbouring sectors)
+        Rp, Mp = Rp + np.asarray(cyc["cut_force"]), Mp + np.asarray(cyc["cut_moment"])
     if x_eq is not None:                                   # NLGEOM: moments about the deformed position
         x = np.asarray(x_eq, float)
     if frame is not None:
@@ -793,6 +811,8 @@ def make_step(study: Study, mesh: Mesh, lc, U, S, RF, masks, refd=None, ref_forc
     if x_eq is not None:
         st.equilibrium["deformed"] = True
     st.equilibrium["applied_exact"] = load_resultant(study, mesh, lc).tolist()
+    if cyc is not None:
+        st.equilibrium["cyclic"] = cyc
     if check and st.equilibrium["imbalance"] > config.EQUILIBRIUM_TOL:
         e = st.equilibrium
         raise CcxError(
@@ -853,6 +873,9 @@ def run_study(study: Study, workdir: str | Path, study_dir: str | Path | None = 
         thermal, thermal_bg = _start_thermal(study, mesh, workdir, warnings, log, on_solver_line, cancel, prog)
     if not has_mech:                                 # heat conduction / natural frequencies only
         res = Results(mesh, [], warnings, {"backend": "ccx"}, thermal)
+        if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:
+            from .cyclic import summary as cyclic_summary
+            res.info["cyclic"] = cyclic_summary(study, mesh)
         _add_eigen(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
         _add_dynamics(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
         res.info["ccx_solver"] = ccx_solver_note(study, res.warnings, log)
@@ -864,16 +887,23 @@ def run_study(study: Study, workdir: str | Path, study_dir: str | Path | None = 
         return res
     # background creep with the original log – its messages (own run_study) must not move the progress of the main calculation
     creep_bg = start_creep(study, mesh, thermal, workdir, raw_log, on_solver_line, cancel)
+    from .side_jobs import SideJobs                  # eigen / dynamics beside the load cases when the machine has room
+    side = SideJobs(study, mesh, workdir, raw_log, on_solver_line, cancel, thermal, prog)
     try:
-        res = _run_mechanics(study, mesh, workdir, warnings, log, on_solver_line, cancel, thermal, creep_bg, prog)
+        with side.mech_budget():
+            res = _run_mechanics(study, mesh, workdir, warnings, log, on_solver_line, cancel, thermal, creep_bg, prog)
     except BaseException:
-        for bg in (thermal_bg, creep_bg):
+        for bg in (thermal_bg, creep_bg, side):
             if bg is not None:
                 bg.abort()
         raise
     try:
-        _add_eigen(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
-        _add_dynamics(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
+        if side.active:
+            side.join(res)
+            _add_nlbuckling(study, mesh, res, workdir, log, on_solver_line, cancel)
+        else:
+            _add_eigen(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
+            _add_dynamics(study, mesh, res, workdir, log, on_solver_line, cancel, prog)
     except BaseException:
         for bg in (thermal_bg, creep_bg):
             if bg is not None:
@@ -932,7 +962,7 @@ def run_shellmodel(study, workdir, study_dir=None, parts=None, on_log=None, canc
 
 def _add_eigen(study, mesh, res, workdir, log, on_solver_line, cancel, prog=None) -> None:
     """Natural frequencies and buckling (fea_core.eigen) – separate ccx jobs on the same mesh."""
-    if not (study.modal.enabled or study.buckling.enabled):
+    if not (study.modal.enabled or study.buckling.enabled or study.nlbuckling.enabled):
         return
     from .eigen import run_eigen, EigenError
     lines = on_solver_line
@@ -941,8 +971,23 @@ def _add_eigen(study, mesh, res, workdir, log, on_solver_line, cancel, prog=None
         prog.phase("eigen", "Natural frequencies / buckling (CalculiX)")
         lines = prog.lines(on_solver_line, "eigen", CcxLines(int(study.modal.enabled) + int(study.buckling.enabled)))
     try:
-        res.modes = run_eigen(study, mesh, Path(workdir) / "eigen", log, lines, cancel, res.thermal)
+        if study.modal.enabled or study.buckling.enabled:
+            res.modes = run_eigen(study, mesh, Path(workdir) / "eigen", log, lines, cancel, res.thermal)
     except EigenError as e:
+        raise StudyError(str(e)) from None
+    _add_nlbuckling(study, mesh, res, workdir, log, on_solver_line, cancel)
+
+
+def _add_nlbuckling(study, mesh, res, workdir, log, on_solver_line, cancel) -> None:
+    """Nonlinear buckling with imperfection (fea_core.imperfect) after the linear modes – also when those ran beside the
+    load cases (side_jobs), because it reuses the buckling modes of res.modes."""
+    if not study.nlbuckling.enabled:
+        return
+    from .imperfect.model import ImperfectionError
+    from .imperfect.run import attach as attach_nlbuckling       # nonlinear buckling with imperfection (F9 C2)
+    try:
+        attach_nlbuckling(study, mesh, res, Path(workdir) / "nlbuckle", log, on_solver_line, cancel)
+    except ImperfectionError as e:
         raise StudyError(str(e)) from None
 
 
@@ -1204,6 +1249,9 @@ def _run_mechanics(study, mesh, workdir, warnings, log, on_solver_line, cancel, 
             st.joints = to_json(step_forces(study, mesh, geom, RF, F, sig_ip[k] if k < len(sig_ip) else None))
         steps.append(st)
     info = {"inp_map": inpmap, "log": str(runs[0].log_path), "backend": "ccx", "ccx_solver": ccx_solver}
+    if getattr(study, "cyclic", None) is not None and study.cyclic.enabled:
+        from .cyclic import summary as cyclic_summary
+        info["cyclic"] = cyclic_summary(study, mesh)
     if inpmap.frame:
         from .beams.run import fe_info
         info["frame"] = fe_info(inpmap.frame["fe"], inpmap.frame["base"])

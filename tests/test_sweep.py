@@ -1,16 +1,12 @@
-import math
-import copy
-from pathlib import Path
 import numpy as np
 import pytest
 
 from fea_core.sweep import (
-    DesignPoint, ParametricStudySpec, ParametricStudyResult,
-    identify_pareto, scale_study_loads, run_parametric_study
+    DesignPoint, ParametricStudySpec, identify_pareto, scale_study_loads, run_parametric_study
 )
 from fea_core.study import (
     Study, Material, LoadCase, Force, Pressure, Gravity,
-    RemoteLoad, BearingLoad, Rotation, ThermalLoad, MeshSettings
+    RemoteLoad, BearingLoad, Rotation, ThermalLoad
 )
 from fea_core.mesh import Mesh
 from fea_core.results import Results, StepResult
@@ -122,7 +118,7 @@ def test_pure_load_sweep_shortcut(tmp_path, monkeypatch):
 
     solve_count = 0
 
-    def mock_run_study(study, workdir, cancel=None, mesh=None):
+    def mock_run_study(study, workdir, cancel=None, mesh=None, **kw):
         nonlocal solve_count
         solve_count += 1
         return mock_res
@@ -191,3 +187,71 @@ def test_part_nodes_element_indexing_fix(tmp_path, monkeypatch):
 
     # The minimum safety must be 1.5 (from Part2), neither infinity nor wrongly indexed
     assert res.points[0].min_safety == pytest.approx(1.5)
+
+
+# --------------------------------------------------------------------- generic parameters (C4b wiring)
+from fea_core.sweep import SweepParam, SweepError, apply_params, check_spec, parse_values, _linear_scalable
+
+
+def _study2():
+    st = Study(name="P", geometry="m.step")
+    st.materials["S"] = Material(name="S", E=210000.0, nu=0.3, rho=7.85e-9, Re=235.0)
+    st.materials["A"] = Material(name="A", E=70000.0, nu=0.33, rho=2.7e-9, Re=160.0)
+    st.part_materials["P1"] = "S"
+    st.load_cases += [LoadCase("L1", [Force("f", [0, 0, -100.0])]), LoadCase("L2", [Pressure("p", 2.0)])]
+    return st
+
+
+def test_parse_values():
+    assert parse_values("1, 1.5 2") == [1.0, 1.5, 2.0]
+    assert parse_values("0:1:5") == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert parse_values("1,5; 2,5") == [1.5, 2.5]
+    assert parse_values("grid, gyroid", numeric=False) == ["grid", "gyroid"]
+    with pytest.raises(SweepError):
+        parse_values("a, b")
+
+
+def test_grid_and_list_modes():
+    grid = ParametricStudySpec.from_params([SweepParam("case_factor", [1, 2], target="L1"),
+                                            SweepParam("material_prop", [1e5, 2e5, 3e5], target="S", field="E")])
+    assert len(grid.combinations()) == 6 and grid.total() == 6
+    lst = ParametricStudySpec.from_params([SweepParam("mesh_size", [5, 4, 3]), SweepParam("load_factor", [1, 2, 3])],
+                                          mode="list")
+    assert lst.combinations() == [{"mesh_size": 5, "load_factor": 1}, {"mesh_size": 4, "load_factor": 2},
+                                  {"mesh_size": 3, "load_factor": 3}]
+    bad = ParametricStudySpec.from_params([SweepParam("mesh_size", [5, 4]), SweepParam("load_factor", [1])], mode="list")
+    assert any("same number" in e for e in check_spec(_study2(), bad))
+
+
+def test_apply_params_copies_and_changes():
+    st = _study2()
+    v = apply_params(st, {"case_factor:L1": 3.0, "prop:S:E": 100000.0, "material:P1": "A", "mesh_size": 2.0})
+    assert v.load_cases[0].loads[0].vector == [0.0, 0.0, -300.0]
+    assert v.load_cases[1].loads[0].value == 2.0                   # other case unchanged
+    assert v.materials["S"].E == 100000.0 and v.part_materials["P1"] == "A" and v.mesh.size == 2.0
+    assert st.materials["S"].E == 210000.0 and st.load_cases[0].loads[0].vector == [0, 0, -100.0]   # original unchanged
+    with pytest.raises(SweepError):
+        apply_params(st, {"case_factor:nope": 2.0})
+    errs = check_spec(st, ParametricStudySpec.from_params([SweepParam("material", ["Unknown"], target="P1"),
+                                                           SweepParam("print", [2, 3], target="P1", field="walls")]))
+    assert len(errs) == 2
+
+
+def test_linear_shortcut_per_case_factors(tmp_path, monkeypatch):
+    """Case factors in a linear study: one analysis, KPI of each case scaled by its own factor."""
+    st = _study2()
+    nodes = np.array([[0.0, 0, 0], [10.0, 0, 0], [0, 10.0, 0], [0, 0, 10.0]])
+    mesh = Mesh(nodes, np.array([[0, 1, 2, 3]]), np.zeros(1, dtype=np.int32), ["P1"])
+    s1 = StepResult("L1", np.full((4, 3), 0.1), np.array([[50.0, 0, 0, 0, 0, 0]] * 4))
+    s2 = StepResult("L2", np.full((4, 3), 0.01), np.array([[10.0, 0, 0, 0, 0, 0]] * 4))
+    calls = []
+    monkeypatch.setattr("fea_core.sweep.run_study", lambda *a, **k: calls.append(1) or Results(mesh, [s1, s2], [], {}))
+    assert _linear_scalable(st)
+    spec = ParametricStudySpec.from_params([SweepParam("case_factor", [1.0, 0.1], target="L1"),
+                                            SweepParam("case_factor", [1.0, 10.0], target="L2")])
+    res = run_parametric_study(st, spec, tmp_path)
+    assert len(calls) == 1 and res.linear_shortcut and len(res.points) == 4
+    p = {(d.params["case_factor:L1"], d.params["case_factor:L2"]): d for d in res.points}
+    assert p[(1.0, 1.0)].max_stress == pytest.approx(50.0)
+    assert p[(0.1, 10.0)].max_stress == pytest.approx(100.0)           # L2 ×10 governs
+    assert p[(0.1, 1.0)].min_safety == pytest.approx(235.0 / 10.0)     # L1 5 MPa, L2 10 MPa

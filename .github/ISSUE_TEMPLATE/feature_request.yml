@@ -1,0 +1,20 @@
+name: Feature request
+description: A new analysis, a missing option or an improvement of the workflow
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to analyse or do?
+      description: Describe the engineering task, not only the button you miss.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference
+      description: How could the result be verified (standard, analytical solution, literature, another program)?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How do you work around it now?

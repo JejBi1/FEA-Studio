@@ -16,7 +16,7 @@ windows are created).
 from __future__ import annotations
 
 from PySide6.QtCore import QCoreApplication, QEvent, QLocale, QModelIndex, QObject, Qt, QTranslator
-from PySide6.QtGui import QAction, QStandardItem
+from PySide6.QtGui import QAction, QIcon, QStandardItem
 from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractSpinBox, QApplication, QComboBox,
                                QDockWidget, QFileDialog, QGroupBox, QInputDialog, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QMenu, QMessageBox, QPlainTextEdit, QProgressBar, QStatusBar,
@@ -644,7 +644,7 @@ def flag_icon(lang: str) -> QIcon:
         if not svg_str:
             return QIcon()
         from PySide6.QtCore import QByteArray, QRectF
-        from PySide6.QtGui import QIcon, QPainter, QPixmap
+        from PySide6.QtGui import QPainter, QPixmap
         from PySide6.QtSvg import QSvgRenderer
         app = QApplication.instance()
         dpr = app.devicePixelRatio() if app is not None else 1.0

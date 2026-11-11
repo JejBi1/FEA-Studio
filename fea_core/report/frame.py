@@ -111,7 +111,7 @@ def mesh_rows(sess, res) -> list[tuple[str, str]]:
 
 def _render(sess, i, quantity, img_dir: Path, view, warnings, util=None) -> Path | None:
     from ..mcp.frame_scenes import result_frame_scene
-    from ..mcp.render import render
+    from .images import render
     try:
         scene, _ = result_frame_scene(sess, i, quantity, None, 12, util)
         img_dir.mkdir(parents=True, exist_ok=True)

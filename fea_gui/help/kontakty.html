@@ -39,6 +39,7 @@ Penetration with a type other than interference is an assembly error (modelled t
 <tr><td>Stick slope λ</td><td>Tangential stiffness while sticking [N/mm³]; elastic slip = τ/λ.</td><td>auto = K/100</td></tr>
 <tr><td>Interference / clearance</td><td>One radial value per pair (overrides geometric gap); negative = interference.</td><td>press fit Ø20 H7/s6: −0.01 to −0.02 mm</td></tr>
 <tr><td>Adjust nodes into contact</td><td>Moves slave nodes onto the master (small CAD gaps). Never with interference.</td><td></td></tr>
+<tr><td>Thermal conductance</td><td>Contact conductance h_c [W/(m²·K)] of the pair for the <a href="teplo.html#conductance">heat analysis</a>: temperature jump ΔT = q / h_c across the pair faces. 0 = perfect thermal contact. <b>Suggest…</b> gives typical values and an estimate from the materials and pressure. Not for “Bonded” / “No interaction” pairs – a bonded interface gets h_c in the Heat step.</td><td>steel dry 1 000–3 000, bolted 5 000 W/(m²·K)</td></tr>
 <tr><td>Formulation</td><td>Surface-to-surface (default, pressure ±0.1 %), mortar (hard contact, interference), node-to-surface (friction convergence only).</td><td>one per study</td></tr>
 <tr><td>Interface meshing</td><td>Separate meshes (non-conforming; required for interference) or conforming with split interface (bolted joints).</td><td></td></tr>
 <tr><td>Large deformations (NLGEOM)</td><td>Geometric nonlinearity – snap fit, cam. Not with bolts, cylindrical or distributing supports.</td><td></td></tr>

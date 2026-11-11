@@ -6,7 +6,6 @@ scratch/native_cad/…/samples, otherwise they are skipped. The other tests (mod
 from __future__ import annotations
 
 import ctypes
-import io
 import zipfile
 from pathlib import Path
 

@@ -9,13 +9,15 @@ through matplotlib in pixel coordinates – the module must not import pyplot (c
 from __future__ import annotations
 
 import math
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 
 from ..contour import band_colors
-from .raster import raster_triangles, raster_lines, downsample
+from .raster import raster_triangles, raster_lines, downsample, to_rgb8  # noqa: F401 – downsample re-exported
 
 # views: direction towards the camera, direction up (axis Z up as in the CAD)
 VIEWS = {
@@ -183,6 +185,46 @@ def _fit(scene: Scene, r, u, rect):
     return s, cx, cy, vx + 0.5 * vw, vy + 0.5 * vh
 
 
+_tls = threading.local()
+
+
+@contextmanager
+def reuse_buffers():
+    """Within the block this thread keeps its raster buffers between pictures (a report draws dozens of them: a fresh
+    3200 × 1800 float64 colour buffer costs ~0.3 s of page faults). Outside the block every picture allocates its own
+    and nothing stays in memory (MCP server, GUI).
+    """
+    old = getattr(_tls, "bufs", None)
+    if old is None:
+        _tls.bufs = {}
+    try:
+        yield
+    finally:
+        if old is None:
+            _tls.bufs = None
+
+
+def keep_buffers() -> None:
+    """This thread keeps its raster buffers until it ends (worker threads of the report pictures)."""
+    if getattr(_tls, "bufs", None) is None:
+        _tls.bufs = {}
+
+
+def _buffers(Hs: int, Ws: int):
+    """z-buffer (−inf), colour buffer (white) and id buffer (−1) of the supersampled picture."""
+    cache = getattr(_tls, "bufs", None)
+    if cache is None:
+        return (np.full((Hs, Ws), -np.inf), np.ones((Hs, Ws, 3)), np.full((Hs, Ws), -1, dtype=np.int64))
+    b = cache.get((Hs, Ws))
+    if b is None:
+        cache.clear()                                   # one size at a time (memory)
+        b = cache[(Hs, Ws)] = (np.empty((Hs, Ws)), np.empty((Hs, Ws, 3)), np.empty((Hs, Ws), dtype=np.int64))
+    b[0].fill(-np.inf)
+    b[1].fill(1.0)
+    b[2].fill(-1)
+    return b
+
+
 def render(scene: Scene, path: str | Path, view="iso", width: int = 1280, height: int = 720,
            supersample: int = 2) -> dict:
     """Renders the scene into PNG. view = name (VIEWS), a vector of the direction towards the camera, or "multi" (2×2: iso,
@@ -210,9 +252,7 @@ def render(scene: Scene, path: str | Path, view="iso", width: int = 1280, height
         rects = [area]
     k = int(supersample)
     Hs, Ws = H * k, W * k
-    zbuf = np.full((Hs, Ws), -np.inf)
-    cbuf = np.ones((Hs, Ws, 3))
-    idbuf = np.full((Hs, Ws), -1, dtype=np.int64)
+    zbuf, cbuf, idbuf = _buffers(Hs, Ws)
     V, T = scene.V, np.asarray(scene.T, np.int64).reshape(-1, 3)
     has_tri = len(T) > 0                                # bars only → no triangles
     n = tri_normals(V, T) if has_tri else np.zeros((0, 3))
@@ -299,13 +339,15 @@ def render(scene: Scene, path: str | Path, view="iso", width: int = 1280, height
                 return False
             return bool(z[0] >= win.max() - 2 * bias)
         views_out.append((vlabel, rect, proj, visible, r, u, d, s))
-    img = (np.clip(downsample(cbuf, k), 0, 1) * 255).astype(np.uint8)
+    img = to_rgb8(cbuf, k)
 
     # ---------------------------------------------------------------- popisky (matplotlib Agg)
+    # The raster picture fills the whole canvas 1:1: it is written straight into the Agg buffer (the same pixels as
+    # ax.imshow(interpolation="none") at this size, without its resampling ~0.4 s) and the labels are drawn over it.
     fig = Figure(figsize=(W / 100, H / 100), dpi=100)
-    FigureCanvasAgg(fig)
+    canvas = FigureCanvasAgg(fig)
+    fig.patch.set_visible(False)
     ax = fig.add_axes((0, 0, 1, 1))
-    ax.imshow(img, extent=(0, W, H, 0), interpolation="none")
     ax.set_xlim(0, W)
     ax.set_ylim(H, 0)
     ax.axis("off")
@@ -410,9 +452,30 @@ def render(scene: Scene, path: str | Path, view="iso", width: int = 1280, height
             ax.text(lx + 1.6 * fs, y + 0.5 * fs, txt, fontsize=fs * 0.8, va="center")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=100, format="png")
+    _save_png(fig, canvas, img, path)
     return {"path": str(path), "width": W, "height": H, "views": [v[0] for v in views_out],
             "px_per_mm": [round(float(v[7]), 4) for v in views_out], "markers_visible": vis}
+
+
+def _save_png(fig, canvas, img: np.ndarray, path: Path) -> None:
+    """Figure → PNG as fig.savefig(path, dpi=100) with the picture img (H, W, 3) as the background of the whole canvas:
+    the Agg buffer is filled with img, the artists are drawn over it and the buffer is written by the same
+    matplotlib.image.imsave call that print_png uses.
+    """
+    import matplotlib.image as mimage
+    renderer = canvas.get_renderer()
+    renderer.clear()
+    buf = np.asarray(renderer.buffer_rgba())
+    if buf.shape[:2] != img.shape[:2]:                   # cannot happen for W, H in px at dpi 100 – plain way then
+        ax = fig.axes[0]
+        ax.imshow(img, extent=(0, img.shape[1], img.shape[0], 0), interpolation="none", zorder=-1)
+        fig.patch.set_visible(True)
+        fig.savefig(path, dpi=100, format="png")
+        return
+    buf[..., :3] = img
+    buf[..., 3] = 255
+    fig.draw(renderer)
+    mimage.imsave(path, renderer.buffer_rgba(), format="png", origin="upper", dpi=fig.dpi)
 
 
 def _marker(ax, m, x, y, v, rect, fs):

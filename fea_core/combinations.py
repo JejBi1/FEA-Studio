@@ -12,7 +12,7 @@ from typing import Any
 
 import numpy as np
 
-from .results import Results, StepResult, von_mises, principal
+from .results import Results, StepResult
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .study import Study
